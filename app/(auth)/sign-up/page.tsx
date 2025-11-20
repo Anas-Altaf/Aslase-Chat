@@ -11,6 +11,7 @@ export default function SignUpPage() {
     email: '',
     password: '',
     confirmPassword: '',
+    phoneNumber:''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,7 +42,7 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
-      await signUp(formData.email, formData.password, formData.displayName);
+      await signUp(formData.email, formData.password, formData.displayName,formData.phoneNumber);
       router.push('/');
     } catch (err: any) {
       setError(err.message || 'Failed to create account. Please try again.');
