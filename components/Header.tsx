@@ -34,13 +34,13 @@ export default function Header() {
 
           <div className="flex items-center gap-4">
             <Link
-              href="/auth/login"
+              href="/sign-in"
               className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
             >
               Sign In
             </Link>
             <Link
-              href="/auth/signup"
+              href="/sign-up"
               className="px-4 py-2 text-sm font-medium bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors"
             >
               Get Started
