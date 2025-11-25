@@ -11,7 +11,7 @@ export default function SignUpPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    phoneNumber:''
+    referredBy: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,7 +42,7 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
-      await signUp(formData.email, formData.password, formData.displayName,formData.phoneNumber);
+      await signUp(formData.email, formData.password, formData.displayName, formData.referredBy);
       router.push('/');
     } catch (err: any) {
       setError(err.message || 'Failed to create account. Please try again.');
@@ -52,14 +52,14 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-purple-50 to-pink-100 dark:from-gray-900 dark:to-gray-800 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen  flex  bg-linear-to-br from-purple-50 to-pink-100 dark:from-gray-900 dark:to-gray-800 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md  items-center justify-left w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Create your account
+            Get started for Free
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Join AslasChat and start connecting
+            Let's create your account by entering below fields
           </p>
         </div>
         
@@ -88,7 +88,7 @@ export default function SignUpPage() {
                   value={formData.displayName}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                  placeholder="John Doe"
+                  placeholder="Your Full Name"
                 />
               </div>
             </div>
@@ -110,7 +110,7 @@ export default function SignUpPage() {
                   value={formData.email}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                  placeholder="you@example.com"
+                  placeholder="Your Email"
                 />
               </div>
             </div>
@@ -132,12 +132,9 @@ export default function SignUpPage() {
                   value={formData.password}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                  placeholder="••••••••"
+                  placeholder="Your Password"
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Must be at least 6 characters
-              </p>
             </div>
 
             <div>
@@ -157,7 +154,28 @@ export default function SignUpPage() {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                  placeholder="••••••••"
+                  placeholder="Confirm Password"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="referredBy"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Referred By
+              </label>
+              <div className="mt-1">
+                <input
+                  id="referredBy"
+                  name="referredBy"
+                  type="text"
+                  autoComplete="text"
+                  value={formData.referredBy}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                  placeholder="Referred Code or Name (Optional)"
                 />
               </div>
             </div>
