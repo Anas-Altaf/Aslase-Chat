@@ -12,7 +12,7 @@ export default function Hero2() {
     // Initial 3-second delay before showing images
     const initialTimer = setTimeout(() => {
       setShowImage(true);
-    }, 3000);
+    }, 1000);
 
     return () => clearTimeout(initialTimer);
   }, []);

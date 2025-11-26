@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import {toast} from "sonner"
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -21,8 +22,10 @@ export default function SignInPage() {
 
     try {
       await signIn(email, password);
+      toast.success('Successfully signed in!');
       router.push('/');
     } catch (err: any) {
+      toast.error(err.message || "Failed to sign in. Please try again.");
       setError(err.message || 'Failed to sign in. Please try again.');
     } finally {
       setLoading(false);
@@ -38,7 +41,7 @@ export default function SignInPage() {
           {/* Main Content - Two Column Layout */}
           <div className="flex-1 flex overflow-hidden">
             {/* Left Column - Scrollable Form */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 ">
               <div className="p-8 sm:p-10">
                 <div className="max-w-md mx-auto space-y-6">
                   {/* Logo */}
@@ -57,11 +60,6 @@ export default function SignInPage() {
                   </div>
                   
                   <form className="space-y-6" onSubmit={handleSubmit}>
-                    {error && (
-                      <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
-                        {error}
-                      </div>
-                    )}
                     
                     <div>
                       <label

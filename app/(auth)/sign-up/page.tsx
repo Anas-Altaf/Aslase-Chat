@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -32,12 +33,16 @@ export default function SignUpPage() {
     setError('');
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      const errorMsg = 'Passwords do not match';
+      setError(errorMsg);
+      toast.error(errorMsg);
       return;
     }
 
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      const errorMsg = 'Password must be at least 6 characters';
+      setError(errorMsg);
+      toast.error(errorMsg);
       return;
     }
 
@@ -45,9 +50,12 @@ export default function SignUpPage() {
 
     try {
       await signUp(formData.email, formData.password, formData.displayName, formData.referredBy);
+      toast.success('Account created successfully!');
       router.push('/');
     } catch (err: any) {
-      setError(err.message || 'Failed to create account. Please try again.');
+      const errorMsg = err.message || 'Failed to create account. Please try again.';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -81,11 +89,11 @@ export default function SignUpPage() {
                   </div>
                   
           <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
+            {/* {error && (
                       <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-md text-sm">
                         {error}
                       </div>
-                    )}
+                    )} */}
                     
                     <div>
                       <label
