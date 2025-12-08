@@ -1,14 +1,20 @@
-import Header from '@/components/Header';
-import Hero from '@/components/Hero';
-// import Features from '@/components/Features';
-import Footer from '@/components/Footer';
+import Header from '@/components/welcome/Header';
+import Hero1 from '@/components/welcome/Hero1';
+import Hero2 from '@/components/welcome/Hero2';
+import Hero3 from '@/components/welcome/Hero3';
+import Hero4 from '@/components/welcome/Hero4';
+import Hero5 from '@/components/welcome/Hero5';
+import Footer from '@/components/welcome/Footer';
 export default function Home() {
   return (
     <div className="min-h-screen bg-white dark:bg-black">
       <Header />
       <main>
-        <Hero />
-        {/* <Features /> */}
+        <Hero1 />
+        <Hero2 />
+        <Hero3 />
+        <Hero4 />
+        <Hero5 />
       </main>
       <Footer />
     </div>
