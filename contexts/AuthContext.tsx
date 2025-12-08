@@ -44,13 +44,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return unsubscribe;
   }, []);
 
+  const verifyTokenWithBackend = async (token: string) => {
+    const response = await fetch('http://localhost:3000/auth/verify-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    console.log("res======>",response);
+    
+    if (!response.ok) {
+      throw new Error('Token verification failed');
+    }
+  };
+
   const signUp = async (email: string, password: string, displayName: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName });
+    const token = await userCredential.user.getIdToken();
+    await verifyTokenWithBackend(token);
   };
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const token = await userCredential.user.getIdToken();
+    await verifyTokenWithBackend(token);
   };
 
   const logout = async () => {
