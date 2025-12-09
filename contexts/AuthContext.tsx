@@ -15,7 +15,7 @@ import { auth, db } from '@/lib/firebase/config';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signUp: (email: string, password: string, displayName: string) => Promise<void>;
+  signUp: (email: string, password: string, displayName: string, referredBy?: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -45,7 +45,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return unsubscribe;
   }, []);
 
-  const signUp = async (email: string, password: string, displayName: string) => {
+  const verifyTokenWithBackend = async (token: string) => {
+    const response = await fetch('http://localhost:3000/auth/verify-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    console.log("res======>",response);
+    
+    if (!response.ok) {
+      throw new Error('Token verification failed');
+    }
+  };
+
+  const signUp = async (email: string, password: string, displayName: string, referredBy?: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName });
@@ -64,10 +77,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error('Error in signUp:', error);
       throw error;
     }
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(userCredential.user, { displayName });
+    const token = await userCredential.user.getIdToken();
+    await verifyTokenWithBackend(token);
   };
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const token = await userCredential.user.getIdToken();
+    await verifyTokenWithBackend(token);
   };
 
   const logout = async () => {
