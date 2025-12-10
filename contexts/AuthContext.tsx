@@ -14,7 +14,7 @@ import { auth } from '@/lib/firebase/config';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signUp: (email: string, password: string, displayName: string,phoneNumber:string) => Promise<void>;
+  signUp: (email: string, password: string, displayName: string, phoneNumber: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -22,9 +22,9 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  signUp: async () => {},
-  signIn: async () => {},
-  logout: async () => {},
+  signUp: async () => { },
+  signIn: async () => { },
+  logout: async () => { },
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -50,8 +50,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),
     });
-    console.log("res======>",response);
-    
+    console.log("res======>", response);
+
     if (!response.ok) {
       throw new Error('Token verification failed');
     }
@@ -61,13 +61,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName });
     const token = await userCredential.user.getIdToken();
-    await verifyTokenWithBackend(token);
+    // await verifyTokenWithBackend(token);
   };
 
   const signIn = async (email: string, password: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const token = await userCredential.user.getIdToken();
-    await verifyTokenWithBackend(token);
+    // await verifyTokenWithBackend(token);
   };
 
   const logout = async () => {
