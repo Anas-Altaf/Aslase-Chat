@@ -3,7 +3,16 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronDown, Share2, Trash2, LayoutDashboard, Database, Settings, Code, Zap } from 'lucide-react';
+import {
+  ChevronDown,
+  Share2,
+  Trash2,
+  LayoutDashboard,
+  Database,
+  Settings,
+  Code,
+  Zap
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -15,6 +24,10 @@ interface MenuItem {
   href?: string;
   submenu?: { label: string; href: string }[];
 }
+
+// Full active glow (same as Embed on Site)
+const activeClass =
+  "bg-green-500 text-white shadow-sm hover:bg-green-600";
 
 export default function Menubar() {
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
@@ -93,8 +106,8 @@ export default function Menubar() {
                   className={cn(
                     "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150",
                     isParentActive(item)
-                      ? 'bg-green-100/80 text-green-700'
-                      : 'text-gray-600 hover:bg-gray-100/80'
+                      ? activeClass
+                      : "text-gray-600 hover:bg-gray-100/80"
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -104,7 +117,7 @@ export default function Menubar() {
                   <ChevronDown
                     className={cn(
                       "w-4 h-4 transition-transform duration-200",
-                      expandedMenu === item.label ? 'rotate-180' : ''
+                      expandedMenu === item.label ? "rotate-180" : ""
                     )}
                   />
                 </button>
@@ -113,11 +126,9 @@ export default function Menubar() {
                   href={item.href!}
                   className={cn(
                     "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150",
-                    item.label === 'Embed on Site'
-                      ? 'bg-green-500 text-white hover:bg-green-600 shadow-sm'
-                      : isActive(item.href)
-                        ? 'bg-green-100/80 text-green-700'
-                        : 'text-gray-600 hover:bg-gray-100/80'
+                    isActive(item.href)
+                      ? activeClass
+                      : "text-gray-600 hover:bg-gray-100/80"
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -136,9 +147,10 @@ export default function Menubar() {
                       href={subitem.href}
                       className={cn(
                         "w-full text-left px-3 py-2 text-sm rounded-lg transition-all duration-150 block",
-                        pathname === subitem.href
-                          ? 'text-green-700 bg-green-50 font-medium'
-                          : 'text-gray-600 hover:text-green-700 hover:bg-green-50/50'
+                        pathname.startsWith(subitem.href)
+                          ? activeClass
+                          : "text-gray-600 hover:text-green-700 hover:bg-green-50/50"
+
                       )}
                     >
                       {subitem.label}
@@ -153,7 +165,6 @@ export default function Menubar() {
 
       <Separator />
 
-      {/* Share and Delete Buttons */}
       <div className="p-4 space-y-2">
         <Button variant="outline" className="w-full">
           <Share2 className="w-4 h-4" />
