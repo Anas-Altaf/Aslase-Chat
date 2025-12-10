@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Calendar, Mail, Phone, User, LinkIcon, Trash2 } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { getLeads, deleteLead, exportLeads } from '@/lib/services';
@@ -20,39 +20,54 @@ import { toast } from 'sonner';
 import type { Lead } from '@/types';
 
 export default function Leads() {
-  const { selectedChatbot } = useChatbot();
+  const { selectedChatbot, isInitialLoading } = useChatbot();
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    if (selectedChatbot) {
-      loadLeads();
-    }
-  }, [selectedChatbot]);
+  // Cache leads per chatbot
+  const leadsCache = useRef<Record<string, Lead[]>>({});
+  const lastChatbotId = useRef<string | null>(null);
 
-  const loadLeads = async () => {
+  useEffect(() => {
+    if (!selectedChatbot) return;
+    if (selectedChatbot.id === lastChatbotId.current) return;
+
+    lastChatbotId.current = selectedChatbot.id;
+
+    if (leadsCache.current[selectedChatbot.id]) {
+      setLeads(leadsCache.current[selectedChatbot.id]);
+      return;
+    }
+
+    loadLeads();
+  }, [selectedChatbot?.id]);
+
+  const loadLeads = useCallback(async () => {
     if (!selectedChatbot) return;
     setIsLoading(true);
     try {
       const response = await getLeads(selectedChatbot.id);
       if (response.success) {
         setLeads(response.data.items);
+        leadsCache.current[selectedChatbot.id] = response.data.items;
       }
     } catch (error) {
       toast.error('Failed to load leads');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedChatbot]);
 
   const handleDelete = async () => {
-    if (!deleteId) return;
+    if (!deleteId || !selectedChatbot) return;
     setIsDeleting(true);
     try {
       await deleteLead(deleteId);
-      setLeads(prev => prev.filter(l => l.id !== deleteId));
+      const updatedLeads = leads.filter(l => l.id !== deleteId);
+      setLeads(updatedLeads);
+      leadsCache.current[selectedChatbot.id] = updatedLeads;
       toast.success('Lead deleted');
       setDeleteId(null);
     } catch (error) {
@@ -73,6 +88,24 @@ export default function Leads() {
       toast.error('Failed to export leads');
     }
   };
+
+  if (isInitialLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-24" />
+        <Skeleton className="h-24" />
+      </div>
+    );
+  }
+
+  if (!selectedChatbot) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-500">Select a chatbot to view leads</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -97,9 +130,8 @@ export default function Leads() {
       <div className="flex-1 overflow-y-auto">
         <h3 className="text-gray-900 font-semibold mb-3 text-sm flex-shrink-0">Previous Leads</h3>
         <div className="space-y-3">
-          {isLoading ? (
+          {isLoading && leads.length === 0 ? (
             <>
-              <Skeleton className="h-24" />
               <Skeleton className="h-24" />
               <Skeleton className="h-24" />
             </>
@@ -147,7 +179,6 @@ export default function Leads() {
         </div>
       </div>
 
-      {/* Delete Confirmation */}
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <DialogContent>
           <DialogHeader>

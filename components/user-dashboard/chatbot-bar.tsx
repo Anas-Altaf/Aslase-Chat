@@ -35,7 +35,7 @@ import type { Chatbot } from '@/types';
 
 export default function ChatbotBar() {
   const { user } = useAuth();
-  const { chatbots, selectedChatbot, isLoading, addChatbot, selectChatbot } = useChatbot();
+  const { chatbots, selectedChatbot, isInitialLoading, isMutating, addChatbot, selectChatbot } = useChatbot();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newChatbot, setNewChatbot] = useState({
@@ -59,6 +59,11 @@ export default function ChatbotBar() {
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handleSelect = (id: string) => {
+    // Synchronous selection - no loading, no flicker
+    selectChatbot(id);
   };
 
   return (
@@ -151,8 +156,8 @@ export default function ChatbotBar() {
 
         <ScrollArea className="flex-1 h-[calc(100%-2rem)]">
           <div className="space-y-2">
-            {isLoading ? (
-              // Loading skeletons
+            {isInitialLoading ? (
+              // Only show skeletons on initial load
               <>
                 <div className="flex items-center gap-3 p-3">
                   <Skeleton className="w-10 h-10 rounded-lg" />
@@ -171,8 +176,8 @@ export default function ChatbotBar() {
               chatbots.map((chatbot) => (
                 <button
                   key={chatbot.id}
-                  onClick={() => selectChatbot(chatbot.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors duration-150 text-left ${selectedChatbot?.id === chatbot.id
+                  onClick={() => handleSelect(chatbot.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all duration-150 text-left ${selectedChatbot?.id === chatbot.id
                       ? 'bg-green-100 border border-green-200'
                       : 'hover:bg-gray-50'
                     }`}

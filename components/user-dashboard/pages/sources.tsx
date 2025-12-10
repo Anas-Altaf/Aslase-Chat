@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Upload, Trash2, FileText, Loader2 } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { getSources, getSourceStats, uploadSource, deleteSource } from '@/lib/services';
@@ -19,22 +19,35 @@ import { toast } from 'sonner';
 import type { Source, SourceStats } from '@/types';
 
 export default function Sources() {
-  const { selectedChatbot } = useChatbot();
+  const { selectedChatbot, isInitialLoading } = useChatbot();
   const [sources, setSources] = useState<Source[]>([]);
   const [stats, setStats] = useState<SourceStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (selectedChatbot) {
-      loadData();
-    }
-  }, [selectedChatbot]);
+  // Cache per chatbot
+  const cache = useRef<Record<string, { sources: Source[]; stats: SourceStats }>>({});
+  const lastChatbotId = useRef<string | null>(null);
 
-  const loadData = async () => {
+  useEffect(() => {
+    if (!selectedChatbot) return;
+    if (selectedChatbot.id === lastChatbotId.current) return;
+
+    lastChatbotId.current = selectedChatbot.id;
+
+    if (cache.current[selectedChatbot.id]) {
+      setSources(cache.current[selectedChatbot.id].sources);
+      setStats(cache.current[selectedChatbot.id].stats);
+      return;
+    }
+
+    loadData();
+  }, [selectedChatbot?.id]);
+
+  const loadData = useCallback(async () => {
     if (!selectedChatbot) return;
     setIsLoading(true);
     try {
@@ -44,12 +57,19 @@ export default function Sources() {
       ]);
       if (sourcesRes.success) setSources(sourcesRes.data);
       if (statsRes.success) setStats(statsRes.data);
+
+      if (sourcesRes.success && statsRes.success) {
+        cache.current[selectedChatbot.id] = {
+          sources: sourcesRes.data,
+          stats: statsRes.data,
+        };
+      }
     } catch (error) {
       toast.error('Failed to load sources');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedChatbot]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -64,6 +84,9 @@ export default function Sources() {
       });
       if (response.success) {
         toast.success('File uploaded successfully');
+        // Clear cache and reload
+        delete cache.current[selectedChatbot.id];
+        lastChatbotId.current = null;
         loadData();
       }
     } catch (error) {
@@ -75,14 +98,16 @@ export default function Sources() {
   };
 
   const handleDelete = async () => {
-    if (!deleteId) return;
+    if (!deleteId || !selectedChatbot) return;
     setIsDeleting(true);
     try {
       await deleteSource(deleteId);
-      setSources(prev => prev.filter(s => s.id !== deleteId));
       toast.success('Source deleted');
       setDeleteId(null);
-      loadData(); // Refresh stats
+      // Clear cache and reload
+      delete cache.current[selectedChatbot.id];
+      lastChatbotId.current = null;
+      loadData();
     } catch (error) {
       toast.error('Failed to delete source');
     } finally {
@@ -91,6 +116,27 @@ export default function Sources() {
   };
 
   const files = sources.filter(s => s.type === 'file');
+
+  if (isInitialLoading) {
+    return (
+      <div className="flex gap-4 h-full">
+        <div className="flex-1">
+          <Skeleton className="h-8 w-48 mb-4" />
+          <Skeleton className="h-32 mb-4" />
+          <Skeleton className="h-24" />
+        </div>
+        <Skeleton className="w-56 h-48" />
+      </div>
+    );
+  }
+
+  if (!selectedChatbot) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-500">Select a chatbot to manage sources</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex gap-4 h-full overflow-hidden">
@@ -130,7 +176,7 @@ export default function Sources() {
           <div>
             <h3 className="text-gray-900 font-semibold mb-2 text-sm">Uploaded Files</h3>
             <div className="space-y-2">
-              {isLoading ? (
+              {isLoading && files.length === 0 ? (
                 <>
                   <Skeleton className="h-12" />
                   <Skeleton className="h-12" />
@@ -164,13 +210,7 @@ export default function Sources() {
       {/* Right Section - Sources Info */}
       <Card className="w-56 flex flex-col flex-shrink-0 bg-green-50 p-4 overflow-hidden">
         <h3 className="text-gray-900 font-semibold mb-3 text-sm">Sources</h3>
-        {isLoading ? (
-          <>
-            <Skeleton className="h-10 mb-2" />
-            <Skeleton className="h-4 mb-4" />
-            <Skeleton className="h-20" />
-          </>
-        ) : stats && (
+        {stats && (
           <>
             <p className="text-gray-600 text-xs mb-1">Total detected characters:</p>
             <p className="text-3xl font-bold text-gray-900 mb-1">
@@ -188,7 +228,6 @@ export default function Sources() {
         )}
       </Card>
 
-      {/* Delete Confirmation */}
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <DialogContent>
           <DialogHeader>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { Chatbot } from '@/types';
 import { getChatbots, getChatbotById, createChatbot, updateChatbot, deleteChatbot } from '@/lib/services';
 
@@ -8,12 +8,13 @@ interface ChatbotContextType {
     // State
     chatbots: Chatbot[];
     selectedChatbot: Chatbot | null;
-    isLoading: boolean;
+    isInitialLoading: boolean; // Only true on first load
+    isMutating: boolean; // True during create/update/delete
     error: string | null;
 
     // Actions
-    loadChatbots: () => Promise<void>;
-    selectChatbot: (id: string) => Promise<void>;
+    refreshChatbots: () => Promise<void>;
+    selectChatbot: (id: string) => void; // Synchronous - no loading
     addChatbot: (data: { name: string; model: Chatbot['model']; visibility: Chatbot['visibility'] }) => Promise<Chatbot>;
     editChatbot: (id: string, data: Partial<Chatbot>) => Promise<void>;
     removeChatbot: (id: string) => Promise<void>;
@@ -25,18 +26,25 @@ const ChatbotContext = createContext<ChatbotContextType | undefined>(undefined);
 export function ChatbotProvider({ children }: { children: React.ReactNode }) {
     const [chatbots, setChatbots] = useState<Chatbot[]>([]);
     const [selectedChatbot, setSelectedChatbot] = useState<Chatbot | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [isMutating, setIsMutating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const hasLoaded = useRef(false);
 
-    const loadChatbots = useCallback(async () => {
-        setIsLoading(true);
+    const refreshChatbots = useCallback(async () => {
         setError(null);
         try {
             const response = await getChatbots();
             if (response.success) {
                 setChatbots(response.data);
-                // Auto-select first chatbot if none selected
-                if (!selectedChatbot && response.data.length > 0) {
+                // If selected chatbot exists, update it with fresh data
+                if (selectedChatbot) {
+                    const updated = response.data.find(c => c.id === selectedChatbot.id);
+                    if (updated) {
+                        setSelectedChatbot(updated);
+                    }
+                } else if (response.data.length > 0) {
+                    // Auto-select first chatbot only if none selected
                     setSelectedChatbot(response.data[0]);
                 }
             } else {
@@ -45,32 +53,25 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
         } catch (err) {
             setError('Failed to load chatbots');
         } finally {
-            setIsLoading(false);
+            setIsInitialLoading(false);
         }
     }, [selectedChatbot]);
 
-    const selectChatbot = useCallback(async (id: string) => {
-        setIsLoading(true);
-        try {
-            const response = await getChatbotById(id);
-            if (response.success && response.data) {
-                setSelectedChatbot(response.data);
-            } else {
-                setError(response.error || 'Chatbot not found');
-            }
-        } catch (err) {
-            setError('Failed to select chatbot');
-        } finally {
-            setIsLoading(false);
+    // Synchronous selection - no loading needed, data is in memory
+    const selectChatbot = useCallback((id: string) => {
+        const chatbot = chatbots.find(c => c.id === id);
+        if (chatbot) {
+            setSelectedChatbot(chatbot);
         }
-    }, []);
+    }, [chatbots]);
 
     const addChatbot = useCallback(async (data: { name: string; model: Chatbot['model']; visibility: Chatbot['visibility'] }) => {
-        setIsLoading(true);
+        setIsMutating(true);
         setError(null);
         try {
             const response = await createChatbot(data);
             if (response.success) {
+                // Optimistic: add to list immediately
                 setChatbots(prev => [...prev, response.data]);
                 setSelectedChatbot(response.data);
                 return response.data;
@@ -81,57 +82,77 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
             setError(err.message);
             throw err;
         } finally {
-            setIsLoading(false);
+            setIsMutating(false);
         }
     }, []);
 
     const editChatbot = useCallback(async (id: string, data: Partial<Chatbot>) => {
-        setIsLoading(true);
+        setIsMutating(true);
         setError(null);
+
+        // Optimistic update: update immediately in UI
+        const previousChatbots = chatbots;
+        const previousSelected = selectedChatbot;
+
+        setChatbots(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
+        if (selectedChatbot?.id === id) {
+            setSelectedChatbot(prev => prev ? { ...prev, ...data } : null);
+        }
+
         try {
             const response = await updateChatbot(id, data);
-            if (response.success) {
-                setChatbots(prev => prev.map(c => c.id === id ? response.data : c));
-                if (selectedChatbot?.id === id) {
-                    setSelectedChatbot(response.data);
-                }
-            } else {
+            if (!response.success) {
+                // Rollback on failure
+                setChatbots(previousChatbots);
+                setSelectedChatbot(previousSelected);
                 throw new Error(response.error || 'Failed to update chatbot');
             }
         } catch (err: any) {
+            // Rollback on error
+            setChatbots(previousChatbots);
+            setSelectedChatbot(previousSelected);
             setError(err.message);
             throw err;
         } finally {
-            setIsLoading(false);
+            setIsMutating(false);
         }
-    }, [selectedChatbot]);
+    }, [selectedChatbot, chatbots]);
 
     const removeChatbot = useCallback(async (id: string) => {
-        setIsLoading(true);
+        setIsMutating(true);
         setError(null);
+
+        const previousChatbots = chatbots;
+
         try {
             const response = await deleteChatbot(id);
             if (response.success) {
                 setChatbots(prev => prev.filter(c => c.id !== id));
                 if (selectedChatbot?.id === id) {
-                    setSelectedChatbot(chatbots.find(c => c.id !== id) || null);
+                    // Select another chatbot
+                    const remaining = chatbots.filter(c => c.id !== id);
+                    setSelectedChatbot(remaining[0] || null);
                 }
             } else {
                 throw new Error(response.error || 'Failed to delete chatbot');
             }
         } catch (err: any) {
+            setChatbots(previousChatbots);
             setError(err.message);
             throw err;
         } finally {
-            setIsLoading(false);
+            setIsMutating(false);
         }
     }, [selectedChatbot, chatbots]);
 
     const clearError = useCallback(() => setError(null), []);
 
-    // Load chatbots on mount
+    // Load chatbots only once on mount
     useEffect(() => {
-        loadChatbots();
+        if (!hasLoaded.current) {
+            hasLoaded.current = true;
+            refreshChatbots();
+        }
     }, []);
 
     return (
@@ -139,9 +160,10 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
             value={{
                 chatbots,
                 selectedChatbot,
-                isLoading,
+                isInitialLoading,
+                isMutating,
                 error,
-                loadChatbots,
+                refreshChatbots,
                 selectChatbot,
                 addChatbot,
                 editChatbot,

@@ -7,12 +7,11 @@ import { trainChatbot } from '@/lib/services';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
 export default function ChatbotDetails() {
-  const { selectedChatbot, isLoading, editChatbot } = useChatbot();
+  const { selectedChatbot, isInitialLoading, editChatbot } = useChatbot();
   const [copied, setCopied] = useState(false);
   const [isTraining, setIsTraining] = useState(false);
   const [message, setMessage] = useState('');
@@ -57,19 +56,11 @@ export default function ChatbotDetails() {
     setMessage('');
   };
 
-  if (isLoading) {
+  // Only show skeleton on initial app load, not on chatbot switch
+  if (isInitialLoading) {
     return (
-      <div className="flex gap-6 h-full overflow-hidden">
-        <div className="flex-1 flex flex-col">
-          <Skeleton className="h-10 w-64 mb-4" />
-          <div className="grid grid-cols-2 gap-4">
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-          </div>
-        </div>
-        <div className="w-80">
-          <Skeleton className="h-full" />
-        </div>
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-500">Loading...</p>
       </div>
     );
   }
@@ -171,8 +162,8 @@ export default function ChatbotDetails() {
               <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
                   className={`px-3 py-2 rounded-lg max-w-xs text-sm ${msg.role === 'user'
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-200 text-gray-900'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-200 text-gray-900'
                     }`}
                 >
                   {msg.content}

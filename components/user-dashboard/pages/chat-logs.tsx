@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Filter, Calendar, MessageCircle, User } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { getChatSessions, exportChatSessions } from '@/lib/services';
@@ -19,20 +19,35 @@ import { toast } from 'sonner';
 import type { ChatSession } from '@/types';
 
 export default function ChatLogs() {
-  const { selectedChatbot } = useChatbot();
+  const { selectedChatbot, isInitialLoading } = useChatbot();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    if (selectedChatbot) {
-      loadSessions();
-    }
-  }, [selectedChatbot]);
+  // Cache sessions per chatbot ID
+  const sessionCache = useRef<Record<string, ChatSession[]>>({});
+  const lastChatbotId = useRef<string | null>(null);
 
-  const loadSessions = async () => {
+  // Load sessions only when chatbot changes AND not cached
+  useEffect(() => {
+    if (!selectedChatbot) return;
+    if (selectedChatbot.id === lastChatbotId.current) return;
+
+    lastChatbotId.current = selectedChatbot.id;
+
+    // Use cached data if available
+    if (sessionCache.current[selectedChatbot.id]) {
+      setSessions(sessionCache.current[selectedChatbot.id]);
+      return;
+    }
+
+    // Only load if not cached
+    loadSessions();
+  }, [selectedChatbot?.id]);
+
+  const loadSessions = useCallback(async () => {
     if (!selectedChatbot) return;
     setIsLoading(true);
     try {
@@ -41,15 +56,20 @@ export default function ChatLogs() {
       });
       if (response.success) {
         setSessions(response.data.items);
+        sessionCache.current[selectedChatbot.id] = response.data.items;
       }
     } catch (error) {
       toast.error('Failed to load chat sessions');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedChatbot, sourceFilter]);
 
   const handleFilter = () => {
+    // Clear cache for this chatbot and reload
+    if (selectedChatbot) {
+      delete sessionCache.current[selectedChatbot.id];
+    }
     loadSessions();
   };
 
@@ -67,6 +87,28 @@ export default function ChatLogs() {
       setIsExporting(false);
     }
   };
+
+  // Show skeleton only on initial app load
+  if (isInitialLoading) {
+    return (
+      <div className="flex gap-6 h-full overflow-hidden">
+        <div className="flex-1 flex flex-col">
+          <Skeleton className="h-10 w-48 mb-4" />
+          <Skeleton className="h-32 mb-4" />
+          <Skeleton className="h-48" />
+        </div>
+        <Skeleton className="w-80 h-full" />
+      </div>
+    );
+  }
+
+  if (!selectedChatbot) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-500">Select a chatbot to view chat logs</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex gap-6 h-full overflow-hidden">
@@ -98,9 +140,9 @@ export default function ChatLogs() {
                 <Calendar className="w-4 h-4 text-gray-400" />
               </div>
             </div>
-            <Button onClick={handleFilter} size="sm">
+            <Button onClick={handleFilter} size="sm" disabled={isLoading}>
               <Filter className="w-4 h-4" />
-              Filter
+              {isLoading ? 'Loading...' : 'Filter'}
             </Button>
           </div>
 
@@ -134,7 +176,7 @@ export default function ChatLogs() {
         <div className="flex-1 overflow-y-auto">
           <h3 className="text-gray-900 font-semibold mb-3 text-sm flex-shrink-0">Embedded Site Sessions</h3>
           <div className="space-y-3">
-            {isLoading ? (
+            {isLoading && sessions.length === 0 ? (
               <>
                 <Skeleton className="h-20" />
                 <Skeleton className="h-20" />
