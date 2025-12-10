@@ -15,15 +15,19 @@ interface BreadcrumbItem {
 
 function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
   const segments = pathname.split('/').filter(Boolean);
-  const breadcrumbs: BreadcrumbItem[] = [{ label: 'Home', href: '/' }];
+  const breadcrumbs: BreadcrumbItem[] = [];
 
   let currentPath = '';
   for (const segment of segments) {
     currentPath += `/${segment}`;
-    const label = segment
+    let label = segment
       .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+    // Clean up label - remove "User" prefix
+    if (label === 'User Dashboard') {
+      label = 'Dashboard';
+    }
     breadcrumbs.push({ label, href: currentPath });
   }
 
