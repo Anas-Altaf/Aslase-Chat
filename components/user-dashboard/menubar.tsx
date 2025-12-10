@@ -119,7 +119,7 @@ export default function Menubar() {
   };
 
   return (
-    <div className="bg-gradient-to-br from-gray-50 via-white to-green-50/30 flex flex-col h-full overflow-hidden">
+    <div className="bg-linear-to-br from-gray-50 via-white to-green-50/30 flex flex-col h-full overflow-hidden">
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-2">
           {menuItems.map((item, index) => (
@@ -157,7 +157,7 @@ export default function Menubar() {
                           )} />
                           <span>{subitem.label}</span>
                           {!isSubActive && (
-                            <span className="absolute inset-0 bg-linear-to-br from-green-400/0 via-green-400/10 to-green-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
+                            <span className="absolute inset-0 bg-linear-to-br from-green-400/0 via-green-400/10 to-green-400/0 translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                           )}
                         </Link>
                       );
@@ -182,7 +182,7 @@ export default function Menubar() {
                   </span>
                   <span className="font-semibold text-sm">{item.label}</span>
                   {!isActive(item.href) && (
-                    <span className="absolute inset-0 bg-linear-to-br from-green-400/0 via-green-400/10 to-green-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
+                    <span className="absolute inset-0 bg-linear-to-br from-green-400/0 via-green-400/10 to-green-400/0 translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
                   )}
                 </Link>
               )}

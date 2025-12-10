@@ -523,14 +523,8 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                   <Skeleton className="h-14 rounded-xl" />
                   <Skeleton className="h-14 rounded-xl" />
                 </>
-              ) : chatbots.length === 0 ? (
-                <div className="text-center py-6">
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-linear-to-br from-emerald-100 to-teal-100 flex items-center justify-center border-2 border-emerald-200/50">
-                    <Bot className="w-7 h-7 text-emerald-500" />
-                  </div>
-                  <p className="text-gray-400 text-sm font-medium">No chatbots yet</p>
-                </div>
-              ) : (
+              ) :
+                (
                 chatbots.map((chatbot, index) => (
                   <div
                     key={`chatbot-${chatbot.id}-${index}`}
@@ -632,13 +626,6 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                   <Skeleton className="h-14 rounded-xl" />
                   <Skeleton className="h-14 rounded-xl" />
                 </>
-              ) : businesses.length === 0 ? (
-                <div className="text-center py-6">
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-linear-to-br from-violet-100 to-purple-100 flex items-center justify-center border-2 border-violet-200/50">
-                    <Building2 className="w-7 h-7 text-violet-500" />
-                  </div>
-                  <p className="text-gray-400 text-sm font-medium">No businesses yet</p>
-                </div>
               ) : (
                 businesses.map((business, index) => (
                   <div

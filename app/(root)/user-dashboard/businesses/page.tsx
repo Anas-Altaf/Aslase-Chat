@@ -19,8 +19,19 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Building2, Plus, Globe, Mail, FileText, Trash2, Edit, Upload, X, Loader2 } from 'lucide-react';
+import { Building2, Plus, Globe, Mail, FileText, Trash2, Edit, Upload, X, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+    validateBusinessForm,
+    hasFormErrors,
+    getInitialErrors,
+    validateBusinessName,
+    validateDescription,
+    validateEmail,
+    validatePhoneNumber,
+    validateUrl,
+    type BusinessFormErrors
+} from '@/lib/validations/business.validation';
 
 export default function BusinessesPage() {
     const router = useRouter();
@@ -42,9 +53,42 @@ export default function BusinessesPage() {
         urls: [''],
     });
     const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+    const [errors, setErrors] = useState<BusinessFormErrors>(getInitialErrors());
+    const [touched, setTouched] = useState({
+        name: false,
+        description: false,
+        contactEmail: false,
+        contactPhone: false,
+        urls: [false],
+        documents: false,
+    });
+    const [documentError, setDocumentError] = useState('');
 
     const handleCreate = async () => {
-        if (!newBusiness.name.trim()) return;
+        // Validate all fields
+        const validationErrors = validateBusinessForm(newBusiness);
+        setErrors(validationErrors);
+        
+        // Validate documents
+        const docError = pendingFiles.length === 0 ? 'At least one document is required' : '';
+        setDocumentError(docError);
+        
+        // Mark all fields as touched
+        setTouched({
+            name: true,
+            description: true,
+            contactEmail: true,
+            contactPhone: true,
+            urls: newBusiness.urls.map(() => true),
+            documents: true,
+        });
+
+        // Check for errors
+        if (hasFormErrors(validationErrors) || docError) {
+            toast.error('Please fix all validation errors before submitting');
+            return;
+        }
+
         setIsCreating(true);
         try {
             console.log('Creating business with files:', pendingFiles.length);
@@ -53,12 +97,15 @@ export default function BusinessesPage() {
             const result = await addBusiness({
                 ...newBusiness,
                 urls: newBusiness.urls.filter(u => u.trim()),
-            }, pendingFiles); // Pass files here
+            }, pendingFiles);
 
             toast.success('Business created successfully');
             setIsCreateOpen(false);
             setNewBusiness({ name: '', description: '', contactEmail: '', contactPhone: '', urls: [''] });
             setPendingFiles([]);
+            setErrors(getInitialErrors());
+            setTouched({ name: false, description: false, contactEmail: false, contactPhone: false, urls: [false], documents: false });
+            setDocumentError('');
         } catch (error) {
             console.error('Error creating business:', error);
             toast.error('Failed to create business');
@@ -85,26 +132,104 @@ export default function BusinessesPage() {
         }
     };
 
+    const handleFieldChange = (field: keyof typeof newBusiness, value: string) => {
+        setNewBusiness({ ...newBusiness, [field]: value });
+        
+        // Real-time validation for touched fields
+        if (touched[field as keyof typeof touched]) {
+            const newErrors = { ...errors };
+            switch (field) {
+                case 'name':
+                    newErrors.name = validateBusinessName(value);
+                    break;
+                case 'description':
+                    newErrors.description = validateDescription(value);
+                    break;
+                case 'contactEmail':
+                    newErrors.contactEmail = validateEmail(value);
+                    break;
+                case 'contactPhone':
+                    newErrors.contactPhone = validatePhoneNumber(value);
+                    break;
+            }
+            setErrors(newErrors);
+        }
+    };
+
+    const handleFieldBlur = (field: keyof typeof touched) => {
+        setTouched({ ...touched, [field]: true });
+        
+        // Validate on blur
+        const newErrors = { ...errors };
+        switch (field) {
+            case 'name':
+                newErrors.name = validateBusinessName(newBusiness.name);
+                break;
+            case 'description':
+                newErrors.description = validateDescription(newBusiness.description);
+                break;
+            case 'contactEmail':
+                newErrors.contactEmail = validateEmail(newBusiness.contactEmail);
+                break;
+            case 'contactPhone':
+                newErrors.contactPhone = validatePhoneNumber(newBusiness.contactPhone);
+                break;
+        }
+        setErrors(newErrors);
+    };
+
     const addUrlField = () => {
         setNewBusiness({ ...newBusiness, urls: [...newBusiness.urls, ''] });
+        setErrors({ ...errors, urls: [...errors.urls, ''] });
+        setTouched({ ...touched, urls: [...touched.urls, false] });
     };
 
     const updateUrl = (index: number, value: string) => {
         const urls = [...newBusiness.urls];
         urls[index] = value;
         setNewBusiness({ ...newBusiness, urls });
+        
+        // Real-time validation for touched URL fields
+        if (touched.urls[index]) {
+            const newErrors = { ...errors };
+            newErrors.urls[index] = validateUrl(value);
+            setErrors(newErrors);
+        }
+    };
+
+    const handleUrlBlur = (index: number) => {
+        const newTouched = { ...touched };
+        newTouched.urls[index] = true;
+        setTouched(newTouched);
+        
+        // Validate on blur
+        const newErrors = { ...errors };
+        newErrors.urls[index] = validateUrl(newBusiness.urls[index]);
+        setErrors(newErrors);
     };
 
     const removeUrl = (index: number) => {
         const urls = [...newBusiness.urls];
         urls.splice(index, 1);
         setNewBusiness({ ...newBusiness, urls: urls.length > 0 ? urls : [''] });
+        
+        const newErrors = { ...errors };
+        newErrors.urls.splice(index, 1);
+        if (newErrors.urls.length === 0) newErrors.urls = [''];
+        setErrors(newErrors);
+        
+        const newTouched = { ...touched };
+        newTouched.urls.splice(index, 1);
+        if (newTouched.urls.length === 0) newTouched.urls = [false];
+        setTouched(newTouched);
     };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files && files.length > 0) {
             setPendingFiles(prev => [...prev, ...Array.from(files)]);
+            setDocumentError(''); // Clear error when files are added
+            setTouched({ ...touched, documents: true });
         }
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -112,7 +237,13 @@ export default function BusinessesPage() {
     };
 
     const removeFile = (index: number) => {
-        setPendingFiles(prev => prev.filter((_, i) => i !== index));
+        setPendingFiles(prev => {
+            const updated = prev.filter((_, i) => i !== index);
+            if (updated.length === 0 && touched.documents) {
+                setDocumentError('At least one document is required');
+            }
+            return updated;
+        });
     };
 
     if (isInitialLoading) {
@@ -268,28 +399,64 @@ export default function BusinessesPage() {
                                         Business Name
                                         <span className="text-red-500">*</span>
                                     </Label>
-                                    <Input
-                                        id="biz-name"
-                                        placeholder="e.g., Acme Corporation"
-                                        value={newBusiness.name}
-                                        onChange={(e) => setNewBusiness({ ...newBusiness, name: e.target.value })}
-                                        className="h-11 border-gray-200 focus:border-purple-500 focus:ring-purple-500/20"
-                                    />
+                                    <div className="relative">
+                                        <Input
+                                            id="biz-name"
+                                            placeholder="e.g., Acme Corporation"
+                                            value={newBusiness.name}
+                                            onChange={(e) => handleFieldChange('name', e.target.value)}
+                                            onBlur={() => handleFieldBlur('name')}
+                                            className={`h-11 transition-all ${
+                                                errors.name && touched.name
+                                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                                    : 'border-gray-200 focus:border-purple-500 focus:ring-purple-500/20'
+                                            }`}
+                                        />
+                                        {errors.name && touched.name && (
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                <AlertCircle className="w-4 h-4 text-red-500" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    {errors.name && touched.name && (
+                                        <p className="text-xs text-red-600 flex items-center gap-1">
+                                            <AlertCircle className="w-3 h-3" />
+                                            {errors.name}
+                                        </p>
+                                    )}
                                 </div>
                                 
                                 <div className="space-y-2">
-                                    <Label htmlFor="biz-desc" className="text-sm font-medium text-gray-700">
+                                    <Label htmlFor="biz-desc" className="text-sm font-medium text-gray-700 flex items-center gap-1">
                                         Description
+                                        <span className="text-red-500">*</span>
                                     </Label>
                                     <Textarea
                                         id="biz-desc"
                                         placeholder="Tell us about your business, what you do, and what makes you unique..."
                                         value={newBusiness.description}
-                                        onChange={(e) => setNewBusiness({ ...newBusiness, description: e.target.value })}
-                                        className="min-h-[100px] resize-none border-gray-200 focus:border-purple-500 focus:ring-purple-500/20"
+                                        onChange={(e) => handleFieldChange('description', e.target.value)}
+                                        onBlur={() => handleFieldBlur('description')}
+                                        className={`min-h-[100px] resize-none transition-all ${
+                                            errors.description && touched.description
+                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                                : 'border-gray-200 focus:border-purple-500 focus:ring-purple-500/20'
+                                        }`}
                                         rows={4}
                                     />
-                                    <p className="text-xs text-gray-500">{newBusiness.description.length}/500 characters</p>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            {errors.description && touched.description && (
+                                                <p className="text-xs text-red-600 flex items-center gap-1">
+                                                    <AlertCircle className="w-3 h-3" />
+                                                    {errors.description}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <p className={`text-xs ${newBusiness.description.length > 500 ? 'text-red-600' : 'text-gray-500'}`}>
+                                            {newBusiness.description.length}/500 characters
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -306,29 +473,67 @@ export default function BusinessesPage() {
                                     <Label htmlFor="biz-email" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                                         <Mail className="w-3.5 h-3.5 text-gray-400" />
                                         Email Address
+                                        <span className="text-red-500">*</span>
                                     </Label>
-                                    <Input
-                                        id="biz-email"
-                                        type="email"
-                                        placeholder="contact@acme.com"
-                                        value={newBusiness.contactEmail}
-                                        onChange={(e) => setNewBusiness({ ...newBusiness, contactEmail: e.target.value })}
-                                        className="h-11 border-gray-200 focus:border-blue-500 focus:ring-blue-500/20"
-                                    />
+                                    <div className="relative">
+                                        <Input
+                                            id="biz-email"
+                                            type="email"
+                                            placeholder="contact@acme.com"
+                                            value={newBusiness.contactEmail}
+                                            onChange={(e) => handleFieldChange('contactEmail', e.target.value)}
+                                            onBlur={() => handleFieldBlur('contactEmail')}
+                                            className={`h-11 transition-all ${
+                                                errors.contactEmail && touched.contactEmail
+                                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                                    : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500/20'
+                                            }`}
+                                        />
+                                        {errors.contactEmail && touched.contactEmail && (
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                <AlertCircle className="w-4 h-4 text-red-500" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    {errors.contactEmail && touched.contactEmail && (
+                                        <p className="text-xs text-red-600 flex items-center gap-1">
+                                            <AlertCircle className="w-3 h-3" />
+                                            {errors.contactEmail}
+                                        </p>
+                                    )}
                                 </div>
                                 
                                 <div className="space-y-2">
                                     <Label htmlFor="biz-phone" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                                         <span className="text-gray-400">📞</span>
                                         Phone Number
+                                        <span className="text-red-500">*</span>
                                     </Label>
-                                    <Input
-                                        id="biz-phone"
-                                        placeholder="+1 (555) 123-4567"
-                                        value={newBusiness.contactPhone}
-                                        onChange={(e) => setNewBusiness({ ...newBusiness, contactPhone: e.target.value })}
-                                        className="h-11 border-gray-200 focus:border-blue-500 focus:ring-blue-500/20"
-                                    />
+                                    <div className="relative">
+                                        <Input
+                                            id="biz-phone"
+                                            placeholder="+1 (555) 123-4567"
+                                            value={newBusiness.contactPhone}
+                                            onChange={(e) => handleFieldChange('contactPhone', e.target.value)}
+                                            onBlur={() => handleFieldBlur('contactPhone')}
+                                            className={`h-11 transition-all ${
+                                                errors.contactPhone && touched.contactPhone
+                                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                                    : 'border-gray-200 focus:border-blue-500 focus:ring-blue-500/20'
+                                            }`}
+                                        />
+                                        {errors.contactPhone && touched.contactPhone && (
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                <AlertCircle className="w-4 h-4 text-red-500" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    {errors.contactPhone && touched.contactPhone && (
+                                        <p className="text-xs text-red-600 flex items-center gap-1">
+                                            <AlertCircle className="w-3 h-3" />
+                                            {errors.contactPhone}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -354,28 +559,46 @@ export default function BusinessesPage() {
                             
                             <div className="space-y-3 pl-3">
                                 {newBusiness.urls.map((url, index) => (
-                                    <div key={`url-field-${index}`} className="flex gap-2 items-start">
-                                        <div className="flex-1 space-y-1">
-                                            <div className="relative">
-                                                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                                <Input
-                                                    placeholder="https://www.example.com"
-                                                    value={url}
-                                                    onChange={(e) => updateUrl(index, e.target.value)}
-                                                    className="h-11 pl-10 border-gray-200 focus:border-green-500 focus:ring-green-500/20"
-                                                />
+                                    <div key={`url-field-${index}`} className="space-y-1">
+                                        <div className="flex gap-2 items-start">
+                                            <div className="flex-1 space-y-1">
+                                                <div className="relative">
+                                                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                    <Input
+                                                        placeholder="https://www.example.com"
+                                                        value={url}
+                                                        onChange={(e) => updateUrl(index, e.target.value)}
+                                                        onBlur={() => handleUrlBlur(index)}
+                                                        className={`h-11 pl-10 transition-all ${
+                                                            errors.urls[index] && touched.urls[index]
+                                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                                                : 'border-gray-200 focus:border-green-500 focus:ring-green-500/20'
+                                                        }`}
+                                                    />
+                                                    {errors.urls[index] && touched.urls[index] && (
+                                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                            <AlertCircle className="w-4 h-4 text-red-500" />
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
+                                            {newBusiness.urls.length > 1 && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => removeUrl(index)}
+                                                    type="button"
+                                                    className="h-11 w-11 text-gray-400 hover:text-red-500 hover:bg-red-50"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </Button>
+                                            )}
                                         </div>
-                                        {newBusiness.urls.length > 1 && (
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => removeUrl(index)}
-                                                type="button"
-                                                className="h-11 w-11 text-gray-400 hover:text-red-500 hover:bg-red-50"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </Button>
+                                        {errors.urls[index] && touched.urls[index] && (
+                                            <p className="text-xs text-red-600 flex items-center gap-1 ml-10">
+                                                <AlertCircle className="w-3 h-3" />
+                                                {errors.urls[index]}
+                                            </p>
                                         )}
                                     </div>
                                 ))}
@@ -388,7 +611,7 @@ export default function BusinessesPage() {
                                 <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                                     <div className="h-6 w-1 bg-orange-500 rounded-full"></div>
                                     Documents
-                                    <Badge variant="secondary" className="text-xs">Optional</Badge>
+                                    <span className="text-red-500">*</span>
                                 </div>
                             </div>
                             
@@ -403,16 +626,36 @@ export default function BusinessesPage() {
                                 />
                                 
                                 {pendingFiles.length === 0 ? (
-                                    <div
-                                        className="group border-2 border-dashed border-gray-200 rounded-xl p-8 text-center cursor-pointer hover:border-orange-300 hover:bg-orange-50/30 transition-all duration-200"
-                                        onClick={() => fileInputRef.current?.click()}
-                                    >
-                                        <div className="inline-flex items-center justify-center w-12 h-12 bg-orange-100 rounded-full mb-3 group-hover:bg-orange-200 transition-colors">
-                                            <Upload className="w-5 h-5 text-orange-600" />
+                                    <>
+                                        <div
+                                            className={`group border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 ${
+                                                documentError && touched.documents
+                                                    ? 'border-red-300 bg-red-50/30 hover:border-red-400'
+                                                    : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50/30'
+                                            }`}
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
+                                            <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-3 transition-colors ${
+                                                documentError && touched.documents
+                                                    ? 'bg-red-100 group-hover:bg-red-200'
+                                                    : 'bg-orange-100 group-hover:bg-orange-200'
+                                            }`}>
+                                                <Upload className={`w-5 h-5 ${
+                                                    documentError && touched.documents ? 'text-red-600' : 'text-orange-600'
+                                                }`} />
+                                            </div>
+                                            <p className={`text-sm font-medium mb-1 ${
+                                                documentError && touched.documents ? 'text-red-700' : 'text-gray-700'
+                                            }`}>Upload documents</p>
+                                            <p className="text-xs text-gray-500">PDF or DOCX files up to 10MB</p>
                                         </div>
-                                        <p className="text-sm font-medium text-gray-700 mb-1">Upload documents</p>
-                                        <p className="text-xs text-gray-500">PDF or DOCX files up to 10MB</p>
-                                    </div>
+                                        {documentError && touched.documents && (
+                                            <p className="text-xs text-red-600 flex items-center gap-1 mt-2">
+                                                <AlertCircle className="w-3 h-3" />
+                                                {documentError}
+                                            </p>
+                                        )}
+                                    </>
                                 ) : (
                                     <div className="space-y-2">
                                         {pendingFiles.map((file, index) => (
@@ -421,7 +664,7 @@ export default function BusinessesPage() {
                                                 className="flex items-center justify-between p-3 rounded-lg bg-linear-to-br from-orange-50 to-orange-50/50 border border-orange-100 group hover:border-orange-200 transition-colors"
                                             >
                                                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                    <div className="flex-shrink-0 w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-orange-200">
+                                                    <div className="shrink-0 w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-orange-200">
                                                         <FileText className="w-4 h-4 text-orange-600" />
                                                     </div>
                                                     <div className="min-w-0 flex-1">
@@ -459,7 +702,12 @@ export default function BusinessesPage() {
                     <DialogFooter className="border-t pt-4 gap-2">
                         <Button 
                             variant="outline" 
-                            onClick={() => setIsCreateOpen(false)}
+                            onClick={() => {
+                                setIsCreateOpen(false);
+                                setErrors(getInitialErrors());
+                                setTouched({ name: false, description: false, contactEmail: false, contactPhone: false, urls: [false], documents: false });
+                                setDocumentError('');
+                            }}
                             className="min-w-24"
                         >
                             Cancel
@@ -467,8 +715,8 @@ export default function BusinessesPage() {
                         <Button 
                             onClick={handleCreate} 
                             variant="default"
-                            disabled={isCreating || !newBusiness.name.trim()}
-                            className="min-w-32 "
+                            disabled={isCreating || !newBusiness.name.trim() || pendingFiles.length === 0 || (Object.keys(touched).length > 0 && (hasFormErrors(errors) || documentError !== ''))}
+                            className="min-w-32 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isCreating ? (
                                 <>
