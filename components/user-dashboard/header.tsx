@@ -1,33 +1,52 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface BreadcrumbItem {
   label: string;
   href?: string;
 }
 
-interface HeaderProps {
-  breadcrumbs?: BreadcrumbItem[];
-  onLogout?: () => void;
+function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
+  const segments = pathname.split('/').filter(Boolean);
+  const breadcrumbs: BreadcrumbItem[] = [{ label: 'Home', href: '/' }];
+
+  let currentPath = '';
+  for (const segment of segments) {
+    currentPath += `/${segment}`;
+    const label = segment
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    breadcrumbs.push({ label, href: currentPath });
+  }
+
+  // Remove href from last item (current page)
+  if (breadcrumbs.length > 0) {
+    delete breadcrumbs[breadcrumbs.length - 1].href;
+  }
+
+  return breadcrumbs;
 }
 
-export default function Header({
-  breadcrumbs = [
-    { label: 'Home', href: '/' },
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Current Page' },
-  ],
-  onLogout,
-}: HeaderProps) {
+export default function Header() {
+  const pathname = usePathname();
   const router = useRouter();
+  const { logout } = useAuth();
 
-  const handleLogout = () => {
-    if (onLogout) {
-      onLogout();
-    } else {
+  const breadcrumbs = generateBreadcrumbs(pathname);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success('Logged out successfully');
       router.push('/');
+    } catch (error) {
+      toast.error('Failed to logout');
     }
   };
 
@@ -55,12 +74,9 @@ export default function Header({
       </nav>
 
       {/* Logout Button */}
-      <button
-        onClick={handleLogout}
-        className="text-blue-500 hover:text-blue-600 text-sm font-medium transition-colors"
-      >
+      <Button variant="link" onClick={handleLogout} className="text-blue-500 hover:text-blue-600">
         Logout
-      </button>
+      </Button>
     </header>
   );
 }

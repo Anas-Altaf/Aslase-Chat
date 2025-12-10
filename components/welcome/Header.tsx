@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 
 export default function Header() {
   const pathname = usePathname();
@@ -28,18 +29,17 @@ export default function Header() {
               <img src="/AslasChat.jpg" alt="AslasChat" className="h-20 w-auto" />
             </Link>
           </div>
-          
+
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-16">
             {navItems.map((item) => (
               <div key={item.href} className="relative pb-1">
-                <Link 
+                <Link
                   href={item.href}
-                  className={`text-base transition-colors block ${
-                    isActive(item.href)
+                  className={`text-base transition-colors block ${isActive(item.href)
                       ? 'text-gray-900 font-bold'
                       : 'text-gray-700 hover:text-gray-900'
-                  }`}
+                    }`}
                 >
                   {item.label}
                 </Link>
@@ -52,18 +52,16 @@ export default function Header() {
 
           {/* Right Side Buttons */}
           <div className="flex items-center gap-4">
-            <Link
-              href="/sign-up"
-              className="px-6 py-2.5 text-base font-semibold text-white bg-green-500 rounded-full hover:bg-green-600 transition-colors"
-            >
-              Build Your AI Chatbot
-            </Link>
-            <Link
-              href="/sign-in"
-              className="px-6 py-2.5 text-base font-semibold text-gray-900 border-2 border-gray-900 rounded-full hover:bg-gray-50 transition-colors"
-            >
-              Sign In
-            </Link>
+            <Button asChild rounded="full" size="lg">
+              <Link href="/sign-up">
+                Build Your AI Chatbot
+              </Link>
+            </Button>
+            <Button asChild variant="outline" rounded="full" size="lg">
+              <Link href="/sign-in">
+                Sign In
+              </Link>
+            </Button>
           </div>
         </div>
       </nav>

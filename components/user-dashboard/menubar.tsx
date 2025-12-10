@@ -1,48 +1,64 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ChevronDown, Share2, Trash2, LayoutDashboard, Database, Settings, Code, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface MenuItem {
   label: string;
   icon: React.ReactNode;
-  submenu?: string[];
+  href?: string;
+  submenu?: { label: string; href: string }[];
 }
 
-interface MenubarProps {
-  onMenuClick: (page: string) => void;
-}
-
-export default function Menubar({ onMenuClick }: MenubarProps) {
+export default function Menubar() {
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
+  const pathname = usePathname();
 
   const menuItems: MenuItem[] = [
     {
       label: 'Chatbot',
       icon: <Code className="w-5 h-5" />,
+      href: '/user-dashboard/chatbot',
     },
     {
       label: 'Dashboard',
       icon: <LayoutDashboard className="w-5 h-5" />,
-      submenu: ['Chat Logs', 'Leads', 'Analytics'],
+      submenu: [
+        { label: 'Chat Logs', href: '/user-dashboard/chat-logs' },
+        { label: 'Leads', href: '/user-dashboard/leads' },
+        { label: 'Analytics', href: '/user-dashboard/analytics' },
+      ],
     },
     {
       label: 'Sources',
       icon: <Database className="w-5 h-5" />,
-      submenu: ['Files', 'Text', 'Website', 'Q & A'],
+      href: '/user-dashboard/sources',
     },
     {
       label: 'Integrations',
       icon: <Zap className="w-5 h-5" />,
+      href: '/user-dashboard/integrations',
     },
     {
       label: 'Settings',
       icon: <Settings className="w-5 h-5" />,
-      submenu: ['General', 'Model', 'Chat Interface', 'Security', 'Leads', 'Notifications', 'Web Books', 'Domains'],
+      submenu: [
+        { label: 'General', href: '/user-dashboard/settings/general' },
+        { label: 'Model', href: '/user-dashboard/settings/model' },
+        { label: 'Chat Interface', href: '/user-dashboard/settings/chat-interface' },
+        { label: 'Security', href: '/user-dashboard/settings/security' },
+        { label: 'Notifications', href: '/user-dashboard/settings/notifications' },
+        { label: 'Domains', href: '/user-dashboard/settings/domains' },
+      ],
     },
     {
       label: 'Embed on Site',
       icon: <Code className="w-5 h-5" />,
+      href: '/user-dashboard/embed',
     },
   ];
 
@@ -50,8 +66,17 @@ export default function Menubar({ onMenuClick }: MenubarProps) {
     setExpandedMenu(expandedMenu === label ? null : label);
   };
 
-  const handleMenuClick = (label: string) => {
-    onMenuClick(label.toLowerCase().replace(/\s+/g, '-'));
+  const isActive = (href?: string) => {
+    if (!href) return false;
+    return pathname.startsWith(href);
+  };
+
+  const isParentActive = (item: MenuItem) => {
+    if (item.href && isActive(item.href)) return true;
+    if (item.submenu) {
+      return item.submenu.some(sub => pathname.startsWith(sub.href));
+    }
+    return false;
   };
 
   return (
@@ -60,43 +85,62 @@ export default function Menubar({ onMenuClick }: MenubarProps) {
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {menuItems.map((item) => (
           <div key={item.label}>
-            <button
-              onClick={() => {
-                handleMenuClick(item.label);
-                item.submenu && toggleMenu(item.label);
-              }}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
-                item.label === 'Embed on Site'
-                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                  : expandedMenu === item.label
-                  ? 'bg-green-100 text-green-700'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                {item.icon}
-                <span className="font-medium">{item.label}</span>
-              </div>
-              {item.submenu && (
+            {item.submenu ? (
+              <button
+                onClick={() => toggleMenu(item.label)}
+                className={cn(
+                  "w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors",
+                  isParentActive(item)
+                    ? 'bg-green-100 text-green-700'
+                    : 'text-gray-600 hover:bg-gray-100'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  {item.icon}
+                  <span className="font-medium">{item.label}</span>
+                </div>
                 <ChevronDown
-                  className={`w-4 h-4 transition-transform ${
+                  className={cn(
+                    "w-4 h-4 transition-transform",
                     expandedMenu === item.label ? 'rotate-180' : ''
-                  }`}
+                  )}
                 />
-              )}
-            </button>
+              </button>
+            ) : (
+              <Link
+                href={item.href!}
+                className={cn(
+                  "w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors",
+                  item.label === 'Embed on Site'
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : isActive(item.href)
+                      ? 'bg-green-100 text-green-700'
+                      : 'text-gray-600 hover:bg-gray-100'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  {item.icon}
+                  <span className="font-medium">{item.label}</span>
+                </div>
+              </Link>
+            )}
 
             {/* Submenu */}
             {item.submenu && expandedMenu === item.label && (
               <div className="ml-4 mt-2 space-y-1 border-l-2 border-green-300 pl-4 max-h-40 overflow-y-auto">
                 {item.submenu.map((subitem) => (
-                  <button
-                    key={subitem}
-                    onClick={() => handleMenuClick(subitem)}
-                    className="w-full text-left px-4 py-2 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 rounded transition-colors"
+                  <Link
+                    key={subitem.href}
+                    href={subitem.href}
+                    className={cn(
+                      "w-full text-left px-4 py-2 text-sm rounded transition-colors block",
+                      pathname === subitem.href
+                        ? 'text-green-700 bg-green-50 font-medium'
+                        : 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                    )}
                   >
-                    {subitem}
-                  </button>
+                    {subitem.label}
+                  </Link>
                 ))}
               </div>
             )}
@@ -106,14 +150,14 @@ export default function Menubar({ onMenuClick }: MenubarProps) {
 
       {/* Share and Delete Buttons */}
       <div className="p-4 border-t border-gray-200 space-y-3 flex-shrink-0">
-        <button className="w-full flex items-center justify-center gap-2 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300">
+        <Button variant="ghost" className="w-full border border-gray-300">
           <Share2 className="w-4 h-4" />
-          <span className="font-medium">Share</span>
-        </button>
-        <button className="w-full flex items-center justify-center gap-2 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors bg-red-100 border border-red-200">
+          Share
+        </Button>
+        <Button variant="destructive" className="w-full">
           <Trash2 className="w-4 h-4" />
-          <span className="font-medium">Delete</span>
-        </button>
+          Delete
+        </Button>
       </div>
     </div>
   );
