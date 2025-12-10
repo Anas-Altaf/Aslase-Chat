@@ -11,7 +11,7 @@ interface BusinessContextType {
     isMutating: boolean;
     error: string | null;
     selectBusiness: (id: string | null) => void;
-    addBusiness: (data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>) => Promise<void>;
+    addBusiness: (data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>) => Promise<Business | null>;
     editBusiness: (id: string, data: Partial<Business>) => Promise<void>;
     removeBusiness: (id: string) => Promise<void>;
     refreshBusinesses: () => Promise<void>;
@@ -59,19 +59,21 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
         }
     }, [businesses]);
 
-    const addBusiness = useCallback(async (data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>) => {
+    const addBusiness = useCallback(async (data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>): Promise<Business | null> => {
         setIsMutating(true);
         try {
             const response = await createBusiness(data);
             if (response.success) {
                 setBusinesses(prev => [...prev, response.data]);
                 setSelectedBusiness(response.data);
+                return response.data;
             } else {
                 throw new Error(response.error || 'Failed to create business');
             }
         } finally {
             setIsMutating(false);
         }
+        return null;
     }, []);
 
     const editBusiness = useCallback(async (id: string, data: Partial<Business>) => {
@@ -109,8 +111,14 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
     }, [businesses, selectedBusiness]);
 
     const refreshBusinesses = useCallback(async () => {
-        setIsInitialLoading(true);
-        await loadBusinesses();
+        try {
+            const response = await getBusinesses();
+            if (response.success) {
+                setBusinesses(response.data.items);
+            }
+        } catch (err) {
+            setError('Failed to refresh businesses');
+        }
     }, []);
 
     return (

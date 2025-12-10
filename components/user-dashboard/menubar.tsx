@@ -54,7 +54,7 @@ export default function Menubar() {
       href: '/user-dashboard/chatbot',
     },
     {
-      label: 'Dashboard',
+      label: 'Overview',
       icon: <LayoutDashboard className="w-4 h-4 lg:w-5 lg:h-5" />,
       submenu: [
         { label: 'Chat Logs', href: '/user-dashboard/chat-logs' },
