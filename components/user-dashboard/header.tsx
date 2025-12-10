@@ -4,9 +4,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { LogOut } from 'lucide-react';
+import { LogOut, ChevronRight, Home } from 'lucide-react';
 
 interface BreadcrumbItem {
   label: string;
@@ -24,7 +23,6 @@ function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
       .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
-    // Clean up label - remove "User" prefix
     if (label === 'User Dashboard') {
       label = 'Dashboard';
     }
@@ -56,31 +54,52 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white border-b px-6 py-3 flex items-center justify-between">
+    <header className="relative bg-white/80 backdrop-blur-xl border-b border-gray-100/50 px-6 py-4 flex items-center justify-between shadow-sm">
+      {/* Animated gradient line at top */}
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500"></div>
+
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-2">
+        <Link
+          href="/user-dashboard"
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+        >
+          <Home className="w-4 h-4 text-gray-500" />
+        </Link>
+
         {breadcrumbs.map((item, index) => (
-          <div key={index} className="flex items-center gap-2">
+          <div
+            key={index}
+            className="flex items-center gap-2 animate-fadeIn"
+            style={{ animationDelay: `${index * 0.05}s` }}
+          >
+            <ChevronRight className="w-4 h-4 text-gray-300" />
             {item.href ? (
               <Link
                 href={item.href}
-                className="text-gray-500 hover:text-gray-700 text-sm transition-colors duration-150"
+                className="text-gray-500 hover:text-gray-900 text-sm font-medium transition-all duration-300 hover:scale-105 relative group px-2 py-1 rounded-lg hover:bg-gray-50"
               >
                 {item.label}
               </Link>
             ) : (
-              <span className="text-gray-900 font-medium text-sm">{item.label}</span>
-            )}
-            {index < breadcrumbs.length - 1 && (
-              <span className="text-gray-300">/</span>
+              <span className="text-sm font-bold px-3 py-1.5 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100">
+                <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  {item.label}
+                </span>
+              </span>
             )}
           </div>
         ))}
       </nav>
 
       {/* Logout Button */}
-      <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600 hover:text-gray-900">
-        <LogOut className="w-4 h-4 mr-2" />
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleLogout}
+        className="text-gray-600 hover:text-white hover:bg-gradient-to-r hover:from-red-500 hover:to-rose-500 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-red-500/25 group rounded-xl"
+      >
+        <LogOut className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
         Logout
       </Button>
     </header>
