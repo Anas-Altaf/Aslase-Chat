@@ -11,7 +11,9 @@ import {
   Database,
   Settings,
   Code,
-  Zap
+  Zap,
+  Menu,
+  X
 } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { Button } from '@/components/ui/button';
@@ -48,12 +50,12 @@ export default function Menubar() {
   const menuItems: MenuItem[] = [
     {
       label: 'Chatbot',
-      icon: <Code className="w-5 h-5" />,
+      icon: <Code className="w-4 h-4 lg:w-5 lg:h-5" />,
       href: '/user-dashboard/chatbot',
     },
     {
       label: 'Dashboard',
-      icon: <LayoutDashboard className="w-5 h-5" />,
+      icon: <LayoutDashboard className="w-4 h-4 lg:w-5 lg:h-5" />,
       submenu: [
         { label: 'Chat Logs', href: '/user-dashboard/chat-logs' },
         { label: 'Leads', href: '/user-dashboard/leads' },
@@ -62,29 +64,28 @@ export default function Menubar() {
     },
     {
       label: 'Sources',
-      icon: <Database className="w-5 h-5" />,
+      icon: <Database className="w-4 h-4 lg:w-5 lg:h-5" />,
       href: '/user-dashboard/sources',
     },
     {
       label: 'Integrations',
-      icon: <Zap className="w-5 h-5" />,
+      icon: <Zap className="w-4 h-4 lg:w-5 lg:h-5" />,
       href: '/user-dashboard/integrations',
     },
     {
       label: 'Settings',
-      icon: <Settings className="w-5 h-5" />,
+      icon: <Settings className="w-4 h-4 lg:w-5 lg:h-5" />,
       submenu: [
         { label: 'General', href: '/user-dashboard/settings/general' },
         { label: 'Model', href: '/user-dashboard/settings/model' },
         { label: 'Chat Interface', href: '/user-dashboard/settings/chat-interface' },
         { label: 'Security', href: '/user-dashboard/settings/security' },
         { label: 'Notifications', href: '/user-dashboard/settings/notifications' },
-        // { label: 'Domains', href: '/user-dashboard/settings/domains' },
       ],
     },
     {
       label: 'Embed on Site',
-      icon: <Code className="w-5 h-5" />,
+      icon: <Code className="w-4 h-4 lg:w-5 lg:h-5" />,
       href: '/user-dashboard/embed',
     },
   ];
@@ -130,7 +131,7 @@ export default function Menubar() {
 
   return (
     <div className="bg-gradient-to-b from-green-50/50 to-white flex flex-col h-full overflow-hidden">
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 p-3 lg:p-4">
         <div className="space-y-1">
           {menuItems.map((item) => (
             <div key={item.label}>
@@ -138,13 +139,13 @@ export default function Menubar() {
                 <button
                   onClick={() => toggleMenu(item.label)}
                   className={cn(
-                    "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150",
+                    "w-full flex items-center justify-between px-2.5 py-2 lg:px-3 lg:py-2.5 rounded-lg transition-all duration-150",
                     isParentActive(item)
                       ? activeClass
                       : "text-gray-600 hover:bg-gray-100/80"
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 lg:gap-3">
                     {item.icon}
                     <span className="font-medium text-sm">{item.label}</span>
                   </div>
@@ -159,13 +160,13 @@ export default function Menubar() {
                 <Link
                   href={item.href!}
                   className={cn(
-                    "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150",
+                    "w-full flex items-center justify-between px-2.5 py-2 lg:px-3 lg:py-2.5 rounded-lg transition-all duration-150",
                     isActive(item.href)
                       ? activeClass
                       : "text-gray-600 hover:bg-gray-100/80"
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 lg:gap-3">
                     {item.icon}
                     <span className="font-medium text-sm">{item.label}</span>
                   </div>
@@ -174,13 +175,13 @@ export default function Menubar() {
 
               {/* Submenu */}
               {item.submenu && expandedMenu === item.label && (
-                <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-green-200 pl-4">
+                <div className="ml-3 lg:ml-4 mt-1 space-y-0.5 border-l-2 border-green-200 pl-3 lg:pl-4 animate-slideDown">
                   {item.submenu.map((subitem) => (
                     <Link
                       key={subitem.href}
                       href={subitem.href}
                       className={cn(
-                        "w-full text-left px-3 py-2 text-sm rounded-lg transition-all duration-150 block",
+                        "w-full text-left px-2.5 py-1.5 lg:px-3 lg:py-2 text-sm rounded-lg transition-all duration-150 block",
                         pathname.startsWith(subitem.href)
                           ? activeClass
                           : "text-gray-600 hover:text-green-700 hover:bg-green-50/50"
@@ -198,19 +199,20 @@ export default function Menubar() {
 
       <Separator />
 
-      <div className="p-4 space-y-2">
-        <Button variant="outline" className="w-full" onClick={handleShare}>
+      <div className="p-3 lg:p-4 space-y-2">
+        <Button variant="outline" className="w-full text-sm" size="sm" onClick={handleShare}>
           <Share2 className="w-4 h-4" />
-          Share
+          <span className="hidden sm:inline ml-2">Share</span>
         </Button>
         <Button
           variant="destructive"
-          className="w-full"
+          className="w-full text-sm"
+          size="sm"
           onClick={() => setIsDeleteOpen(true)}
           disabled={!selectedChatbot}
         >
           <Trash2 className="w-4 h-4" />
-          Delete
+          <span className="hidden sm:inline ml-2">Delete</span>
         </Button>
       </div>
 

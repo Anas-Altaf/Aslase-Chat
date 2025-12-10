@@ -65,3 +65,85 @@ body {
 * {
   border-color: hsl(var(--border));
 }
+
+/* Smooth transitions for interactive elements */
+button,
+a,
+[role="button"],
+input,
+select,
+textarea {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Prevent layout shift on focus */
+*:focus {
+  outline-offset: 2px;
+}
+
+/* Smooth border transitions to eliminate flicker */
+.transition-border {
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+/* Card hover effect */
+.card-interactive {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out;
+}
+
+.card-interactive:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+}
+
+/* Subtle fade in for content */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 200ms ease-out forwards;
+}
+
+/* Icon stabilization - prevent shaking */
+svg {
+  flex-shrink: 0;
+  transition: transform 150ms ease-out, color 150ms ease-out;
+}
+
+/* Submenu slide animation */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown 150ms ease-out;
+}
+
+/* Active state feedback */
+.active-scale:active {
+  transform: scale(0.97);
+}
+
+/* Selection highlight transition */
+.selection-transition {
+  transition: background-color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out;
+}

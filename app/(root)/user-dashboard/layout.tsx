@@ -1,33 +1,151 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ChatbotProvider } from '@/contexts/ChatbotContext';
 import ChatbotBar from '@/components/user-dashboard/chatbot-bar';
 import Menubar from '@/components/user-dashboard/menubar';
 import Header from '@/components/user-dashboard/header';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+    ResizablePanelGroup,
+    ResizablePanel,
+    ResizableHandle,
+} from '@/components/ui/resizable';
+import { PanelLeftClose, PanelLeft, Menu } from 'lucide-react';
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
     return (
         <ChatbotProvider>
-            <div className="flex h-screen bg-gray-50/50">
-                <ChatbotBar />
-                <div className="flex-1 flex flex-col">
+            <div className="flex h-screen bg-gray-50/50 overflow-hidden">
+                {/* Mobile Menu Button */}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="lg:hidden fixed top-4 left-4 z-50"
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                >
+                    <Menu className="w-5 h-5" />
+                </Button>
+
+                {/* Mobile Overlay */}
+                {mobileMenuOpen && (
+                    <div
+                        className="lg:hidden fixed inset-0 bg-black/50 z-40"
+                        onClick={() => setMobileMenuOpen(false)}
+                    />
+                )}
+
+                {/* Mobile Sidebar */}
+                <div className={`
+          lg:hidden fixed inset-y-0 left-0 z-50 transform transition-transform duration-300
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}>
+                    <ChatbotBar />
+                </div>
+
+                {/* Desktop Layout - All Resizable */}
+                <div className="hidden lg:flex flex-1 h-screen">
+                    <ResizablePanelGroup direction="horizontal" className="h-full">
+                        {/* Chatbot Sidebar Panel */}
+                        <ResizablePanel
+                            defaultSize={18}
+                            minSize={sidebarCollapsed ? 4 : 12}
+                            maxSize={25}
+                            collapsible
+                            collapsedSize={4}
+                            onCollapse={() => setSidebarCollapsed(true)}
+                            onExpand={() => setSidebarCollapsed(false)}
+                            className="min-w-0"
+                        >
+                            <div className="h-full relative">
+                                {sidebarCollapsed ? (
+                                    <CollapsedSidebar onExpand={() => setSidebarCollapsed(false)} />
+                                ) : (
+                                    <ChatbotBar />
+                                )}
+                            </div>
+                        </ResizablePanel>
+
+                        <ResizableHandle withHandle />
+
+                        {/* Menu + Content Area */}
+                        <ResizablePanel defaultSize={82} minSize={60} className="min-w-0">
+                            <div className="flex flex-col h-full">
+                                <Header />
+                                <div className="flex-1 p-4 xl:p-6 overflow-hidden">
+                                    <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg">
+                                        {/* Menu Panel */}
+                                        <ResizablePanel
+                                            defaultSize={28}
+                                            minSize={18}
+                                            maxSize={45}
+                                            collapsible
+                                            collapsedSize={0}
+                                            className="min-w-0"
+                                        >
+                                            <Card className="h-full overflow-hidden rounded-r-none border-r-0">
+                                                <Menubar />
+                                            </Card>
+                                        </ResizablePanel>
+
+                                        <ResizableHandle withHandle />
+
+                                        {/* Content Panel */}
+                                        <ResizablePanel defaultSize={72} minSize={40} className="min-w-0">
+                                            <Card className="h-full p-4 xl:p-6 overflow-auto rounded-l-none">
+                                                {children}
+                                            </Card>
+                                        </ResizablePanel>
+                                    </ResizablePanelGroup>
+                                </div>
+                            </div>
+                        </ResizablePanel>
+                    </ResizablePanelGroup>
+                </div>
+
+                {/* Mobile Content */}
+                <div className="lg:hidden flex-1 flex flex-col min-w-0 pt-14">
                     <Header />
-                    <div className="flex-1 flex gap-4 p-6">
-                        <Card className="w-80 overflow-hidden">
-                            <Menubar />
-                        </Card>
-                        <Card className="flex-1 p-6 overflow-auto">
-                            {children}
-                        </Card>
+                    <div className="flex-1 p-4 overflow-hidden">
+                        <div className="flex flex-col gap-4 h-full">
+                            <Card className="p-4 overflow-auto max-h-[35vh]">
+                                <Menubar />
+                            </Card>
+                            <Card className="flex-1 p-4 overflow-auto">
+                                {children}
+                            </Card>
+                        </div>
                     </div>
                 </div>
             </div>
         </ChatbotProvider>
+    );
+}
+
+// Collapsed sidebar view
+function CollapsedSidebar({ onExpand }: { onExpand: () => void }) {
+    return (
+        <div className="h-full bg-white border-r flex flex-col items-center py-4">
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={onExpand}
+                className="mb-4"
+                title="Expand sidebar"
+            >
+                <PanelLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex-1 flex flex-col items-center gap-2 overflow-auto py-2">
+                {/* Could add collapsed chatbot icons here */}
+            </div>
+        </div>
     );
 }

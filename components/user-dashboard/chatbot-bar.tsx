@@ -30,12 +30,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus } from 'lucide-react';
+import { Plus, Bot, Calendar, PanelLeftClose } from 'lucide-react';
 import type { Chatbot } from '@/types';
 
-export default function ChatbotBar() {
+interface ChatbotBarProps {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+}
+
+export default function ChatbotBar({ collapsed = false, onToggleCollapse }: ChatbotBarProps) {
   const { user } = useAuth();
-  const { chatbots, selectedChatbot, isInitialLoading, isMutating, addChatbot, selectChatbot } = useChatbot();
+  const { chatbots, selectedChatbot, isInitialLoading, addChatbot, selectChatbot } = useChatbot();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newChatbot, setNewChatbot] = useState({
@@ -62,42 +67,57 @@ export default function ChatbotBar() {
   };
 
   const handleSelect = (id: string) => {
-    // Synchronous selection - no loading, no flicker
     selectChatbot(id);
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
   return (
-    <Card className="w-64 rounded-none border-r border-l-0 border-t-0 border-b-0 flex flex-col h-screen">
+    <Card className="h-full rounded-none border-r border-l-0 border-t-0 border-b-0 flex flex-col bg-white">
       {/* Logo */}
-      <div className="p-6">
-        <Link href="/" className="block transition-transform duration-200 hover:scale-105">
+      <div className="p-3 xl:p-4 flex items-center justify-between">
+        <Link href="/" className="block transition-transform duration-200 hover:scale-105 flex-1">
           <Image
             src="/AslasChat.jpg"
             alt="AslasChat Logo"
-            width={120}
-            height={80}
-            className="w-full"
+            width={100}
+            height={60}
+            className="max-w-[120px]"
           />
         </Link>
+        {onToggleCollapse && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 flex-shrink-0"
+            onClick={onToggleCollapse}
+            title="Collapse sidebar"
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
       <Separator />
 
       {/* Chatbots Section */}
-      <div className="flex-1 overflow-hidden p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-gray-700 font-semibold text-sm">Chatbots</h2>
+      <div className="flex-1 overflow-hidden p-2 xl:p-3">
+        <div className="flex items-center justify-between mb-2 xl:mb-3 px-1">
+          <h2 className="text-gray-700 font-semibold text-xs xl:text-sm">Chatbots</h2>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button variant="ghost" size="icon" className="h-6 w-6">
                 <Plus className="h-4 w-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Create New Chatbot</DialogTitle>
                 <DialogDescription>
-                  Add a new chatbot to your account. You can configure it after creation.
+                  Add a new chatbot to your account.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -147,7 +167,7 @@ export default function ChatbotBar() {
                   Cancel
                 </Button>
                 <Button onClick={handleCreate} disabled={isCreating || !newChatbot.name.trim()}>
-                  {isCreating ? 'Creating...' : 'Create Chatbot'}
+                  {isCreating ? 'Creating...' : 'Create'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -155,51 +175,33 @@ export default function ChatbotBar() {
         </div>
 
         <ScrollArea className="flex-1 h-[calc(100%-2rem)]">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {isInitialLoading ? (
-              // Only show skeletons on initial load
               <>
-                <div className="flex items-center gap-3 p-3">
-                  <Skeleton className="w-10 h-10 rounded-lg" />
-                  <Skeleton className="h-4 flex-1" />
-                </div>
-                <div className="flex items-center gap-3 p-3">
-                  <Skeleton className="w-10 h-10 rounded-lg" />
-                  <Skeleton className="h-4 flex-1" />
-                </div>
+                <ChatbotCardSkeleton />
+                <ChatbotCardSkeleton />
               </>
             ) : chatbots.length === 0 ? (
-              <p className="text-gray-500 text-sm text-center py-4">
-                No chatbots yet. Create one!
-              </p>
+              <div className="text-center py-6">
+                <Bot className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-gray-500 text-xs">No chatbots</p>
+                <Button
+                  variant="link"
+                  className="text-green-600 text-xs p-0 h-auto mt-1"
+                  onClick={() => setIsCreateOpen(true)}
+                >
+                  Create one
+                </Button>
+              </div>
             ) : (
               chatbots.map((chatbot) => (
-                <button
+                <ChatbotCard
                   key={chatbot.id}
-                  onClick={() => handleSelect(chatbot.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all duration-150 text-left ${selectedChatbot?.id === chatbot.id
-                      ? 'bg-green-100 border border-green-200'
-                      : 'hover:bg-gray-50'
-                    }`}
-                >
-                  <Avatar className="w-10 h-10 rounded-lg">
-                    <AvatarImage src="/chatbot.png" alt={chatbot.name} />
-                    <AvatarFallback className="rounded-lg bg-green-100 text-green-700">
-                      {chatbot.name.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-gray-800 text-sm font-medium truncate block">
-                      {chatbot.name}
-                    </span>
-                    <Badge
-                      variant={chatbot.status === 'trained' ? 'success' : chatbot.status === 'training' ? 'warning' : 'destructive'}
-                      className="text-xs mt-1"
-                    >
-                      {chatbot.status}
-                    </Badge>
-                  </div>
-                </button>
+                  chatbot={chatbot}
+                  isSelected={selectedChatbot?.id === chatbot.id}
+                  onSelect={() => handleSelect(chatbot.id)}
+                  formatDate={formatDate}
+                />
               ))
             )}
           </div>
@@ -209,25 +211,88 @@ export default function ChatbotBar() {
       <Separator />
 
       {/* Profile Card */}
-      <div className="p-4">
-        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-150">
-          <Avatar className="w-10 h-10">
+      <div className="p-2 xl:p-3">
+        <Link href="/profile" className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-150">
+          <Avatar className="w-8 h-8">
             <AvatarImage src="/chatbot.png" alt={userName} />
-            <AvatarFallback className="bg-green-100 text-green-700">{userInitials}</AvatarFallback>
+            <AvatarFallback className="bg-green-100 text-green-700 text-xs">{userInitials}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-gray-800 text-sm font-medium truncate">
-              {userName}
-            </p>
-            <Link
-              href="/profile"
-              className="text-green-600 text-xs hover:text-green-700 transition-colors"
-            >
-              View Profile →
-            </Link>
+            <p className="text-gray-800 text-xs font-medium truncate">{userName}</p>
+            <p className="text-green-600 text-[10px]">Profile →</p>
           </div>
-        </div>
+        </Link>
       </div>
     </Card>
+  );
+}
+
+function ChatbotCard({
+  chatbot,
+  isSelected,
+  onSelect,
+  formatDate
+}: {
+  chatbot: Chatbot;
+  isSelected: boolean;
+  onSelect: () => void;
+  formatDate: (date: string) => string;
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      className={`w-full text-left p-2.5 rounded-lg selection-transition ${isSelected
+        ? 'bg-green-50 border border-green-400 ring-2 ring-green-200/60 shadow-sm'
+        : 'bg-white border border-gray-100 hover:border-gray-200 hover:bg-gray-50/80 hover:shadow-sm'
+        }`}
+    >
+      <div className="flex items-center gap-2 mb-1.5">
+        <Avatar className="w-8 h-8 rounded-md flex-shrink-0">
+          <AvatarImage src="/chatbot.png" alt={chatbot.name} />
+          <AvatarFallback className="rounded-md bg-gradient-to-br from-green-100 to-emerald-100 text-green-700 text-xs font-semibold">
+            {chatbot.name.substring(0, 2).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <p className="text-gray-900 text-xs font-semibold truncate">
+            {chatbot.name}
+          </p>
+          <p className="text-gray-400 text-[10px]">
+            {chatbot.model.toUpperCase()}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-1">
+        <Badge
+          variant={chatbot.status === 'trained' ? 'success' : chatbot.status === 'training' ? 'warning' : 'destructive'}
+          className="text-[10px] px-1.5 py-0"
+        >
+          {chatbot.status}
+        </Badge>
+        <div className="flex items-center gap-0.5 text-gray-400">
+          <Calendar className="w-2.5 h-2.5" />
+          <span className="text-[10px]">{formatDate(chatbot.createdAt)}</span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function ChatbotCardSkeleton() {
+  return (
+    <div className="p-2.5 rounded-lg border border-gray-100 bg-white">
+      <div className="flex items-center gap-2 mb-1.5">
+        <Skeleton className="w-8 h-8 rounded-md" />
+        <div className="flex-1">
+          <Skeleton className="h-3 w-20 mb-1" />
+          <Skeleton className="h-2 w-12" />
+        </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-4 w-12 rounded-full" />
+        <Skeleton className="h-2 w-14" />
+      </div>
+    </div>
   );
 }
