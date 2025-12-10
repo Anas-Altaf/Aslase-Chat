@@ -21,6 +21,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  updateUserProfile: (data: { displayName?: string; photoURL?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => { },
   signInWithGoogle: async () => { },
   logout: async () => { },
+  updateUserProfile: async () => { },
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -122,6 +124,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     await signOut(auth);
   };
 
+  const updateUserProfile = async (data: { displayName?: string; photoURL?: string }) => {
+    if (!auth.currentUser) throw new Error('No user logged in');
+    await updateProfile(auth.currentUser, data);
+    // Force refresh the user state
+    setUser({ ...auth.currentUser });
+  };
+
   const value = {
     user,
     loading,
@@ -129,7 +138,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     signIn,
     signInWithGoogle,
     logout,
+    updateUserProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
