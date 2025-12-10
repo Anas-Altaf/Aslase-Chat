@@ -132,7 +132,7 @@ export default function ChatbotDetails() {
         </div>
 
         {/* Details Grid */}
-        <div className="grid grid-cols-2 gap-4 flex-shrink-0">
+        <div className="grid grid-cols-2 gap-4 shrink-0">
           {/* Left Column - Chatbot Details */}
           <Card className="p-4 space-y-4">
             <div>
@@ -190,8 +190,8 @@ export default function ChatbotDetails() {
       </div>
 
       {/* Right Section - Chat Interface */}
-      <div className="w-80 flex flex-col flex-shrink-0 overflow-hidden">
-        <h2 className="text-2xl font-bold text-gray-900 mb-3 flex-shrink-0">Chatbot</h2>
+      <div className="w-80 flex flex-col shrink-0 overflow-hidden">
+        <h2 className="text-2xl font-bold text-gray-900 mb-3 shrink-0">Chatbot</h2>
         <Card className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 space-y-3 mb-3 overflow-y-auto p-3">
             {chatMessages.map((msg, index) => (
@@ -207,7 +207,7 @@ export default function ChatbotDetails() {
               </div>
             ))}
           </div>
-          <div className="flex gap-2 p-3 flex-shrink-0 border-t">
+          <div className="flex gap-2 p-3 shrink-0 border-t">
             <Input
               type="text"
               placeholder="Type your message..."
@@ -221,7 +221,7 @@ export default function ChatbotDetails() {
             </Button>
           </div>
         </Card>
-        <p className="text-right text-gray-500 text-xs mt-2 flex-shrink-0">Powered by AslasChat</p>
+        <p className="text-right text-gray-500 text-xs mt-2 shrink-0">Powered by AslasChat</p>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getBusinesses, createBusiness, updateBusiness, deleteBusiness, getSampleBusinesses } from '@/lib/services/business.service';
+import { auth } from '@/lib/firebase/config';
 import type { Business } from '@/types';
 
 interface BusinessContextType {
@@ -26,9 +27,16 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
     const [isMutating, setIsMutating] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Initial load
+    // Wait for auth and then load businesses
     useEffect(() => {
-        loadBusinesses();
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+                loadBusinesses();
+            } else {
+                setIsInitialLoading(false);
+            }
+        });
+        return unsubscribe;
     }, []);
 
     const loadBusinesses = async () => {
