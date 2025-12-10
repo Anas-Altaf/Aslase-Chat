@@ -135,9 +135,9 @@ export default function ChatbotsListPage() {
                 </Card>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {chatbots.map(chatbot => (
+                    {chatbots.map((chatbot, index) => (
                         <Card
-                            key={chatbot.id}
+                            key={`chatbot-card-${chatbot.id}-${index}`}
                             className="card-interactive cursor-pointer group"
                             onClick={() => handleChatbotClick(chatbot.id)}
                         >
@@ -224,8 +224,8 @@ export default function ChatbotsListPage() {
                                     <SelectValue placeholder="Select a business" />
                                 </SelectTrigger>
                                 <SelectContent position="popper" sideOffset={4}>
-                                    {businesses.map(business => (
-                                        <SelectItem key={business.id} value={business.id}>
+                                    {businesses.map((business, index) => (
+                                        <SelectItem key={`select-biz-${business.id}-${index}`} value={business.id}>
                                             {business.name}
                                         </SelectItem>
                                     ))}

@@ -65,29 +65,42 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     <div className="hidden lg:flex flex-1 h-screen">
                         <ResizablePanelGroup direction="horizontal" className="h-full">
                             {/* Chatbot Sidebar Panel */}
-                            <ResizablePanel
-                                defaultSize={18}
-                                minSize={sidebarCollapsed ? 4 : 12}
-                                maxSize={25}
-                                collapsible
-                                collapsedSize={4}
-                                onCollapse={() => setSidebarCollapsed(true)}
-                                onExpand={() => setSidebarCollapsed(false)}
-                                className="min-w-0"
-                            >
-                                <div className="h-full relative">
-                                    {sidebarCollapsed ? (
-                                        <CollapsedSidebar onExpand={() => setSidebarCollapsed(false)} />
-                                    ) : (
-                                        <ChatbotBar />
-                                    )}
-                                </div>
-                            </ResizablePanel>
+                            {!sidebarCollapsed && (
+                                <>
+                                    <ResizablePanel
+                                        defaultSize={18}
+                                        minSize={12}
+                                        maxSize={25}
+                                        collapsible
+                                        collapsedSize={0}
+                                        onCollapse={() => setSidebarCollapsed(true)}
+                                        className="min-w-0"
+                                    >
+                                        <div className="h-full relative">
+                                            <ChatbotBar />
+                                        </div>
+                                    </ResizablePanel>
+                                    <ResizableHandle withHandle />
+                                </>
+                            )}
 
-                            <ResizableHandle withHandle />
+                            {/* Expand button when collapsed */}
+                            {sidebarCollapsed && (
+                                <div className="h-full bg-white border-r flex flex-col items-center py-4 px-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setSidebarCollapsed(false)}
+                                        className="mb-4"
+                                        title="Expand sidebar"
+                                    >
+                                        <PanelLeft className="w-5 h-5" />
+                                    </Button>
+                                </div>
+                            )}
 
                             {/* Menu + Content Area */}
-                            <ResizablePanel defaultSize={82} minSize={60} className="min-w-0">
+                            <ResizablePanel defaultSize={sidebarCollapsed ? 100 : 82} minSize={60} className="min-w-0">
                                 <div className="flex flex-col h-full">
                                     <Header />
                                     <div className="flex-1 p-4 xl:p-6 overflow-hidden">
