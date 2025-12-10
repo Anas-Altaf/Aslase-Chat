@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Filter, Calendar, MessageCircle, User } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
-import { getChatSessions, exportChatSessions } from '@/lib/services';
+import { getChatSessions, exportChatSessions, sendChatMessage } from '@/lib/services';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,11 @@ export default function ChatLogs() {
   const [isExporting, setIsExporting] = useState(false);
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [currentChatId, setCurrentChatId] = useState<string | undefined>(undefined);
+  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
+    { role: 'assistant', content: 'Hi! How can I help?' },
+  ]);
 
   // Cache sessions per chatbot ID
   const sessionCache = useRef<Record<string, ChatSession[]>>({});
@@ -85,6 +90,52 @@ export default function ChatLogs() {
       toast.error('Failed to export chat logs');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!message.trim() || !selectedChatbot || isSending) return;
+    
+    const userMessage = message.trim();
+    setMessage('');
+    setIsSending(true);
+
+    // Add user message to UI immediately
+    setChatMessages(prev => [
+      ...prev,
+      { role: 'user', content: userMessage },
+    ]);
+
+    try {
+      // Send message to backend
+      const response = await sendChatMessage(
+        selectedChatbot.id,
+        userMessage,
+        currentChatId
+      );
+
+      // Store chat ID for subsequent messages
+      if (!currentChatId) {
+        setCurrentChatId(response.chatId);
+      }
+
+      // Add AI response to UI
+      setChatMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: response.message },
+      ]);
+
+      // Refresh chat sessions to show new chat
+      loadSessions();
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message');
+      
+      // Remove user message on error
+      setChatMessages(prev => prev.slice(0, -1));
+      setMessage(userMessage); // Restore message
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -220,16 +271,19 @@ export default function ChatLogs() {
         <h2 className="text-2xl font-bold text-gray-900 mb-3 flex-shrink-0">Chatbot</h2>
         <Card className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 space-y-3 mb-3 overflow-y-auto p-3">
-            <div className="flex justify-end">
-              <div className="bg-green-500 text-white px-3 py-2 rounded-lg max-w-xs text-sm">
-                What is AslasChat?
+            {chatMessages.map((msg, index) => (
+              <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`px-3 py-2 rounded-lg max-w-xs text-sm ${
+                    msg.role === 'user'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-200 text-gray-900'
+                  }`}
+                >
+                  {msg.content}
+                </div>
               </div>
-            </div>
-            <div className="flex justify-start">
-              <div className="bg-gray-200 text-gray-900 px-3 py-2 rounded-lg max-w-xs text-sm">
-                AslasChat supports multiple languages to cater to diverse audiences and enhance user experience.
-              </div>
-            </div>
+            ))}
           </div>
           <div className="flex gap-2 p-3 flex-shrink-0 border-t border-gray-100">
             <Input
@@ -237,8 +291,10 @@ export default function ChatLogs() {
               placeholder="Type your message..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !isSending && handleSendMessage()}
+              disabled={isSending}
             />
-            <Button size="icon">
+            <Button size="icon" onClick={handleSendMessage} disabled={isSending}>
               <Send className="w-4 h-4" />
             </Button>
           </div>

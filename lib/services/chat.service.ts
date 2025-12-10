@@ -128,27 +128,52 @@ export async function getChatSessions(
         minConfidence?: number;
     }
 ): Promise<ApiResponse<PaginatedResponse<ChatSession>>> {
-    await delay(400);
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            return {
+                success: false,
+                error: 'User not authenticated',
+                data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false }
+            };
+        }
 
-    let filtered = sampleSessions.filter(s => s.chatbotId === chatbotId);
+        // Get all chats for this chatbot
+        const chats = await api.get(`/chatbots/chat/user/all?chatbotId=${chatbotId}`);
+        
+        // Convert backend chats to frontend ChatSession format
+        const sessions: ChatSession[] = chats.map((chat: any) => ({
+            id: chat._id,
+            chatbotId: chat.chatbotId,
+            messages: chat.messages.map((msg: any, index: number) => ({
+                id: `${chat._id}-${index}`,
+                role: msg.role,
+                content: msg.content,
+                timestamp: msg.timestamp
+            })),
+            source: 'embed', // Default source
+            confidenceScore: 0.85, // Default confidence
+            createdAt: chat.createdAt
+        }));
 
-    if (filters?.source) {
-        filtered = filtered.filter(s => s.source === filters.source);
+        return {
+            success: true,
+            data: {
+                items: sessions,
+                total: sessions.length,
+                page: 1,
+                pageSize: 20,
+                hasMore: false,
+            },
+        };
+    } catch (error) {
+        console.error('Error fetching chat sessions:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to fetch chat sessions',
+            data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false }
+        };
     }
-    if (filters?.minConfidence !== undefined) {
-        filtered = filtered.filter(s => s.confidenceScore >= filters.minConfidence!);
-    }
-
-    return {
-        success: true,
-        data: {
-            items: filtered,
-            total: filtered.length,
-            page: 1,
-            pageSize: 20,
-            hasMore: false,
-        },
-    };
 }
 
 export async function getChatSessionById(id: string): Promise<ApiResponse<ChatSession | null>> {
