@@ -74,7 +74,7 @@ export default function DashboardOverview() {
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Welcome Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 p-8 text-white shadow-xl shadow-green-500/20">
+      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-green-500 via-emerald-500 to-teal-500 p-8 text-white shadow-xl shadow-green-500/20">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
 
@@ -107,7 +107,7 @@ export default function DashboardOverview() {
               className="group card-interactive hover:shadow-xl border-0 shadow-lg animate-fadeIn overflow-hidden"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.gradient}`}></div>
+              <div className={`absolute top-0 left-0 right-0 h-1 bg-linear-to-br ${stat.gradient}`}></div>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -155,7 +155,7 @@ export default function DashboardOverview() {
                 <div
                   key={chatbot.id}
                   className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 hover:shadow-md hover:scale-[1.01] animate-fadeIn ${selectedChatbot?.id === chatbot.id
-                      ? 'border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 shadow-sm'
+                      ? 'border-green-300 bg-linear-to-br from-green-50 to-emerald-50 shadow-sm'
                       : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50/50'
                     }`}
                   style={{ animationDelay: `${index * 0.05}s` }}

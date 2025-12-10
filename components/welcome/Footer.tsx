@@ -98,7 +98,7 @@ export default function Footer() {
           {/* Links */}
           <div className="lg:col-span-2 lg:col-start-6">
             <h4 className="text-lg font-bold mb-6 flex items-center gap-2">
-              <div className="w-8 h-0.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"></div>
+              <div className="w-8 h-0.5 bg-linear-to-br from-green-500 to-emerald-500 rounded-full"></div>
               Pages
             </h4>
             <ul className="space-y-4">
@@ -118,7 +118,7 @@ export default function Footer() {
 
           <div className="lg:col-span-2">
             <h4 className="text-lg font-bold mb-6 flex items-center gap-2">
-              <div className="w-8 h-0.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"></div>
+              <div className="w-8 h-0.5 bg-linear-to-br from-green-500 to-emerald-500 rounded-full"></div>
               Quick Links
             </h4>
             <ul className="space-y-4">
@@ -139,7 +139,7 @@ export default function Footer() {
           {/* Contact */}
           <div className="lg:col-span-3">
             <h4 className="text-lg font-bold mb-6 flex items-center gap-2">
-              <div className="w-8 h-0.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"></div>
+              <div className="w-8 h-0.5 bg-linear-to-br from-green-500 to-emerald-500 rounded-full"></div>
               Contact
             </h4>
             <div className="space-y-4">
@@ -166,7 +166,7 @@ export default function Footer() {
         </div>
 
         {/* Divider */}
-        <div className="h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent mb-8"></div>
+        <div className="h-px bg-linear-to-br from-transparent via-gray-700 to-transparent mb-8"></div>
 
         {/* Bottom Section */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">

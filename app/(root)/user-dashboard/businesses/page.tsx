@@ -418,7 +418,7 @@ export default function BusinessesPage() {
                                         {pendingFiles.map((file, index) => (
                                             <div 
                                                 key={`file-${index}`} 
-                                                className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-orange-50 to-orange-50/50 border border-orange-100 group hover:border-orange-200 transition-colors"
+                                                className="flex items-center justify-between p-3 rounded-lg bg-linear-to-br from-orange-50 to-orange-50/50 border border-orange-100 group hover:border-orange-200 transition-colors"
                                             >
                                                 <div className="flex items-center gap-3 min-w-0 flex-1">
                                                     <div className="flex-shrink-0 w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-orange-200">

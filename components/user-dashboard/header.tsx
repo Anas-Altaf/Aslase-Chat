@@ -56,7 +56,7 @@ export default function Header() {
   return (
     <header className="relative bg-white/80 backdrop-blur-xl border-b border-gray-100/50 px-6 py-4 flex items-center justify-between shadow-sm">
       {/* Animated gradient line at top */}
-      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500"></div>
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-br from-green-400 via-emerald-500 to-teal-500"></div>
 
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-2">
@@ -82,8 +82,8 @@ export default function Header() {
                 {item.label}
               </Link>
             ) : (
-              <span className="text-sm font-bold px-3 py-1.5 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100">
-                <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              <span className="text-sm font-bold px-3 py-1.5 rounded-lg bg-linear-to-br from-green-50 to-emerald-50 border border-green-100">
+                <span className="bg-linear-to-br from-green-600 to-emerald-600 bg-clip-text text-transparent">
                   {item.label}
                 </span>
               </span>
@@ -97,7 +97,7 @@ export default function Header() {
         variant="ghost"
         size="sm"
         onClick={handleLogout}
-        className="text-gray-600 hover:text-white hover:bg-gradient-to-r hover:from-red-500 hover:to-rose-500 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-red-500/25 group rounded-xl"
+        className="text-gray-600 hover:text-white hover:bg-linear-to-br hover:from-red-500 hover:to-rose-500 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-red-500/25 group rounded-xl"
       >
         <LogOut className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
         Logout

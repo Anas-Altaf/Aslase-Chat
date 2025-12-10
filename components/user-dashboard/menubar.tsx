@@ -147,7 +147,7 @@ export default function Menubar() {
                           className={cn(
                             "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 group relative overflow-hidden",
                             isSubActive
-                              ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25 font-semibold"
+                              ? "bg-linear-to-br from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25 font-semibold"
                               : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
                           )}
                         >
@@ -157,7 +157,7 @@ export default function Menubar() {
                           )} />
                           <span>{subitem.label}</span>
                           {!isSubActive && (
-                            <span className="absolute inset-0 bg-gradient-to-r from-green-400/0 via-green-400/10 to-green-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
+                            <span className="absolute inset-0 bg-linear-to-br from-green-400/0 via-green-400/10 to-green-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
                           )}
                         </Link>
                       );
@@ -170,7 +170,7 @@ export default function Menubar() {
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden",
                     isActive(item.href)
-                      ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25"
+                      ? "bg-linear-to-br from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25"
                       : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
                   )}
                 >
@@ -182,7 +182,7 @@ export default function Menubar() {
                   </span>
                   <span className="font-semibold text-sm">{item.label}</span>
                   {!isActive(item.href) && (
-                    <span className="absolute inset-0 bg-gradient-to-r from-green-400/0 via-green-400/10 to-green-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
+                    <span className="absolute inset-0 bg-linear-to-br from-green-400/0 via-green-400/10 to-green-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></span>
                   )}
                 </Link>
               )}
@@ -197,7 +197,7 @@ export default function Menubar() {
       <div className="p-4 space-y-2">
         <Button
           variant="outline"
-          className="w-full justify-center gap-2 bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200 text-blue-700 hover:from-blue-500 hover:to-cyan-500 hover:text-white hover:border-transparent transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/25 group"
+          className="w-full justify-center gap-2 bg-linear-to-br from-blue-50 to-cyan-50 border-blue-200 text-blue-700 hover:from-blue-500 hover:to-cyan-500 hover:text-white hover:border-transparent transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/25 group"
           size="default"
           onClick={handleShare}
         >
@@ -206,7 +206,7 @@ export default function Menubar() {
         </Button>
         <Button
           variant="outline"
-          className="w-full justify-center gap-2 bg-gradient-to-r from-red-50 to-rose-50 border-red-200 text-red-600 hover:from-red-500 hover:to-rose-500 hover:text-white hover:border-transparent transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-red-500/25 group"
+          className="w-full justify-center gap-2 bg-linear-to-br from-red-50 to-rose-50 border-red-200 text-red-600 hover:from-red-500 hover:to-rose-500 hover:text-white hover:border-transparent transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-red-500/25 group"
           size="default"
           onClick={() => setIsDeleteOpen(true)}
           disabled={!selectedChatbot}

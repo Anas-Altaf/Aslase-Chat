@@ -37,7 +37,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
                                                     alt="AslasChat"
                                                     className="h-20 w-auto transition-transform duration-300 group-hover:scale-105"
                                                 />
-                                                <div className="absolute -inset-4 bg-gradient-to-r from-green-400/20 to-emerald-400/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                                <div className="absolute -inset-4 bg-linear-to-br from-green-400/20 to-emerald-400/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                             </div>
                                         </Link>
                                     </div>

@@ -148,7 +148,7 @@ export default function BlogSection() {
         </div>
 
         {/* Newsletter Section */}
-        <div className="mt-20 bg-gradient-to-r from-green-500 to-green-600 rounded-3xl p-12 text-center text-white">
+        <div className="mt-20 bg-linear-to-br from-green-500 to-green-600 rounded-3xl p-12 text-center text-white">
           <h2 className="text-3xl font-bold mb-4">Subscribe to Our Newsletter</h2>
           <p className="text-green-50 mb-8 max-w-2xl mx-auto">
             Get the latest insights, tips, and updates delivered straight to your inbox.

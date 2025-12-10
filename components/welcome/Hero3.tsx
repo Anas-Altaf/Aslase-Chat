@@ -24,7 +24,7 @@ export default function Hero3() {
         {/* Floating icon */}
         <div className="flex justify-center mb-10">
           <div className="relative group">
-            <div className="absolute -inset-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full opacity-20 blur-lg group-hover:opacity-40 transition-opacity duration-500 animate-pulse-glow"></div>
+            <div className="absolute -inset-4 bg-linear-to-br from-green-500 to-emerald-500 rounded-full opacity-20 blur-lg group-hover:opacity-40 transition-opacity duration-500 animate-pulse-glow"></div>
             <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-2xl shadow-green-500/30 group-hover:scale-110 transition-transform duration-300">
               <MessageSquare className="w-12 h-12 text-white" />
             </div>
@@ -36,7 +36,7 @@ export default function Hero3() {
           Turn Conversations into
           <br />
           <span className="relative inline-block mt-2">
-            <span className="bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 bg-clip-text text-transparent">
+            <span className="bg-linear-to-br from-green-400 via-emerald-400 to-teal-400 bg-clip-text text-transparent">
               Potential Customers
             </span>
             <Sparkles className="absolute -top-2 -right-8 w-6 h-6 text-yellow-400 animate-pulse" />

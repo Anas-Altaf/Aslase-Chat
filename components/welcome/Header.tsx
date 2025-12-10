@@ -40,7 +40,7 @@ export default function Header() {
           }`}
       >
         {/* Animated gradient line at top */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 opacity-80"></div>
+        <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-br from-green-400 via-emerald-500 to-teal-500 opacity-80"></div>
 
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
@@ -52,7 +52,7 @@ export default function Header() {
                   alt="AslasChat"
                   className="h-16 w-auto transition-transform duration-300 group-hover:scale-105"
                 />
-                <div className="absolute -inset-2 bg-gradient-to-r from-green-400/20 to-emerald-400/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute -inset-2 bg-linear-to-br from-green-400/20 to-emerald-400/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>
             </Link>
 
@@ -75,7 +75,7 @@ export default function Header() {
                   </Link>
                   {/* Animated underline */}
                   <span
-                    className={`absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-300 ${isActive(item.href) ? 'w-full' : 'w-0 group-hover:w-full'
+                    className={`absolute -bottom-1 left-0 h-0.5 bg-linear-to-br from-green-500 to-emerald-500 transition-all duration-300 ${isActive(item.href) ? 'w-full' : 'w-0 group-hover:w-full'
                       }`}
                   ></span>
                   {/* Active dot indicator */}
@@ -139,7 +139,7 @@ export default function Header() {
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`block py-3 px-4 rounded-xl text-lg font-medium transition-all duration-200 ${isActive(item.href)
-                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200'
+                    ? 'bg-linear-to-br from-green-50 to-emerald-50 text-green-700 border border-green-200'
                     : 'text-gray-700 hover:bg-gray-50'
                   }`}
                 style={{ animationDelay: `${index * 0.05}s` }}

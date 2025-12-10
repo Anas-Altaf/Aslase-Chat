@@ -58,7 +58,7 @@ export default function Features() {
             <div className="max-w-7xl mx-auto relative z-10">
                 {/* Section header */}
                 <div className="text-center mb-16">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 border border-green-200/50 mb-6">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-linear-to-br from-green-100 to-emerald-100 border border-green-200/50 mb-6">
                         <Sparkles className="w-4 h-4 text-green-600" />
                         <span className="text-sm font-semibold text-green-700">Why Choose Us</span>
                     </div>
@@ -85,7 +85,7 @@ export default function Features() {
                                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-green-50/0 to-emerald-50/0 group-hover:from-green-50/50 group-hover:to-emerald-50/50 transition-all duration-500"></div>
 
                                 {/* Gradient border on hover */}
-                                <div className="absolute -inset-px rounded-2xl bg-gradient-to-r from-green-400/0 to-emerald-400/0 group-hover:from-green-400/20 group-hover:to-emerald-400/20 transition-all duration-500 opacity-0 group-hover:opacity-100"></div>
+                                <div className="absolute -inset-px rounded-2xl bg-linear-to-br from-green-400/0 to-emerald-400/0 group-hover:from-green-400/20 group-hover:to-emerald-400/20 transition-all duration-500 opacity-0 group-hover:opacity-100"></div>
 
                                 <div className="relative z-10">
                                     {/* Icon */}

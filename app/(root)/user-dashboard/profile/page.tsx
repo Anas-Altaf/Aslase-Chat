@@ -244,7 +244,7 @@ export default function ProfilePage() {
             {/* Profile Card */}
             <Card className="overflow-hidden">
                 {/* Banner */}
-                <div className="h-32 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 relative">
+                <div className="h-32 bg-linear-to-br from-emerald-500 via-teal-500 to-cyan-500 relative">
                     <div className="absolute inset-0 bg-black/10"></div>
                     <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent"></div>
                 </div>

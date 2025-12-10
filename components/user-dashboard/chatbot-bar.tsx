@@ -265,7 +265,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 text-emerald-600 border-2 border-emerald-200 hover:from-emerald-500 hover:to-teal-500 hover:text-white hover:border-transparent transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/30"
+                  className="h-11 w-11 rounded-xl bg-linear-to-br from-emerald-50 to-teal-50 text-emerald-600 border-2 border-emerald-200 hover:from-emerald-500 hover:to-teal-500 hover:text-white hover:border-transparent transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/30"
                   onClick={() => setIsCreateChatbotOpen(true)}
                 >
                   <Plus className="w-5 h-5" />
@@ -284,7 +284,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                 <Link href="/user-dashboard/profile">
                   <Avatar className="w-10 h-10 ring-2 ring-emerald-200 hover:ring-emerald-400 transition-all duration-300">
                     <AvatarImage src="/chatbot.png" alt={userName} />
-                    <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-500 text-white text-sm font-bold">{userInitials}</AvatarFallback>
+                    <AvatarFallback className="bbg-linear-to-br from-emerald-500 to-teal-500 text-white text-sm font-bold">{userInitials}</AvatarFallback>
                   </Avatar>
                 </Link>
               </TooltipTrigger>
@@ -455,11 +455,11 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
   return (
     <Card className="h-full rounded-none border-r border-gray-200/60 border-l-0 border-t-0 border-b-0 flex flex-col bg-white shadow-xl">
       {/* Vibrant gradient accent line at top */}
-      <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500"></div>
+      <div className="h-1 bg-linear-to-r from-emerald-400 via-teal-500 to-cyan-500"></div>
 
       {/* Logo - Centered */}
       <div className="p-4 flex items-center justify-between">
-        <Link href="/user-dashboard" className="block flex-1 flex justify-center group">
+        <Link href="/user-dashboard" className=" flex-1 flex justify-center group">
           <div className="relative">
             <Image
               src="/AslasChat.jpg"
@@ -468,14 +468,14 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
               height={60}
               className="max-w-[100px] rounded-lg transition-transform duration-300 group-hover:scale-105"
             />
-            <div className="absolute -inset-2 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="absolute -inset-2 bg-linear-to-r from-emerald-400/20 to-teal-400/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </div>
         </Link>
         {onToggleCollapse && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 flex-shrink-0 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"
+            className="h-8 w-8 shrink-0 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"
             onClick={onToggleCollapse}
             title="Collapse sidebar"
           >
@@ -525,7 +525,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                 </>
               ) : chatbots.length === 0 ? (
                 <div className="text-center py-6">
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center border-2 border-emerald-200/50">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-linear-to-br from-emerald-100 to-teal-100 flex items-center justify-center border-2 border-emerald-200/50">
                     <Bot className="w-7 h-7 text-emerald-500" />
                   </div>
                   <p className="text-gray-400 text-sm font-medium">No chatbots yet</p>
@@ -535,14 +535,14 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                   <div
                     key={`chatbot-${chatbot.id}-${index}`}
                     className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl group transition-all duration-300 cursor-pointer ${selectedChatbot?.id === chatbot.id
-                      ? 'bg-gradient-to-r from-emerald-100 to-teal-100 border-2 border-emerald-400 shadow-lg shadow-emerald-500/20'
+                      ? 'bg-linear-to-r from-emerald-100 to-teal-100 border-2 border-emerald-400 shadow-lg shadow-emerald-500/20'
                       : 'bg-white border-2 border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 hover:shadow-md'
                       }`}
                     onClick={() => handleSelectChatbot(chatbot.id)}
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 ${selectedChatbot?.id === chatbot.id
-                      ? 'bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/40'
-                      : 'bg-gradient-to-br from-emerald-100 to-teal-100 group-hover:from-emerald-200 group-hover:to-teal-200'
+                      ? 'bg-linear-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/40'
+                      : 'bg-linear-to-br from-emerald-100 to-teal-100 group-hover:from-emerald-200 group-hover:to-teal-200'
                       }`}>
                       <Avatar className="w-6 h-6 rounded">
                         <AvatarImage src="/chatbot.png" alt={chatbot.name} />
@@ -634,7 +634,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                 </>
               ) : businesses.length === 0 ? (
                 <div className="text-center py-6">
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center border-2 border-violet-200/50">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-linear-to-br from-violet-100 to-purple-100 flex items-center justify-center border-2 border-violet-200/50">
                     <Building2 className="w-7 h-7 text-violet-500" />
                   </div>
                   <p className="text-gray-400 text-sm font-medium">No businesses yet</p>
@@ -644,14 +644,14 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                   <div
                     key={`business-${business.id}-${index}`}
                     className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl group transition-all duration-300 cursor-pointer ${selectedBusiness?.id === business.id
-                      ? 'bg-gradient-to-r from-violet-100 to-purple-100 border-2 border-violet-400 shadow-lg shadow-violet-500/20'
+                      ? 'bg-linear-to-r from-violet-100 to-purple-100 border-2 border-violet-400 shadow-lg shadow-violet-500/20'
                       : 'bg-white border-2 border-gray-100 hover:border-violet-300 hover:bg-violet-50/50 hover:shadow-md'
                       }`}
                     onClick={() => handleSelectBusiness(business.id)}
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 ${selectedBusiness?.id === business.id
-                      ? 'bg-gradient-to-br from-violet-500 to-purple-500 shadow-lg shadow-violet-500/40'
-                      : 'bg-gradient-to-br from-violet-100 to-purple-100 group-hover:from-violet-200 group-hover:to-purple-200'
+                      ? 'bg-linear-to-br from-violet-500 to-purple-500 shadow-lg shadow-violet-500/40'
+                      : 'bg-linear-to-br from-violet-100 to-purple-100 group-hover:from-violet-200 group-hover:to-purple-200'
                       }`}>
                       <Avatar className="w-6 h-6 rounded">
                         {business.logo ? (
@@ -707,10 +707,10 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
 
       {/* Profile Card */}
       <div className="p-3">
-        <Link href="/user-dashboard/profile" className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-gray-50 to-emerald-50/50 border-2 border-gray-100 hover:border-emerald-300 hover:bg-emerald-50 cursor-pointer transition-all duration-300 group">
+        <Link href="/user-dashboard/profile" className="flex items-center gap-3 p-3 rounded-xl bg-linear-to-r from-gray-50 to-emerald-50/50 border-2 border-gray-100 hover:border-emerald-300 hover:bg-emerald-50 cursor-pointer transition-all duration-300 group">
           <Avatar className="w-10 h-10 ring-2 ring-emerald-200 group-hover:ring-emerald-400 transition-all duration-300">
             <AvatarImage src={user?.photoURL || ''} alt={userName} />
-            <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-500 text-white text-xs font-bold">{userInitials}</AvatarFallback>
+            <AvatarFallback className="bg-linear-to-br from-emerald-500 to-teal-500 text-white text-xs font-bold">{userInitials}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="text-gray-800 text-sm font-semibold truncate">{userName}</p>

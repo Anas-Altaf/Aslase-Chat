@@ -29,7 +29,7 @@ export default function Hero1() {
         <div className="text-center">
           {/* Badge */}
           <div
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 border border-green-200/50 mb-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-linear-to-br from-green-100 to-emerald-100 border border-green-200/50 mb-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
           >
             <Sparkles className="w-4 h-4 text-green-600 animate-pulse" />
@@ -69,7 +69,7 @@ export default function Hero1() {
             {['Support', 'Conversion', 'Retention', 'Growth'].map((word, i) => (
               <span
                 key={word}
-                className="px-4 py-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-sm shadow-lg shadow-green-500/25 hover:scale-105 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300 cursor-default"
+                className="px-4 py-2 rounded-full bg-linear-to-br from-green-500 to-emerald-500 text-white font-bold text-sm shadow-lg shadow-green-500/25 hover:scale-105 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300 cursor-default"
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
                 {word}
@@ -121,7 +121,7 @@ export default function Hero1() {
                 key={item.text}
                 className="flex items-center gap-2 group"
               >
-                <div className="w-6 h-6 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <div className="w-6 h-6 rounded-full bg-linear-to-br from-green-100 to-emerald-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                   <item.icon className="w-3.5 h-3.5 text-green-600" />
                 </div>
                 <span className="font-medium text-sm">{item.text}</span>

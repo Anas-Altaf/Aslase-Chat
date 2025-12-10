@@ -32,7 +32,7 @@ export default function Hero2() {
       <div className="max-w-7xl mx-auto relative">
         {/* Section label */}
         <div className="text-center mb-8">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 text-sm font-semibold">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-linear-to-br from-green-100 to-emerald-100 text-green-700 text-sm font-semibold">
             See It In Action
           </span>
         </div>
@@ -41,7 +41,7 @@ export default function Hero2() {
         <div className="max,max-w-5xl mx-auto">
           <div className="relative group">
             {/* Gradient border effect */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-400 rounded-[2rem] opacity-20 blur-sm group-hover:opacity-40 transition-opacity duration-500"></div>
+            <div className="absolute -inset-1 bg-linear-to-br from-green-400 via-emerald-500 to-teal-400 rounded-[2rem] opacity-20 blur-sm group-hover:opacity-40 transition-opacity duration-500"></div>
 
             <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-green-50 to-emerald-50 min-h-[400px] lg:min-h-[500px] flex items-center justify-center border border-green-100/50">
               {showImage ? (

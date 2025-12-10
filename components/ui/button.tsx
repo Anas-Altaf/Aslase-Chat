@@ -10,19 +10,19 @@ const buttonVariants = cva(
         variants: {
             variant: {
                 default:
-                    "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25 hover:from-green-600 hover:to-emerald-600 hover:shadow-xl hover:shadow-green-500/35 hover:scale-[1.02] focus-visible:ring-green-400 btn-shine",
+                    "bg-linear-to-br from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25 hover:from-green-600 hover:to-emerald-600 hover:shadow-xl hover:shadow-green-500/35 hover:scale-[1.02] focus-visible:ring-green-400 btn-shine",
                 gradient:
-                    "bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30 hover:from-green-500 hover:via-emerald-600 hover:to-teal-600 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.03] focus-visible:ring-emerald-400 btn-shine animate-gradient bg-[length:200%_200%]",
+                    "bg-linear-to-br from-green-400 via-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30 hover:from-green-500 hover:via-emerald-600 hover:to-teal-600 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.03] focus-visible:ring-emerald-400 btn-shine animate-gradient bg-[length:200%_200%]",
                 glass:
                     "bg-white/70 backdrop-blur-md border border-white/30 text-gray-800 shadow-lg hover:bg-white/90 hover:shadow-xl hover:scale-[1.02] focus-visible:ring-green-400",
                 destructive:
-                    "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg shadow-red-500/25 hover:from-red-600 hover:to-rose-600 hover:shadow-xl hover:shadow-red-500/35 hover:scale-[1.02] focus-visible:ring-red-400",
+                    "bg-linear-to-br from-red-500 to-rose-500 text-white shadow-lg shadow-red-500/25 hover:from-red-600 hover:to-rose-600 hover:shadow-xl hover:shadow-red-500/35 hover:scale-[1.02] focus-visible:ring-red-400",
                 outline:
                     "border-2 border-gray-200 bg-white text-gray-700 shadow-sm hover:border-green-400 hover:bg-green-50/50 hover:text-green-700 hover:shadow-md hover:scale-[1.01] focus-visible:ring-green-400",
                 secondary:
-                    "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200 hover:from-green-100 hover:to-emerald-100 hover:border-green-300 hover:shadow-md focus-visible:ring-green-400",
+                    "bg-linear-to-br from-green-50 to-emerald-50 text-green-700 border border-green-200 hover:from-green-100 hover:to-emerald-100 hover:border-green-300 hover:shadow-md focus-visible:ring-green-400",
                 ghost:
-                    "text-gray-600 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 hover:text-gray-900 hover:shadow-sm",
+                    "text-gray-600 hover:bg-linear-to-br hover:from-gray-50 hover:to-gray-100 hover:text-gray-900 hover:shadow-sm",
                 link:
                     "text-green-600 underline-offset-4 hover:underline hover:text-green-700 hover:scale-[1.01]",
             },
