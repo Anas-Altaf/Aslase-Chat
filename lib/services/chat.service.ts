@@ -5,6 +5,39 @@ import type {
     ApiResponse,
     PaginatedResponse,
 } from '@/types';
+import { api } from '../api';
+import { auth } from '@/lib/firebase/config';
+
+// ==========================================
+// CHAT MESSAGE API
+// ==========================================
+
+export interface SendMessageResponse {
+    chatId: string;
+    message: string;
+    timestamp: Date;
+}
+
+export async function sendChatMessage(
+    chatbotId: string,
+    message: string,
+    chatId?: string
+): Promise<SendMessageResponse> {
+    const user = auth.currentUser;
+    if (!user) {
+        throw new Error('User not authenticated');
+    }
+
+    const payload = {
+        chatbotId,
+        message,
+        userId: user.uid,
+        chatId,
+    };
+
+    const response = await api.post('/chatbots/chat/message', payload);
+    return response;
+}
 
 // ==========================================
 // SAMPLE DATA
