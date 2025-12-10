@@ -1,29 +1,105 @@
 'use client';
 
+import { useState } from 'react';
+import { Copy, Check } from 'lucide-react';
+import { useChatbot } from '@/contexts/ChatbotContext';
+import { generateEmbedCode } from '@/lib/services';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+
 export default function EmbedOnSite() {
-  const iframeCode = `<iframe src="https://stag-app.aslaschat.ai/chatbot/iframe/VUyBtr3F23QcD2fF" width="100%" style="height: 100%; min-height: 700px" frameborder="0"></iframe>`;
-  const scriptCode = `<script> window.embeddedChatbotConfig = { chatbotId: "VUyBtr3F23QcD2fF", domain: "www.ASLASChat.ai" } </script>`;
+  const { selectedChatbot } = useChatbot();
+  const [copiedIframe, setCopiedIframe] = useState(false);
+  const [copiedScript, setCopiedScript] = useState(false);
+
+  const embedCode = selectedChatbot
+    ? generateEmbedCode(selectedChatbot.id)
+    : { iframe: '', script: '' };
+
+  const handleCopyIframe = async () => {
+    await navigator.clipboard.writeText(embedCode.iframe);
+    setCopiedIframe(true);
+    setTimeout(() => setCopiedIframe(false), 2000);
+  };
+
+  const handleCopyScript = async () => {
+    await navigator.clipboard.writeText(embedCode.script);
+    setCopiedScript(true);
+    setTimeout(() => setCopiedScript(false), 2000);
+  };
+
+  if (!selectedChatbot) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-500">Select a chatbot to get embed codes</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <h1 className="text-xl font-bold text-gray-900 mb-2 flex-shrink-0">Embed on Site</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-4 flex-shrink-0">Embed on Site</h1>
 
-      <div className="flex-1 overflow-y-auto space-y-2">
-        <div>
-          <p className="text-gray-700 text-xs mb-1">To add the chatbot anywhere on your website, add this frame to your html code.</p>
-          <div className="bg-gray-50 border border-gray-300 rounded p-1 flex items-start gap-1">
-            <code className="text-gray-900 text-xs flex-1 break-all font-mono line-clamp-2">{iframeCode}</code>
-            <button className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium flex-shrink-0">Copy</button>
+      <div className="flex-1 overflow-y-auto space-y-6">
+        <Card className="p-4">
+          <h3 className="text-gray-900 font-semibold mb-2 text-sm">iFrame Embed</h3>
+          <p className="text-gray-600 text-sm mb-3">
+            Add this iframe to your HTML to embed the chatbot anywhere on your website.
+          </p>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-start gap-3">
+            <code className="text-gray-900 text-xs flex-1 font-mono break-all whitespace-pre-wrap">
+              {embedCode.iframe}
+            </code>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleCopyIframe}
+              className="flex-shrink-0"
+            >
+              {copiedIframe ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  Copy
+                </>
+              )}
+            </Button>
           </div>
-        </div>
+        </Card>
 
-        <div>
-          <p className="text-gray-700 text-xs mb-1">To add a chat bubble in the bottom right of your website add this script tag to your html</p>
-          <div className="bg-gray-50 border border-gray-300 rounded p-1 flex items-start gap-1">
-            <code className="text-gray-900 text-xs flex-1 break-all font-mono line-clamp-2">{scriptCode}</code>
-            <button className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium flex-shrink-0">Copy</button>
+        <Card className="p-4">
+          <h3 className="text-gray-900 font-semibold mb-2 text-sm">Chat Bubble Script</h3>
+          <p className="text-gray-600 text-sm mb-3">
+            Add this script to show a chat bubble in the bottom right corner of your website.
+          </p>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-start gap-3">
+            <code className="text-gray-900 text-xs flex-1 font-mono break-all whitespace-pre-wrap">
+              {embedCode.script}
+            </code>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleCopyScript}
+              className="flex-shrink-0"
+            >
+              {copiedScript ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  Copy
+                </>
+              )}
+            </Button>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

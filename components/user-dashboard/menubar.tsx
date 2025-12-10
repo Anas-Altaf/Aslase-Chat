@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   ChevronDown,
   Share2,
@@ -13,10 +13,20 @@ import {
   Code,
   Zap
 } from 'lucide-react';
+import { useChatbot } from '@/contexts/ChatbotContext';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface MenuItem {
   label: string;
@@ -25,13 +35,15 @@ interface MenuItem {
   submenu?: { label: string; href: string }[];
 }
 
-// Full active glow (same as Embed on Site)
-const activeClass =
-  "bg-green-500 text-white shadow-sm hover:bg-green-600";
+const activeClass = "bg-green-500 text-white shadow-sm hover:bg-green-600";
 
 export default function Menubar() {
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { selectedChatbot, removeChatbot } = useChatbot();
 
   const menuItems: MenuItem[] = [
     {
@@ -67,7 +79,7 @@ export default function Menubar() {
         { label: 'Chat Interface', href: '/user-dashboard/settings/chat-interface' },
         { label: 'Security', href: '/user-dashboard/settings/security' },
         { label: 'Notifications', href: '/user-dashboard/settings/notifications' },
-        { label: 'Domains', href: '/user-dashboard/settings/domains' },
+        // { label: 'Domains', href: '/user-dashboard/settings/domains' },
       ],
     },
     {
@@ -92,6 +104,28 @@ export default function Menubar() {
       return item.submenu.some(sub => pathname.startsWith(sub.href));
     }
     return false;
+  };
+
+  const handleDelete = async () => {
+    if (!selectedChatbot) return;
+    setIsDeleting(true);
+    try {
+      await removeChatbot(selectedChatbot.id);
+      toast.success('Chatbot deleted successfully');
+      setIsDeleteOpen(false);
+      router.push('/user-dashboard');
+    } catch (error) {
+      toast.error('Failed to delete chatbot');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleShare = () => {
+    if (selectedChatbot) {
+      navigator.clipboard.writeText(`https://app.aslaschat.ai/chatbot/${selectedChatbot.id}`);
+      toast.success('Share link copied to clipboard!');
+    }
   };
 
   return (
@@ -150,7 +184,6 @@ export default function Menubar() {
                         pathname.startsWith(subitem.href)
                           ? activeClass
                           : "text-gray-600 hover:text-green-700 hover:bg-green-50/50"
-
                       )}
                     >
                       {subitem.label}
@@ -166,15 +199,40 @@ export default function Menubar() {
       <Separator />
 
       <div className="p-4 space-y-2">
-        <Button variant="outline" className="w-full">
+        <Button variant="outline" className="w-full" onClick={handleShare}>
           <Share2 className="w-4 h-4" />
           Share
         </Button>
-        <Button variant="destructive" className="w-full">
+        <Button
+          variant="destructive"
+          className="w-full"
+          onClick={() => setIsDeleteOpen(true)}
+          disabled={!selectedChatbot}
+        >
           <Trash2 className="w-4 h-4" />
           Delete
         </Button>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Chatbot</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{selectedChatbot?.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,51 +1,126 @@
 'use client';
 
-import { Bell } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useChatbot } from '@/contexts/ChatbotContext';
+import { getChatbotSettings, updateChatbotSettings } from '@/lib/services';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 export default function Notifications() {
+  const { selectedChatbot } = useChatbot();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [emailNotifications, setEmailNotifications] = useState(false);
+  const [notificationEmail, setNotificationEmail] = useState('');
+  const [webhookUrl, setWebhookUrl] = useState('');
+
+  useEffect(() => {
+    if (selectedChatbot) {
+      loadSettings();
+    }
+  }, [selectedChatbot]);
+
+  const loadSettings = async () => {
+    if (!selectedChatbot) return;
+    setIsLoading(true);
+    try {
+      const response = await getChatbotSettings(selectedChatbot.id);
+      if (response.success && response.data) {
+        setEmailNotifications(response.data.emailNotifications);
+        setNotificationEmail(response.data.notificationEmail);
+        setWebhookUrl(response.data.webhookUrl);
+      }
+    } catch (error) {
+      toast.error('Failed to load settings');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!selectedChatbot) return;
+    setIsSaving(true);
+    try {
+      await updateChatbotSettings(selectedChatbot.id, {
+        emailNotifications,
+        notificationEmail,
+        webhookUrl,
+      });
+      toast.success('Notification settings saved');
+    } catch (error) {
+      toast.error('Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-40" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex justify-between items-center mb-2 flex-shrink-0">
-        <h1 className="text-xl font-bold text-gray-900">Notifications</h1>
-        <button className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium">
-          Save Changes
-        </button>
+      <div className="flex justify-between items-center mb-4 flex-shrink-0">
+        <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
+        <Button onClick={handleSave} disabled={isSaving}>
+          {isSaving ? 'Saving...' : 'Save Changes'}
+        </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-2">
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
-            <input type="checkbox" defaultChecked className="w-4 h-4" />
-            <div className="flex-1">
-              <p className="text-gray-900 font-medium text-xs">New Messages</p>
-              <p className="text-gray-600 text-xs">Get notified when users send messages</p>
+      <div className="flex-1 overflow-y-auto space-y-4">
+        <Card className="p-4 space-y-4">
+          <div className="flex items-center justify-between py-2">
+            <div className="space-y-0.5">
+              <Label>Email Notifications</Label>
+              <p className="text-xs text-gray-500">
+                Receive email when a new lead is captured
+              </p>
             </div>
-          </label>
+            <Switch
+              checked={emailNotifications}
+              onCheckedChange={setEmailNotifications}
+            />
+          </div>
 
-          <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
-            <input type="checkbox" defaultChecked className="w-4 h-4" />
-            <div className="flex-1">
-              <p className="text-gray-900 font-medium text-xs">New Leads</p>
-              <p className="text-gray-600 text-xs">Get notified when new leads are captured</p>
+          {emailNotifications && (
+            <div className="space-y-2">
+              <Label htmlFor="notificationEmail">Notification Email</Label>
+              <Input
+                id="notificationEmail"
+                type="email"
+                value={notificationEmail}
+                onChange={(e) => setNotificationEmail(e.target.value)}
+                placeholder="admin@example.com"
+              />
             </div>
-          </label>
+          )}
+        </Card>
 
-          <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
-            <input type="checkbox" className="w-4 h-4" />
-            <div className="flex-1">
-              <p className="text-gray-900 font-medium text-xs">Daily Summary</p>
-              <p className="text-gray-600 text-xs">Receive daily summary of chatbot activity</p>
-            </div>
-          </label>
-
-          <label className="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
-            <input type="checkbox" defaultChecked className="w-4 h-4" />
-            <div className="flex-1">
-              <p className="text-gray-900 font-medium text-xs">Email Notifications</p>
-              <p className="text-gray-600 text-xs">Send notifications to your email</p>
-            </div>
-          </label>
-        </div>
+        <Card className="p-4 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="webhookUrl">Webhook URL</Label>
+            <Input
+              id="webhookUrl"
+              type="url"
+              value={webhookUrl}
+              onChange={(e) => setWebhookUrl(e.target.value)}
+              placeholder="https://your-server.com/webhook"
+            />
+            <p className="text-xs text-gray-500">
+              We'll send a POST request to this URL when events occur
+            </p>
+          </div>
+        </Card>
       </div>
     </div>
   );
