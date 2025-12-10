@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { User, Mail, Lock, Loader2, Phone } from 'lucide-react';
+import { User, Mail, Lock, Loader2, Phone, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -24,31 +24,176 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [errors, setErrors] = useState({
+    displayName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    referredBy: '',
+    terms: ''
+  });
+  const [touched, setTouched] = useState({
+    displayName: false,
+    email: false,
+    password: false,
+    confirmPassword: false,
+    referredBy: false
+  });
   const router = useRouter();
   const { signUp, signInWithGoogle } = useAuth();
 
+  const validateDisplayName = (value: string) => {
+    if (!value.trim()) {
+      return 'Full name is required';
+    }
+    if (value.trim().length < 2) {
+      return 'Name must be at least 2 characters';
+    }
+    return '';
+  };
+
+  const validateEmail = (value: string) => {
+    if (!value) {
+      return 'Email is required';
+    }
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(value)) {
+      return 'Please enter a valid email address';
+    }
+    return '';
+  };
+
+  const validatePassword = (value: string) => {
+    if (!value) {
+      return 'Password is required';
+    }
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    if (!/(?=.*[a-z])/.test(value)) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!/(?=.*[A-Z])/.test(value)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!/(?=.*\d)/.test(value)) {
+      return 'Password must contain at least one number';
+    }
+    return '';
+  };
+
+  const validateConfirmPassword = (value: string) => {
+    if (!value) {
+      return 'Please confirm your password';
+    }
+    if (value !== formData.password) {
+      return 'Passwords do not match';
+    }
+    return '';
+  };
+
+  const validatePhoneNumber = (value: string) => {
+    if (!value) {
+      return 'Phone number is required';
+    }
+    const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
+    if (!phoneRegex.test(value)) {
+      return 'Please enter a valid phone number';
+    }
+    return '';
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
+
+    // Real-time validation after field is touched
+    if (touched[name as keyof typeof touched]) {
+      let error = '';
+      switch (name) {
+        case 'displayName':
+          error = validateDisplayName(value);
+          break;
+        case 'email':
+          error = validateEmail(value);
+          break;
+        case 'password':
+          error = validatePassword(value);
+          // Also revalidate confirm password if it's been touched
+          if (touched.confirmPassword) {
+            setErrors(prev => ({
+              ...prev,
+              confirmPassword: value !== formData.confirmPassword ? 'Passwords do not match' : ''
+            }));
+          }
+          break;
+        case 'confirmPassword':
+          error = validateConfirmPassword(value);
+          break;
+        case 'referredBy':
+          error = validatePhoneNumber(value);
+          break;
+      }
+      setErrors(prev => ({ ...prev, [name]: error }));
+    }
+  };
+
+  const handleBlur = (field: keyof typeof touched) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    
+    let error = '';
+    switch (field) {
+      case 'displayName':
+        error = validateDisplayName(formData.displayName);
+        break;
+      case 'email':
+        error = validateEmail(formData.email);
+        break;
+      case 'password':
+        error = validatePassword(formData.password);
+        break;
+      case 'confirmPassword':
+        error = validateConfirmPassword(formData.confirmPassword);
+        break;
+      case 'referredBy':
+        error = validatePhoneNumber(formData.referredBy);
+        break;
+    }
+    setErrors(prev => ({ ...prev, [field]: error }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
+    // Validate all fields
+    const displayNameErr = validateDisplayName(formData.displayName);
+    const emailErr = validateEmail(formData.email);
+    const passwordErr = validatePassword(formData.password);
+    const confirmPasswordErr = validateConfirmPassword(formData.confirmPassword);
+    const referredByErr = validatePhoneNumber(formData.referredBy);
+    const termsErr = !agreedToTerms ? 'You must agree to the Terms and Privacy Policy' : '';
 
-    if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
-      return;
-    }
+    setErrors({
+      displayName: displayNameErr,
+      email: emailErr,
+      password: passwordErr,
+      confirmPassword: confirmPasswordErr,
+      referredBy: referredByErr,
+      terms: termsErr
+    });
 
-    if (!agreedToTerms) {
-      toast.error('Please agree to the Terms and Privacy Policy');
+    setTouched({
+      displayName: true,
+      email: true,
+      password: true,
+      confirmPassword: true,
+      referredBy: true
+    });
+
+    if (displayNameErr || emailErr || passwordErr || confirmPasswordErr || referredByErr || termsErr) {
       return;
     }
 
@@ -87,110 +232,200 @@ export default function SignUpPage() {
         <div className="group">
           <Label htmlFor="displayName" className="text-gray-700 font-medium">Full Name</Label>
           <div className="mt-2 relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-green-500 transition-colors" />
+            <User className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${
+              errors.displayName ? 'text-red-500' : 'text-gray-400 group-focus-within:text-green-500'
+            }`} />
             <Input
               id="displayName"
               name="displayName"
               type="text"
               autoComplete="name"
-              required
               value={formData.displayName}
               onChange={handleChange}
+              onBlur={() => handleBlur('displayName')}
               placeholder="John Doe"
-              className="pl-11 h-12 border-gray-300 focus:border-green-500 focus:ring-green-500 transition-all"
+              className={`pl-11 h-12 transition-all ${
+                errors.displayName
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                  : 'border-gray-300 focus:border-green-500 focus:ring-green-500'
+              }`}
             />
+            {errors.displayName && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+              </div>
+            )}
           </div>
+          {errors.displayName && (
+            <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {errors.displayName}
+            </p>
+          )}
         </div>
 
         <div className="group">
           <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
           <div className="mt-2 relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-green-500 transition-colors" />
+            <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${
+              errors.email ? 'text-red-500' : 'text-gray-400 group-focus-within:text-green-500'
+            }`} />
             <Input
               id="email"
               name="email"
               type="email"
               autoComplete="email"
-              required
               value={formData.email}
               onChange={handleChange}
+              onBlur={() => handleBlur('email')}
               placeholder="your@email.com"
-              className="pl-11 h-12 border-gray-300 focus:border-green-500 focus:ring-green-500 transition-all"
+              className={`pl-11 h-12 transition-all ${
+                errors.email
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                  : 'border-gray-300 focus:border-green-500 focus:ring-green-500'
+              }`}
             />
+            {errors.email && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+              </div>
+            )}
           </div>
+          {errors.email && (
+            <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {errors.email}
+            </p>
+          )}
         </div>
 
         <div className="group">
           <Label htmlFor="password" className="text-gray-700 font-medium">Password</Label>
           <div className="mt-2 relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-green-500 transition-colors z-10" />
+            <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors z-10 ${
+              errors.password ? 'text-red-500' : 'text-gray-400 group-focus-within:text-green-500'
+            }`} />
             <PasswordInput
               id="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
+              onBlur={() => handleBlur('password')}
               placeholder="Create a password"
               autoComplete="new-password"
-              className="pl-11 h-12 border-gray-300 focus:border-green-500 focus:ring-green-500 transition-all"
+              className={`pl-11 h-12 transition-all ${
+                errors.password
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                  : 'border-gray-300 focus:border-green-500 focus:ring-green-500'
+              }`}
             />
           </div>
+          {errors.password && (
+            <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {errors.password}
+            </p>
+          )}
         </div>
 
         <div className="group">
           <Label htmlFor="confirmPassword" className="text-gray-700 font-medium">Confirm Password</Label>
           <div className="mt-2 relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-green-500 transition-colors z-10" />
+            <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors z-10 ${
+              errors.confirmPassword ? 'text-red-500' : formData.confirmPassword && !errors.confirmPassword ? 'text-green-500' : 'text-gray-400 group-focus-within:text-green-500'
+            }`} />
             <PasswordInput
               id="confirmPassword"
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
+              onBlur={() => handleBlur('confirmPassword')}
               placeholder="Confirm your password"
               autoComplete="new-password"
-              className="pl-11 h-12 border-gray-300 focus:border-green-500 focus:ring-green-500 transition-all"
+              className={`pl-11 h-12 transition-all ${
+                errors.confirmPassword
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                  : 'border-gray-300 focus:border-green-500 focus:ring-green-500'
+              }`}
             />
           </div>
+          {errors.confirmPassword ? (
+            <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {errors.confirmPassword}
+            </p>
+          ) : formData.confirmPassword && formData.confirmPassword === formData.password && touched.confirmPassword && (
+            <p className="mt-1.5 text-sm text-green-600 flex items-center gap-1">
+              <CheckCircle className="w-4 h-4" />
+              Passwords match
+            </p>
+          )}
         </div>
 
         <div className="group">
           <Label htmlFor="referredBy" className="text-gray-700 font-medium">Phone Number</Label>
           <div className="mt-2 relative">
-            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-green-500 transition-colors" />
+            <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${
+              errors.referredBy ? 'text-red-500' : 'text-gray-400 group-focus-within:text-green-500'
+            }`} />
             <Input
               id="referredBy"
               name="referredBy"
               type="tel"
               value={formData.referredBy}
               onChange={handleChange}
+              onBlur={() => handleBlur('referredBy')}
               placeholder="+1 234 567 8900"
-              className="pl-11 h-12 border-gray-300 focus:border-green-500 focus:ring-green-500 transition-all"
-              required
+              className={`pl-11 h-12 transition-all ${
+                errors.referredBy
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                  : 'border-gray-300 focus:border-green-500 focus:ring-green-500'
+              }`}
             />
+            {errors.referredBy && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+              </div>
+            )}
           </div>
+          {errors.referredBy && (
+            <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {errors.referredBy}
+            </p>
+          )}
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="terms"
-            checked={agreedToTerms}
-            onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
-          />
-          <label htmlFor="terms" className="text-sm text-gray-900">
-            I agree to the{' '}
-            <Link href="/terms" className="text-green-600 hover:text-green-500">
-              Terms
-            </Link>{' '}
-            and{' '}
-            <Link href="/privacy" className="text-green-600 hover:text-green-500">
-              Privacy Policy
-            </Link>
-          </label>
+        <div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="terms"
+              checked={agreedToTerms}
+              onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+            />
+            <label htmlFor="terms" className="text-sm text-gray-900">
+              I agree to the{' '}
+              <Link href="/terms" className="text-green-600 hover:text-green-500">
+                Terms
+              </Link>{' '}
+              and{' '}
+              <Link href="/privacy" className="text-green-600 hover:text-green-500">
+                Privacy Policy
+              </Link>
+            </label>
+          </div>
+          {!agreedToTerms && Object.keys(touched).length > 0 && (
+            <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              You must accept the terms and privacy policy
+            </p>
+          )}
         </div>
 
         <Button
           type="submit"
-          disabled={loading}
-          className="w-full h-12 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+          disabled={loading || Object.values(errors).some(error => error !== '') || !agreedToTerms}
+          className="w-full h-12 bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           size="lg"
         >
           {loading ? (

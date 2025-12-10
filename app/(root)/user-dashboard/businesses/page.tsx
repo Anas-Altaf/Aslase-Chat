@@ -242,7 +242,7 @@ export default function BusinessesPage() {
                 <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
                     <DialogHeader className="space-y-3 pb-4 border-b">
                         <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            <div className="h-7 w-7 bg-green-500 rounded-lg mt-6 flex items-center justify-center">
                                 <Building2 className="h-5 w-5 text-white" />
                             </div>
                             <div>
@@ -466,8 +466,9 @@ export default function BusinessesPage() {
                         </Button>
                         <Button 
                             onClick={handleCreate} 
+                            variant="default"
                             disabled={isCreating || !newBusiness.name.trim()}
-                            className="min-w-32 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                            className="min-w-32 "
                         >
                             {isCreating ? (
                                 <>

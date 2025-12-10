@@ -11,7 +11,7 @@ import { ForgotPasswordDialog } from '@/components/shared/ForgotPasswordDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Lock, Loader2 } from 'lucide-react';
+import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -19,11 +19,75 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [touched, setTouched] = useState({ email: false, password: false });
   const router = useRouter();
   const { signIn, signInWithGoogle } = useAuth();
 
+  const validateEmail = (value: string) => {
+    if (!value) {
+      return 'Email is required';
+    }
+    // More strict email validation requiring proper TLD (at least 2 characters)
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(value)) {
+      return 'Please enter a valid email address';
+    }
+    return '';
+  };
+
+  const validatePassword = (value: string) => {
+    if (!value) {
+      return 'Password is required';
+    }
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    return '';
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmail(value);
+    if (touched.email) {
+      setEmailError(validateEmail(value));
+    }
+  };
+
+  const handleEmailBlur = () => {
+    setTouched({ ...touched, email: true });
+    setEmailError(validateEmail(email));
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPassword(value);
+    if (touched.password) {
+      setPasswordError(validatePassword(value));
+    }
+  };
+
+  const handlePasswordBlur = () => {
+    setTouched({ ...touched, password: true });
+    setPasswordError(validatePassword(password));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate all fields
+    const emailErr = validateEmail(email);
+    const passwordErr = validatePassword(password);
+    
+    setEmailError(emailErr);
+    setPasswordError(passwordErr);
+    setTouched({ email: true, password: true });
+
+    if (emailErr || passwordErr) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -60,19 +124,36 @@ export default function SignInPage() {
           <div className="group">
             <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
             <div className="mt-2 relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-green-500 transition-colors" />
+              <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${
+                emailError ? 'text-red-500' : 'text-gray-400 group-focus-within:text-green-500'
+              }`} />
               <Input
                 id="email"
                 name="email"
                 type="email"
                 autoComplete="email"
-                required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={handleEmailChange}
+                onBlur={handleEmailBlur}
                 placeholder="your@email.com"
-                className="pl-11 h-12 border-gray-300 focus:border-green-500 focus:ring-green-500 transition-all"
+                className={`pl-11 h-12 transition-all ${
+                  emailError
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                    : 'border-gray-300 focus:border-green-500 focus:ring-green-500'
+                }`}
               />
+              {emailError && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <AlertCircle className="w-5 h-5 text-red-500" />
+                </div>
+              )}
             </div>
+            {emailError && (
+              <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {emailError}
+              </p>
+            )}
           </div>
 
           <div className="group">
@@ -87,23 +168,36 @@ export default function SignInPage() {
               </button>
             </div>
             <div className="mt-2 relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-green-500 transition-colors z-10" />
+              <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors z-10 ${
+                passwordError ? 'text-red-500' : 'text-gray-400 group-focus-within:text-green-500'
+              }`} />
               <PasswordInput
                 id="password"
                 name="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={handlePasswordChange}
+                onBlur={handlePasswordBlur}
                 placeholder="Enter your password"
                 autoComplete="current-password"
-                className="pl-11 h-12 border-gray-300 focus:border-green-500 focus:ring-green-500 transition-all"
+                className={`pl-11 h-12 transition-all ${
+                  passwordError
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                    : 'border-gray-300 focus:border-green-500 focus:ring-green-500'
+                }`}
               />
             </div>
+            {passwordError && (
+              <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {passwordError}
+              </p>
+            )}
           </div>
 
           <Button
             type="submit"
-            disabled={loading}
-            className="w-full h-12 bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+            disabled={loading || !!emailError || !!passwordError}
+            className="w-full h-12 bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             size="lg"
           >
             {loading ? (
