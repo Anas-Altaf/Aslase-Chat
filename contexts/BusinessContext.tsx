@@ -11,7 +11,7 @@ interface BusinessContextType {
     isMutating: boolean;
     error: string | null;
     selectBusiness: (id: string | null) => void;
-    addBusiness: (data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>) => Promise<Business | null>;
+    addBusiness: (data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>, files?: File[]) => Promise<Business | null>;
     editBusiness: (id: string, data: Partial<Business>) => Promise<void>;
     removeBusiness: (id: string) => Promise<void>;
     refreshBusinesses: () => Promise<void>;
@@ -59,10 +59,10 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
         }
     }, [businesses]);
 
-    const addBusiness = useCallback(async (data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>): Promise<Business | null> => {
+    const addBusiness = useCallback(async (data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>, files?: File[]): Promise<Business | null> => {
         setIsMutating(true);
         try {
-            const response = await createBusiness(data);
+            const response = await createBusiness(data, files);
             if (response.success) {
                 setBusinesses(prev => [...prev, response.data]);
                 setSelectedBusiness(response.data);

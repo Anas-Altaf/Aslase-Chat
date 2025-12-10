@@ -94,6 +94,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
     contactPhone: '',
     urls: [''],
   });
+  const [businessDocuments, setBusinessDocuments] = useState<File[]>([]);
 
   const userName = user?.displayName || 'User';
   const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -118,14 +119,20 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
     if (!newBusiness.name.trim()) return;
     setIsCreatingBusiness(true);
     try {
+      console.log('Creating business with documents:', businessDocuments.length);
+      console.log('Files:', businessDocuments.map(f => ({ name: f.name, size: f.size, type: f.type })));
+      
       await addBusiness({
         ...newBusiness,
         urls: newBusiness.urls.filter(u => u.trim()),
-      });
+      }, businessDocuments);
+      
       toast.success('Business created successfully');
       setIsCreateBusinessOpen(false);
       setNewBusiness({ name: '', description: '', contactEmail: '', contactPhone: '', urls: [''] });
+      setBusinessDocuments([]);
     } catch (error) {
+      console.error('Error creating business:', error);
       toast.error('Failed to create business');
     } finally {
       setIsCreatingBusiness(false);
@@ -416,6 +423,25 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                     onChange={(e) => setNewBusiness({ ...newBusiness, contactPhone: e.target.value })}
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="biz-documents">Business Documents (PDF, DOCX)</Label>
+                <Input
+                  id="biz-documents"
+                  type="file"
+                  accept=".pdf,.docx"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setBusinessDocuments(files);
+                  }}
+                  className="cursor-pointer"
+                />
+                {businessDocuments.length > 0 && (
+                  <div className="text-sm text-gray-600">
+                    {businessDocuments.length} file(s) selected
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>

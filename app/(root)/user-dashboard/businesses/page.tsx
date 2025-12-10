@@ -47,25 +47,20 @@ export default function BusinessesPage() {
         if (!newBusiness.name.trim()) return;
         setIsCreating(true);
         try {
-            // Create business first
+            console.log('Creating business with files:', pendingFiles.length);
+            
+            // Create business with documents
             const result = await addBusiness({
                 ...newBusiness,
                 urls: newBusiness.urls.filter(u => u.trim()),
-            });
-
-            // Upload documents if any
-            if (pendingFiles.length > 0 && result) {
-                for (const file of pendingFiles) {
-                    await uploadBusinessDocument(result.id, { name: file.name, file });
-                }
-                await refreshBusinesses();
-            }
+            }, pendingFiles); // Pass files here
 
             toast.success('Business created successfully');
             setIsCreateOpen(false);
             setNewBusiness({ name: '', description: '', contactEmail: '', contactPhone: '', urls: [''] });
             setPendingFiles([]);
         } catch (error) {
+            console.error('Error creating business:', error);
             toast.error('Failed to create business');
         } finally {
             setIsCreating(false);
@@ -404,7 +399,7 @@ export default function BusinessesPage() {
                                     onChange={handleFileSelect}
                                     className="hidden"
                                     multiple
-                                    accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                                    accept=".pdf,.docx"
                                 />
                                 
                                 {pendingFiles.length === 0 ? (
@@ -416,7 +411,7 @@ export default function BusinessesPage() {
                                             <Upload className="w-5 h-5 text-orange-600" />
                                         </div>
                                         <p className="text-sm font-medium text-gray-700 mb-1">Upload documents</p>
-                                        <p className="text-xs text-gray-500">PDF, DOC, DOCX, TXT, or images up to 10MB</p>
+                                        <p className="text-xs text-gray-500">PDF or DOCX files up to 10MB</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
