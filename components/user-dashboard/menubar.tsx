@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  ChevronDown,
   Share2,
   Trash2,
   LayoutDashboard,
@@ -40,7 +39,7 @@ interface MenuItem {
 const activeClass = "bg-green-500 text-white shadow-sm hover:bg-green-600";
 
 export default function Menubar() {
-  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
+
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const pathname = usePathname();
@@ -90,9 +89,7 @@ export default function Menubar() {
     },
   ];
 
-  const toggleMenu = (label: string) => {
-    setExpandedMenu(expandedMenu === label ? null : label);
-  };
+
 
   const isActive = (href?: string) => {
     if (!href) return false;
@@ -136,26 +133,30 @@ export default function Menubar() {
           {menuItems.map((item) => (
             <div key={item.label}>
               {item.submenu ? (
-                <button
-                  onClick={() => toggleMenu(item.label)}
-                  className={cn(
-                    "w-full flex items-center justify-between px-2.5 py-2 lg:px-3 lg:py-2.5 rounded-lg transition-all duration-150",
-                    isParentActive(item)
-                      ? activeClass
-                      : "text-gray-600 hover:bg-gray-100/80"
-                  )}
-                >
-                  <div className="flex items-center gap-2 lg:gap-3">
-                    {item.icon}
-                    <span className="font-medium text-sm">{item.label}</span>
+                <div className="space-y-0.5">
+                  <div className="px-2.5 py-2 lg:px-3 lg:py-2.5">
+                    <div className="flex items-center gap-2 lg:gap-3 text-gray-600">
+                      {item.icon}
+                      <span className="font-medium text-sm">{item.label}</span>
+                    </div>
                   </div>
-                  <ChevronDown
-                    className={cn(
-                      "w-4 h-4 transition-transform duration-200",
-                      expandedMenu === item.label ? "rotate-180" : ""
-                    )}
-                  />
-                </button>
+                  <div className="ml-3 lg:ml-4 space-y-0.5 border-l-2 border-green-200 pl-3 lg:pl-4">
+                    {item.submenu.map((subitem) => (
+                      <Link
+                        key={subitem.href}
+                        href={subitem.href}
+                        className={cn(
+                          "w-full text-left px-2.5 py-1.5 lg:px-3 lg:py-2 text-sm rounded-lg transition-all duration-150 block",
+                          pathname.startsWith(subitem.href)
+                            ? activeClass
+                            : "text-gray-600 hover:text-green-700 hover:bg-green-50/50"
+                        )}
+                      >
+                        {subitem.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               ) : (
                 <Link
                   href={item.href!}
@@ -171,26 +172,6 @@ export default function Menubar() {
                     <span className="font-medium text-sm">{item.label}</span>
                   </div>
                 </Link>
-              )}
-
-              {/* Submenu */}
-              {item.submenu && expandedMenu === item.label && (
-                <div className="ml-3 lg:ml-4 mt-1 space-y-0.5 border-l-2 border-green-200 pl-3 lg:pl-4 animate-slideDown">
-                  {item.submenu.map((subitem) => (
-                    <Link
-                      key={subitem.href}
-                      href={subitem.href}
-                      className={cn(
-                        "w-full text-left px-2.5 py-1.5 lg:px-3 lg:py-2 text-sm rounded-lg transition-all duration-150 block",
-                        pathname.startsWith(subitem.href)
-                          ? activeClass
-                          : "text-gray-600 hover:text-green-700 hover:bg-green-50/50"
-                      )}
-                    >
-                      {subitem.label}
-                    </Link>
-                  ))}
-                </div>
               )}
             </div>
           ))}
