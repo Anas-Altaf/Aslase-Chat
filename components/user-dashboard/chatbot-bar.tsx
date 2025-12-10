@@ -72,8 +72,6 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
   const { chatbots, selectedChatbot, isInitialLoading: chatbotsLoading, addChatbot, selectChatbot, removeChatbot } = useChatbot();
   const { businesses, selectedBusiness, isInitialLoading: businessesLoading, selectBusiness, addBusiness, removeBusiness } = useBusiness();
 
-
-
   // Create chatbot dialog
   const [isCreateChatbotOpen, setIsCreateChatbotOpen] = useState(false);
   const [isCreatingChatbot, setIsCreatingChatbot] = useState(false);
@@ -184,31 +182,31 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
   if (collapsed) {
     return (
       <TooltipProvider delayDuration={100}>
-        <Card className="h-full rounded-none border-r border-l-0 border-t-0 border-b-0 flex flex-col bg-white w-16">
+        <Card className="h-full rounded-none border-r border-gray-200/60 border-l-0 border-t-0 border-b-0 flex flex-col bg-white w-16 shadow-lg">
           {/* Logo */}
           <div className="p-2 flex items-center justify-center">
             <Link href="/user-dashboard" className="block">
-             <Image
-            src="/AslasChat.jpg"
-            alt="AslasChat Logo"
-            width={40}
-            height={40}
-            className="max-w-[100px]"
-          />
+              <Image
+                src="/AslasChat.jpg"
+                alt="AslasChat Logo"
+                width={40}
+                height={40}
+                className="max-w-[100px] rounded-lg"
+              />
             </Link>
           </div>
 
-          <Separator />
+          <Separator className="bg-gray-100" />
 
           {/* Icons */}
-          <div className="flex-1 flex flex-col items-center py-4 gap-2">
+          <div className="flex-1 flex flex-col items-center py-4 gap-3">
             {/* Expand button */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10"
+                  className="h-10 w-10 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50"
                   onClick={onToggleCollapse}
                 >
                   <PanelLeft className="w-5 h-5" />
@@ -217,13 +215,13 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
               <TooltipContent side="right">Expand sidebar</TooltipContent>
             </Tooltip>
 
-            <Separator className="w-8 my-2" />
+            <Separator className="w-8 my-2 bg-gray-100" />
 
             {/* Chatbots */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={pathname.includes('/chatbot') ? 'secondary' : 'ghost'}
+                  variant="ghost"
                   size="icon"
                   className="h-10 w-10 cursor-pointer"
                   onClick={(e) => {
@@ -243,7 +241,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={pathname.includes('/businesses') ? 'secondary' : 'ghost'}
+                  variant="ghost"
                   size="icon"
                   className="h-10 w-10 cursor-pointer"
                   onClick={(e) => {
@@ -260,14 +258,14 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
             </Tooltip>
 
             {/* Add buttons */}
-            <Separator className="w-8 my-2" />
+            <Separator className="w-8 my-2 bg-gray-100" />
 
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 text-green-600"
+                  className="h-11 w-11 rounded-xl bg-linear-to-br from-emerald-50 to-teal-50 text-emerald-600 border-2 border-emerald-200 hover:from-emerald-500 hover:to-teal-500 hover:text-white hover:border-transparent transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/30"
                   onClick={() => setIsCreateChatbotOpen(true)}
                 >
                   <Plus className="w-5 h-5" />
@@ -277,16 +275,16 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
             </Tooltip>
           </div>
 
-          <Separator />
+          <Separator className="bg-gray-100" />
 
           {/* Profile */}
           <div className="p-2 flex justify-center">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link href="/profile">
-                  <Avatar className="w-10 h-10">
+                <Link href="/user-dashboard/profile">
+                  <Avatar className="w-10 h-10 ring-2 ring-emerald-200 hover:ring-emerald-400 transition-all duration-300">
                     <AvatarImage src="/chatbot.png" alt={userName} />
-                    <AvatarFallback className="bg-green-100 text-green-700 text-sm">{userInitials}</AvatarFallback>
+                    <AvatarFallback className="bbg-linear-to-br from-emerald-500 to-teal-500 text-white text-sm font-bold">{userInitials}</AvatarFallback>
                   </Avatar>
                 </Link>
               </TooltipTrigger>
@@ -453,25 +451,31 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
     );
   }
 
-  // EXPANDED VIEW - Full sidebar
+  // EXPANDED VIEW - Full sidebar with premium white theme
   return (
-    <Card className="h-full rounded-none border-r border-l-0 border-t-0 border-b-0 flex flex-col bg-white">
+    <Card className="h-full rounded-none border-r border-gray-200/60 border-l-0 border-t-0 border-b-0 flex flex-col bg-white shadow-xl">
+      {/* Vibrant gradient accent line at top */}
+      <div className="h-1 bg-linear-to-r from-emerald-400 via-teal-500 to-cyan-500"></div>
+
       {/* Logo - Centered */}
-      <div className="p-3 xl:p-4 flex items-center justify-between">
-        <Link href="/user-dashboard" className="block flex-1 flex justify-center">
-          <Image
-            src="/AslasChat.jpg"
-            alt="AslasChat Logo"
-            width={100}
-            height={60}
-            className="max-w-[100px]"
-          />
+      <div className="p-4 flex items-center justify-between">
+        <Link href="/user-dashboard" className=" flex-1 flex justify-center group">
+          <div className="relative">
+            <Image
+              src="/AslasChat.jpg"
+              alt="AslasChat Logo"
+              width={100}
+              height={60}
+              className="max-w-[100px] rounded-lg transition-transform duration-300 group-hover:scale-105"
+            />
+            <div className="absolute -inset-2 bg-linear-to-r from-emerald-400/20 to-teal-400/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          </div>
         </Link>
         {onToggleCollapse && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 flex-shrink-0"
+            className="h-8 w-8 shrink-0 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"
             onClick={onToggleCollapse}
             title="Collapse sidebar"
           >
@@ -480,11 +484,11 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
         )}
       </div>
 
-      <Separator />
+      <Separator className="bg-gray-100" />
 
       {/* Expandable Sections */}
       <ScrollArea className="flex-1 overflow-hidden">
-        <div className="p-2 xl:p-3 space-y-1">
+        <div className="p-3 space-y-1">
 
           {/* Chatbots Section */}
           <div>
@@ -499,7 +503,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg">
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -513,73 +517,79 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
             </div>
 
             {/* Chatbots List */}
-            <div className="ml-2 mt-1 space-y-1 pr-1">
-                {isLoading ? (
-                  <>
-                    <Skeleton className="h-10 rounded-lg" />
-                    <Skeleton className="h-10 rounded-lg" />
-                  </>
-                ) : chatbots.length === 0 ? (
-                  <p className="text-gray-400 text-xs px-2 py-2">No chatbots yet</p>
-                ) : (
-                  chatbots.map((chatbot, index) => (
-                    <div
-                      key={`chatbot-${chatbot.id}-${index}`}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg selection-transition group border ${selectedChatbot?.id === chatbot.id
-                          ? 'bg-green-50 border-green-300'
-                          : 'hover:bg-gray-50 border-gray-200 hover:border-green-200'
-                        }`}
-                    >
-                      <button
-                        onClick={() => handleSelectChatbot(chatbot.id)}
-                        className="flex-1 flex items-center gap-2 text-left min-w-0 overflow-hidden truncate "
-                        title={chatbot.name.substring(0,20)}
-                      >
-                        <Avatar className="w-6 h-6 rounded flex-shrink-0">
-                          <AvatarImage src="/chatbot.png" alt={chatbot.name} />
-                          <AvatarFallback className="rounded bg-green-100 text-green-700 text-[10px]">
-                            {chatbot.name.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs font-medium text-gray-800 truncate block">{chatbot.name.substring(0,14)}</span>
-                      </button>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <Badge
-                          variant={chatbot.status === 'trained' ? 'success' : 'warning'}
-                          className="text-[9px] px-1.5 py-0"
-                        >
-                          {chatbot.status}
-                        </Badge>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical className="w-3 h-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleSelectChatbot(chatbot.id)}>
-                              <Eye className="w-4 h-4 mr-2" />
-                              View
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={(e) => handleDeleteChatbot(chatbot.id, e)}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+            <div className="ml-2 mt-2 space-y-2 pr-1">
+              {isLoading ? (
+                <>
+                  <Skeleton className="h-14 rounded-xl" />
+                  <Skeleton className="h-14 rounded-xl" />
+                </>
+              ) :
+                (
+                chatbots.map((chatbot, index) => (
+                  <div
+                    key={`chatbot-${chatbot.id}-${index}`}
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl group transition-all duration-300 cursor-pointer ${selectedChatbot?.id === chatbot.id
+                      ? 'bg-linear-to-r from-emerald-100 to-teal-100 border-2 border-emerald-400 shadow-lg shadow-emerald-500/20'
+                      : 'bg-white border-2 border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 hover:shadow-md'
+                      }`}
+                    onClick={() => handleSelectChatbot(chatbot.id)}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 ${selectedChatbot?.id === chatbot.id
+                      ? 'bg-linear-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/40'
+                      : 'bg-linear-to-br from-emerald-100 to-teal-100 group-hover:from-emerald-200 group-hover:to-teal-200'
+                      }`}>
+                      <Avatar className="w-6 h-6 rounded">
+                        <AvatarImage src="/chatbot.png" alt={chatbot.name} />
+                        <AvatarFallback className={`rounded text-[10px] font-bold ${selectedChatbot?.id === chatbot.id ? 'bg-transparent text-white' : 'bg-transparent text-emerald-600'
+                          }`}>
+                          {chatbot.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
                     </div>
-                  ))
-                )}
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-sm font-semibold truncate block ${selectedChatbot?.id === chatbot.id ? 'text-emerald-800' : 'text-gray-800'
+                        }`}>{chatbot.name.substring(0, 14)}</span>
+                      <span className="text-[10px] text-gray-400 uppercase tracking-wide">{chatbot.model}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge
+                        className={`text-[10px] px-2 py-0.5 border font-medium ${chatbot.status === 'trained'
+                          ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                          : 'bg-amber-100 text-amber-700 border-amber-300'
+                          }`}
+                      >
+                        {chatbot.status}
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleSelectChatbot(chatbot.id)}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={(e) => handleDeleteChatbot(chatbot.id, e)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -596,7 +606,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg">
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -610,85 +620,88 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
             </div>
 
             {/* Businesses List */}
-            <div className="ml-2 mt-1 space-y-1 pr-1">
-                {isLoading ? (
-                  <>
-                    <Skeleton className="h-10 rounded-lg" />
-                    <Skeleton className="h-10 rounded-lg" />
-                  </>
-                ) : businesses.length === 0 ? (
-                  <p className="text-gray-400 text-xs px-2 py-2">No businesses yet</p>
-                ) : (
-                  businesses.map((business, index) => (
-                    <div
-                      key={`business-${business.id}-${index}`}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg selection-transition group border ${selectedBusiness?.id === business.id
-                          ? 'bg-green-50 border-green-300'
-                          : 'hover:bg-gray-50 border-gray-200 hover:border-green-200'
-                        }`}
-                    >
-                      <button
-                        onClick={() => handleSelectBusiness(business.id)}
-                        className="flex-1 flex items-center gap-2 text-left min-w-0 overflow-hidden"
-                        title={business.name}
-                      >
-                        <Avatar className="w-6 h-6 rounded flex-shrink-0">
-                          {business.logo ? (
-                            <AvatarImage src={business.logo} alt={business.name} />
-                          ) : null}
-                          <AvatarFallback className="rounded bg-purple-100 text-purple-700 text-[10px]">
-                            {business.name.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs font-medium text-gray-800 truncate block">{business.name}</span>
-                      </button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVertical className="w-3 h-3" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleSelectBusiness(business.id)}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={(e) => handleDeleteBusiness(business.id, e)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+            <div className="ml-2 mt-2 space-y-2 pr-1">
+              {isLoading ? (
+                <>
+                  <Skeleton className="h-14 rounded-xl" />
+                  <Skeleton className="h-14 rounded-xl" />
+                </>
+              ) : (
+                businesses.map((business, index) => (
+                  <div
+                    key={`business-${business.id}-${index}`}
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl group transition-all duration-300 cursor-pointer ${selectedBusiness?.id === business.id
+                      ? 'bg-linear-to-r from-violet-100 to-purple-100 border-2 border-violet-400 shadow-lg shadow-violet-500/20'
+                      : 'bg-white border-2 border-gray-100 hover:border-violet-300 hover:bg-violet-50/50 hover:shadow-md'
+                      }`}
+                    onClick={() => handleSelectBusiness(business.id)}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 ${selectedBusiness?.id === business.id
+                      ? 'bg-linear-to-br from-violet-500 to-purple-500 shadow-lg shadow-violet-500/40'
+                      : 'bg-linear-to-br from-violet-100 to-purple-100 group-hover:from-violet-200 group-hover:to-purple-200'
+                      }`}>
+                      <Avatar className="w-6 h-6 rounded">
+                        {business.logo ? (
+                          <AvatarImage src={business.logo} alt={business.name} />
+                        ) : null}
+                        <AvatarFallback className={`rounded text-[10px] font-bold ${selectedBusiness?.id === business.id ? 'bg-transparent text-white' : 'bg-transparent text-violet-600'
+                          }`}>
+                          {business.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
                     </div>
-                  ))
-                )}
-              </div>
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-sm font-semibold truncate block ${selectedBusiness?.id === business.id ? 'text-violet-800' : 'text-gray-800'
+                        }`}>{business.name}</span>
+                      <span className="text-[10px] text-gray-400">Business</span>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="w-3.5 h-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleSelectBusiness(business.id)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={(e) => handleDeleteBusiness(business.id, e)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
         </div>
       </ScrollArea>
 
-      <Separator />
+      <Separator className="bg-gray-100" />
 
       {/* Profile Card */}
-      <div className="p-2 xl:p-3">
-        <Link href="/profile" className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-150">
-          <Avatar className="w-8 h-8">
-            <AvatarImage src="/chatbot.png" alt={userName} />
-            <AvatarFallback className="bg-green-100 text-green-700 text-xs">{userInitials}</AvatarFallback>
+      <div className="p-3">
+        <Link href="/user-dashboard/profile" className="flex items-center gap-3 p-3 rounded-xl bg-linear-to-r from-gray-50 to-emerald-50/50 border-2 border-gray-100 hover:border-emerald-300 hover:bg-emerald-50 cursor-pointer transition-all duration-300 group">
+          <Avatar className="w-10 h-10 ring-2 ring-emerald-200 group-hover:ring-emerald-400 transition-all duration-300">
+            <AvatarImage src={user?.photoURL || ''} alt={userName} />
+            <AvatarFallback className="bg-linear-to-br from-emerald-500 to-teal-500 text-white text-xs font-bold">{userInitials}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-gray-800 text-xs font-medium truncate">{userName}</p>
-            <p className="text-green-600 text-[10px]">Profile →</p>
+            <p className="text-gray-800 text-sm font-semibold truncate">{userName}</p>
+            <p className="text-emerald-600 text-[10px] font-medium">View Profile →</p>
           </div>
         </Link>
       </div>

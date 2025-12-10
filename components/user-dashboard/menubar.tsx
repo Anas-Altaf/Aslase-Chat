@@ -11,8 +11,13 @@ import {
   Settings,
   Code,
   Zap,
-  Menu,
-  X
+  Bot,
+  MessageSquare,
+  Users,
+  BarChart,
+  Bell,
+  Shield,
+  Palette
 } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { Button } from '@/components/ui/button';
@@ -33,13 +38,10 @@ interface MenuItem {
   label: string;
   icon: React.ReactNode;
   href?: string;
-  submenu?: { label: string; href: string }[];
+  submenu?: { label: string; href: string; icon: React.ElementType }[];
 }
 
-const activeClass = "bg-green-500 text-white shadow-sm hover:bg-green-600";
-
 export default function Menubar() {
-
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const pathname = usePathname();
@@ -49,59 +51,49 @@ export default function Menubar() {
   const menuItems: MenuItem[] = [
     {
       label: 'Chatbot',
-      icon: <Code className="w-4 h-4 lg:w-5 lg:h-5" />,
+      icon: <Bot className="w-5 h-5" />,
       href: '/user-dashboard/chatbot',
     },
     {
       label: 'Overview',
-      icon: <LayoutDashboard className="w-4 h-4 lg:w-5 lg:h-5" />,
+      icon: <LayoutDashboard className="w-5 h-5" />,
       submenu: [
-        { label: 'Chat Logs', href: '/user-dashboard/chat-logs' },
-        { label: 'Leads', href: '/user-dashboard/leads' },
-        { label: 'Analytics', href: '/user-dashboard/analytics' },
+        { label: 'Chat Logs', href: '/user-dashboard/chat-logs', icon: MessageSquare },
+        { label: 'Leads', href: '/user-dashboard/leads', icon: Users },
+        { label: 'Analytics', href: '/user-dashboard/analytics', icon: BarChart },
       ],
     },
     {
       label: 'Sources',
-      icon: <Database className="w-4 h-4 lg:w-5 lg:h-5" />,
+      icon: <Database className="w-5 h-5" />,
       href: '/user-dashboard/sources',
     },
     {
       label: 'Integrations',
-      icon: <Zap className="w-4 h-4 lg:w-5 lg:h-5" />,
+      icon: <Zap className="w-5 h-5" />,
       href: '/user-dashboard/integrations',
     },
     {
       label: 'Settings',
-      icon: <Settings className="w-4 h-4 lg:w-5 lg:h-5" />,
+      icon: <Settings className="w-5 h-5" />,
       submenu: [
-        { label: 'General', href: '/user-dashboard/settings/general' },
-        { label: 'Model', href: '/user-dashboard/settings/model' },
-        { label: 'Chat Interface', href: '/user-dashboard/settings/chat-interface' },
-        { label: 'Security', href: '/user-dashboard/settings/security' },
-        { label: 'Notifications', href: '/user-dashboard/settings/notifications' },
+        { label: 'General', href: '/user-dashboard/settings/general', icon: Settings },
+        { label: 'Model', href: '/user-dashboard/settings/model', icon: Bot },
+        { label: 'Chat Interface', href: '/user-dashboard/settings/chat-interface', icon: Palette },
+        { label: 'Security', href: '/user-dashboard/settings/security', icon: Shield },
+        { label: 'Notifications', href: '/user-dashboard/settings/notifications', icon: Bell },
       ],
     },
     {
       label: 'Embed on Site',
-      icon: <Code className="w-4 h-4 lg:w-5 lg:h-5" />,
+      icon: <Code className="w-5 h-5" />,
       href: '/user-dashboard/embed',
     },
   ];
 
-
-
   const isActive = (href?: string) => {
     if (!href) return false;
     return pathname.startsWith(href);
-  };
-
-  const isParentActive = (item: MenuItem) => {
-    if (item.href && isActive(item.href)) return true;
-    if (item.submenu) {
-      return item.submenu.some(sub => pathname.startsWith(sub.href));
-    }
-    return false;
   };
 
   const handleDelete = async () => {
@@ -127,50 +119,71 @@ export default function Menubar() {
   };
 
   return (
-    <div className="bg-gradient-to-b from-green-50/50 to-white flex flex-col h-full overflow-hidden">
-      <ScrollArea className="flex-1 p-3 lg:p-4">
-        <div className="space-y-1">
-          {menuItems.map((item) => (
-            <div key={item.label}>
+    <div className="bg-linear-to-br from-gray-50 via-white to-green-50/30 flex flex-col h-full overflow-hidden">
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-2">
+          {menuItems.map((item, index) => (
+            <div
+              key={item.label}
+              className="animate-fadeIn"
+              style={{ animationDelay: `${index * 0.05}s` }}
+            >
               {item.submenu ? (
-                <div className="space-y-0.5">
-                  <div className="px-2.5 py-2 lg:px-3 lg:py-2.5">
-                    <div className="flex items-center gap-2 lg:gap-3 text-gray-600">
-                      {item.icon}
-                      <span className="font-medium text-sm">{item.label}</span>
-                    </div>
+                <div className="space-y-1">
+                  {/* Section header */}
+                  <div className="px-3 py-2 flex items-center gap-3 text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                    {item.icon}
+                    <span>{item.label}</span>
                   </div>
-                  <div className="ml-3 lg:ml-4 space-y-0.5 border-l-2 border-green-200 pl-3 lg:pl-4">
-                    {item.submenu.map((subitem) => (
-                      <Link
-                        key={subitem.href}
-                        href={subitem.href}
-                        className={cn(
-                          "w-full text-left px-2.5 py-1.5 lg:px-3 lg:py-2 text-sm rounded-lg transition-all duration-150 block",
-                          pathname.startsWith(subitem.href)
-                            ? activeClass
-                            : "text-gray-600 hover:text-green-700 hover:bg-green-50/50"
-                        )}
-                      >
-                        {subitem.label}
-                      </Link>
-                    ))}
+                  {/* Submenu items */}
+                  <div className="ml-2 space-y-1 border-l-2 border-gray-100 pl-3">
+                    {item.submenu.map((subitem) => {
+                      const SubIcon = subitem.icon;
+                      const isSubActive = pathname.startsWith(subitem.href);
+                      return (
+                        <Link
+                          key={subitem.href}
+                          href={subitem.href}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 group relative overflow-hidden",
+                            isSubActive
+                              ? "bg-linear-to-br from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25 font-semibold"
+                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
+                          )}
+                        >
+                          <SubIcon className={cn(
+                            "w-4 h-4 transition-transform duration-300",
+                            !isSubActive && "group-hover:scale-110"
+                          )} />
+                          <span>{subitem.label}</span>
+                          {!isSubActive && (
+                            <span className="absolute inset-0 bg-linear-to-br from-green-400/0 via-green-400/10 to-green-400/0 translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
+                          )}
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               ) : (
                 <Link
                   href={item.href!}
                   className={cn(
-                    "w-full flex items-center justify-between px-2.5 py-2 lg:px-3 lg:py-2.5 rounded-lg transition-all duration-150",
+                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden",
                     isActive(item.href)
-                      ? activeClass
-                      : "text-gray-600 hover:bg-gray-100/80"
+                      ? "bg-linear-to-br from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
                   )}
                 >
-                  <div className="flex items-center gap-2 lg:gap-3">
+                  <span className={cn(
+                    "transition-transform duration-300",
+                    !isActive(item.href) && "group-hover:scale-110"
+                  )}>
                     {item.icon}
-                    <span className="font-medium text-sm">{item.label}</span>
-                  </div>
+                  </span>
+                  <span className="font-semibold text-sm">{item.label}</span>
+                  {!isActive(item.href) && (
+                    <span className="absolute inset-0 bg-linear-to-br from-green-400/0 via-green-400/10 to-green-400/0 translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
+                  )}
                 </Link>
               )}
             </div>
@@ -178,35 +191,41 @@ export default function Menubar() {
         </div>
       </ScrollArea>
 
-      <Separator />
+      <Separator className="bg-gray-100" />
 
-      <div className="p-3 lg:p-4 space-y-2">
-        <Button variant="outline" className="w-full text-sm" size="sm" onClick={handleShare}>
-          <Share2 className="w-4 h-4" />
-          <span className="hidden sm:inline ml-2">Share</span>
+      {/* Action Buttons */}
+      <div className="p-4 space-y-2">
+        <Button
+          variant="outline"
+          className="w-full justify-center gap-2 bg-linear-to-br from-blue-50 to-cyan-50 border-blue-200 text-blue-700 hover:from-blue-500 hover:to-cyan-500 hover:text-white hover:border-transparent transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/25 group"
+          size="default"
+          onClick={handleShare}
+        >
+          <Share2 className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
+          Share Chatbot
         </Button>
         <Button
-          variant="destructive"
-          className="w-full text-sm"
-          size="sm"
+          variant="outline"
+          className="w-full justify-center gap-2 bg-linear-to-br from-red-50 to-rose-50 border-red-200 text-red-600 hover:from-red-500 hover:to-rose-500 hover:text-white hover:border-transparent transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-red-500/25 group"
+          size="default"
           onClick={() => setIsDeleteOpen(true)}
           disabled={!selectedChatbot}
         >
-          <Trash2 className="w-4 h-4" />
-          <span className="hidden sm:inline ml-2">Delete</span>
+          <Trash2 className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
+          Delete Chatbot
         </Button>
       </div>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Delete Chatbot</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl font-bold">Delete Chatbot</DialogTitle>
+            <DialogDescription className="text-gray-500">
               Are you sure you want to delete "{selectedChatbot?.name}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
               Cancel
             </Button>

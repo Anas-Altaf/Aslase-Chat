@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getBusinesses, createBusiness, updateBusiness, deleteBusiness, getSampleBusinesses } from '@/lib/services/business.service';
+import { getBusinesses, createBusiness, updateBusiness, deleteBusiness } from '@/lib/services/business.service';
 import { auth } from '@/lib/firebase/config';
 import type { Business } from '@/types';
 

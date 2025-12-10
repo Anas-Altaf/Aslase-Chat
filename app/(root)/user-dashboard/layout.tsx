@@ -34,7 +34,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return (
         <BusinessProvider>
             <ChatbotProvider>
-                <div className="flex h-screen bg-gray-50/50 overflow-hidden">
+                {/* Premium light theme gradient */}
+                <div className="flex h-screen bg-gray-100 overflow-hidden">
                     {/* Mobile Menu Button */}
                     <Button
                         variant="ghost"
@@ -80,7 +81,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                     <div className="flex-1 p-4 xl:p-6 overflow-hidden">
                                         {hideMenubar ? (
                                             /* Full-width content for list pages */
-                                            <Card className="h-full p-4 xl:p-6 overflow-auto">
+                                            <Card className="h-full p-4 xl:p-6 overflow-auto bg-white/80 backdrop-blur-sm shadow-xl border-green-100/50">
                                                 {children}
                                             </Card>
                                         ) : (
@@ -94,7 +95,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                                     collapsedSize={0}
                                                     className="min-w-0"
                                                 >
-                                                    <Card className="h-full overflow-hidden rounded-r-none border-r-0">
+                                                    <Card className="h-full overflow-hidden rounded-r-none border-r-0 bg-white/80 backdrop-blur-sm shadow-lg border-green-100/50">
                                                         <Menubar />
                                                     </Card>
                                                 </ResizablePanel>
@@ -102,7 +103,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                                 <ResizableHandle withHandle />
 
                                                 <ResizablePanel defaultSize={72} minSize={40} className="min-w-0">
-                                                    <Card className="h-full p-4 xl:p-6 overflow-auto rounded-l-none">
+                                                    <Card className="h-full p-4 xl:p-6 overflow-auto rounded-l-none bg-white backdrop-blur-sm shadow-xl border-green-100/50">
                                                         {children}
                                                     </Card>
                                                 </ResizablePanel>

@@ -148,7 +148,7 @@ export default function AdminBlogsPage() {
             </div>
             <Button
               onClick={handleAdd}
-              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+              className="bg-linear-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
               size="lg"
             >
               <Plus className="w-5 h-5 mr-2" />
@@ -312,7 +312,7 @@ export default function AdminBlogsPage() {
             <div className="flex gap-3 pt-4">
               <Button
                 onClick={handleSave}
-                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                className="flex-1 bg-linear-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
               >
                 <Save className="w-4 h-4 mr-2" />
                 {editingBlog ? 'Update Blog' : 'Create Blog'}

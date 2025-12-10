@@ -12,6 +12,7 @@ interface PasswordInputProps {
     label?: string;
     value: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onBlur?: () => void;
     placeholder?: string;
     autoComplete?: string;
     required?: boolean;
@@ -24,6 +25,7 @@ export function PasswordInput({
     label,
     value,
     onChange,
+    onBlur,
     placeholder = 'Your Password',
     autoComplete = 'current-password',
     required = true,
@@ -43,6 +45,7 @@ export function PasswordInput({
                     required={required}
                     value={value}
                     onChange={onChange}
+                    onBlur={onBlur}
                     placeholder={placeholder}
                     className={`pr-10 ${className}`}
                 />
