@@ -26,21 +26,13 @@ export default function Leads() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Cache leads per chatbot
-  const leadsCache = useRef<Record<string, Lead[]>>({});
-  const lastChatbotId = useRef<string | null>(null);
-
+  // Load leads when chatbot changes
   useEffect(() => {
-    if (!selectedChatbot) return;
-    if (selectedChatbot.id === lastChatbotId.current) return;
-
-    lastChatbotId.current = selectedChatbot.id;
-
-    if (leadsCache.current[selectedChatbot.id]) {
-      setLeads(leadsCache.current[selectedChatbot.id]);
+    if (!selectedChatbot) {
+      setLeads([]);
       return;
     }
-
+    
     loadLeads();
   }, [selectedChatbot?.id]);
 
@@ -51,7 +43,6 @@ export default function Leads() {
       const response = await getLeads(selectedChatbot.id);
       if (response.success) {
         setLeads(response.data.items);
-        leadsCache.current[selectedChatbot.id] = response.data.items;
       }
     } catch (error) {
       toast.error('Failed to load leads');
@@ -64,12 +55,15 @@ export default function Leads() {
     if (!deleteId || !selectedChatbot) return;
     setIsDeleting(true);
     try {
-      await deleteLead(deleteId);
-      const updatedLeads = leads.filter(l => l.id !== deleteId);
-      setLeads(updatedLeads);
-      leadsCache.current[selectedChatbot.id] = updatedLeads;
-      toast.success('Lead deleted');
-      setDeleteId(null);
+      const response = await deleteLead(deleteId);
+      if (response.success) {
+        const updatedLeads = leads.filter(l => l.id !== deleteId);
+        setLeads(updatedLeads);
+        toast.success('Lead deleted');
+        setDeleteId(null);
+      } else {
+        toast.error(response.error || 'Failed to delete lead');
+      }
     } catch (error) {
       toast.error('Failed to delete lead');
     } finally {
@@ -109,14 +103,14 @@ export default function Leads() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex justify-between items-center mb-4 flex-shrink-0">
+      <div className="flex justify-between items-center mb-4 shrink-0">
         <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
         <Button variant="secondary" size="sm" onClick={handleExport}>
           Export
         </Button>
       </div>
 
-      <Card className="p-4 mb-4 flex-shrink-0">
+      <Card className="p-4 mb-4 shrink-0">
         <h3 className="text-gray-900 font-semibold mb-2 text-sm">Filters</h3>
         <div className="flex gap-2 items-center">
           <div className="flex-1 flex gap-2 items-center">
@@ -128,7 +122,7 @@ export default function Leads() {
       </Card>
 
       <div className="flex-1 overflow-y-auto">
-        <h3 className="text-gray-900 font-semibold mb-3 text-sm flex-shrink-0">Previous Leads</h3>
+        <h3 className="text-gray-900 font-semibold mb-3 text-sm shrink-0">Previous Leads</h3>
         <div className="space-y-3">
           {isLoading && leads.length === 0 ? (
             <>
@@ -142,7 +136,7 @@ export default function Leads() {
               <Card key={lead.id} className="p-4 border-green-200 bg-green-50/50">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-2 mb-2">
-                    <LinkIcon className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <LinkIcon className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <p className="text-gray-900 font-medium text-sm">{lead.message}</p>
                       <p className="text-gray-500 text-xs mt-1">
@@ -160,18 +154,24 @@ export default function Leads() {
                   </Button>
                 </div>
                 <div className="space-y-1 ml-6">
+                  {lead.name &&(
                   <div className="flex items-center gap-2">
-                    <User className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                    <User className="w-3 h-3 text-gray-400 shrink-0" />
                     <p className="text-gray-900 font-medium text-sm">{lead.name}</p>
                   </div>
+                  )}
+                  {lead.phone &&(
                   <div className="flex items-center gap-2">
-                    <Phone className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                    <Phone className="w-3 h-3 text-gray-400 shrink-0" />
                     <p className="text-gray-700 text-sm">{lead.phone}</p>
                   </div>
+                  )}
+                  {lead.email &&(
                   <div className="flex items-center gap-2">
-                    <Mail className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                    <Mail className="w-3 h-3 text-gray-400 shrink-0" />
                     <p className="text-gray-700 text-sm truncate">{lead.email}</p>
                   </div>
+            )}
                 </div>
               </Card>
             ))
@@ -182,7 +182,7 @@ export default function Leads() {
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Lead</DialogTitle>
+            <DialogTitle className='text-red-500'>Delete Lead</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete this lead? This action cannot be undone.
             </DialogDescription>
