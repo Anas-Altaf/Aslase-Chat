@@ -86,8 +86,10 @@ export async function createChatbot(data: {
     visibility: Chatbot['visibility'];
 }): Promise<ApiResponse<Chatbot>> {
     await delay(800);
+    // Generate truly unique ID using random string
+    const uniqueId = `cb_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
     const newChatbot: Chatbot = {
-        id: `cb_${Date.now()}`,
+        id: uniqueId,
         businessId: data.businessId,
         name: data.name,
         model: data.model,
@@ -97,7 +99,11 @@ export async function createChatbot(data: {
         createdAt: new Date().toISOString(),
         lastTrainedAt: null,
     };
-    sampleChatbots.push(newChatbot);
+    // Check if ID already exists (shouldn't happen but safety check)
+    const existingIndex = sampleChatbots.findIndex(c => c.id === uniqueId);
+    if (existingIndex === -1) {
+        sampleChatbots.push(newChatbot);
+    }
     return {
         success: true,
         data: newChatbot,

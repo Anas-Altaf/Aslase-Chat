@@ -75,14 +75,19 @@ export async function getBusiness(id: string): Promise<ApiResponse<Business>> {
 // Create business
 export async function createBusiness(data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>): Promise<ApiResponse<Business>> {
     await delay(400);
+    const uniqueId = `biz_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
     const newBusiness: Business = {
         ...data,
-        id: `biz_${Date.now()}`,
+        id: uniqueId,
         documents: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
     };
-    sampleBusinesses.push(newBusiness);
+    // Check if ID already exists (safety check)
+    const existingIndex = sampleBusinesses.findIndex(b => b.id === uniqueId);
+    if (existingIndex === -1) {
+        sampleBusinesses.push(newBusiness);
+    }
     return { success: true, data: newBusiness };
 }
 
