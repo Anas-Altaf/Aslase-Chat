@@ -11,13 +11,13 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-cyan-50 w-full">
-            <div className="min-h-screen w-full p-6 flex items-center justify-center">
+        <div className="h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-cyan-50 w-full">
+            <div className="h-screen w-full flex items-center justify-center">
                 <div className="w-full h-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
                     <div className="flex-1 flex overflow-hidden">
                         {/* Left Column - Form */}
                         <div className="flex-1 overflow-y-auto">
-                            <div className="p-8 sm:p-10">
+                            <div>
                                 <div className="max-w-md mx-auto space-y-6">
                                     {/* Logo */}
                                     <div className="flex justify-center">

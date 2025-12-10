@@ -9,7 +9,9 @@ const Label = React.forwardRef<
     <LabelPrimitive.Root
         ref={ref}
         className={cn(
-            "block text-sm font-semibold text-gray-900 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+            "block text-sm font-medium text-gray-700 leading-none mb-1.5",
+            "peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+            "transition-colors duration-150",
             className
         )}
         {...props}

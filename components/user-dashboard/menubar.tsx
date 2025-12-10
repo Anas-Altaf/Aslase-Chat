@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronDown, Share2, Trash2, LayoutDashboard, Database, Settings, Code, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 interface MenuItem {
@@ -80,77 +82,80 @@ export default function Menubar() {
   };
 
   return (
-    <div className="bg-gradient-to-b from-blue-50 to-white flex flex-col h-full overflow-hidden">
-      {/* Menu Items */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {menuItems.map((item) => (
-          <div key={item.label}>
-            {item.submenu ? (
-              <button
-                onClick={() => toggleMenu(item.label)}
-                className={cn(
-                  "w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors",
-                  isParentActive(item)
-                    ? 'bg-green-100 text-green-700'
-                    : 'text-gray-600 hover:bg-gray-100'
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  {item.icon}
-                  <span className="font-medium">{item.label}</span>
-                </div>
-                <ChevronDown
+    <div className="bg-gradient-to-b from-green-50/50 to-white flex flex-col h-full overflow-hidden">
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-1">
+          {menuItems.map((item) => (
+            <div key={item.label}>
+              {item.submenu ? (
+                <button
+                  onClick={() => toggleMenu(item.label)}
                   className={cn(
-                    "w-4 h-4 transition-transform",
-                    expandedMenu === item.label ? 'rotate-180' : ''
+                    "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150",
+                    isParentActive(item)
+                      ? 'bg-green-100/80 text-green-700'
+                      : 'text-gray-600 hover:bg-gray-100/80'
                   )}
-                />
-              </button>
-            ) : (
-              <Link
-                href={item.href!}
-                className={cn(
-                  "w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors",
-                  item.label === 'Embed on Site'
-                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                    : isActive(item.href)
-                      ? 'bg-green-100 text-green-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  {item.icon}
-                  <span className="font-medium">{item.label}</span>
-                </div>
-              </Link>
-            )}
-
-            {/* Submenu */}
-            {item.submenu && expandedMenu === item.label && (
-              <div className="ml-4 mt-2 space-y-1 border-l-2 border-green-300 pl-4 max-h-40 overflow-y-auto">
-                {item.submenu.map((subitem) => (
-                  <Link
-                    key={subitem.href}
-                    href={subitem.href}
+                >
+                  <div className="flex items-center gap-3">
+                    {item.icon}
+                    <span className="font-medium text-sm">{item.label}</span>
+                  </div>
+                  <ChevronDown
                     className={cn(
-                      "w-full text-left px-4 py-2 text-sm rounded transition-colors block",
-                      pathname === subitem.href
-                        ? 'text-green-700 bg-green-50 font-medium'
-                        : 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                      "w-4 h-4 transition-transform duration-200",
+                      expandedMenu === item.label ? 'rotate-180' : ''
                     )}
-                  >
-                    {subitem.label}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+                  />
+                </button>
+              ) : (
+                <Link
+                  href={item.href!}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150",
+                    item.label === 'Embed on Site'
+                      ? 'bg-green-500 text-white hover:bg-green-600 shadow-sm'
+                      : isActive(item.href)
+                        ? 'bg-green-100/80 text-green-700'
+                        : 'text-gray-600 hover:bg-gray-100/80'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    {item.icon}
+                    <span className="font-medium text-sm">{item.label}</span>
+                  </div>
+                </Link>
+              )}
+
+              {/* Submenu */}
+              {item.submenu && expandedMenu === item.label && (
+                <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-green-200 pl-4">
+                  {item.submenu.map((subitem) => (
+                    <Link
+                      key={subitem.href}
+                      href={subitem.href}
+                      className={cn(
+                        "w-full text-left px-3 py-2 text-sm rounded-lg transition-all duration-150 block",
+                        pathname === subitem.href
+                          ? 'text-green-700 bg-green-50 font-medium'
+                          : 'text-gray-600 hover:text-green-700 hover:bg-green-50/50'
+                      )}
+                    >
+                      {subitem.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+
+      <Separator />
 
       {/* Share and Delete Buttons */}
-      <div className="p-4 border-t border-gray-200 space-y-3 flex-shrink-0">
-        <Button variant="ghost" className="w-full border border-gray-300">
+      <div className="p-4 space-y-2">
+        <Button variant="outline" className="w-full">
           <Share2 className="w-4 h-4" />
           Share
         </Button>

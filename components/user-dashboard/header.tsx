@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { LogOut } from 'lucide-react';
 
 interface BreadcrumbItem {
   label: string;
@@ -25,7 +27,6 @@ function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
     breadcrumbs.push({ label, href: currentPath });
   }
 
-  // Remove href from last item (current page)
   if (breadcrumbs.length > 0) {
     delete breadcrumbs[breadcrumbs.length - 1].href;
   }
@@ -51,7 +52,7 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+    <header className="bg-white border-b px-6 py-3 flex items-center justify-between">
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-2">
         {breadcrumbs.map((item, index) => (
@@ -59,22 +60,23 @@ export default function Header() {
             {item.href ? (
               <Link
                 href={item.href}
-                className="text-gray-500 hover:text-gray-700 text-sm transition-colors"
+                className="text-gray-500 hover:text-gray-700 text-sm transition-colors duration-150"
               >
                 {item.label}
               </Link>
             ) : (
-              <span className="text-gray-700 font-medium text-sm">{item.label}</span>
+              <span className="text-gray-900 font-medium text-sm">{item.label}</span>
             )}
             {index < breadcrumbs.length - 1 && (
-              <span className="text-gray-400 text-sm">›</span>
+              <span className="text-gray-300">/</span>
             )}
           </div>
         ))}
       </nav>
 
       {/* Logout Button */}
-      <Button variant="link" onClick={handleLogout} className="text-blue-500 hover:text-blue-600">
+      <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600 hover:text-gray-900">
+        <LogOut className="w-4 h-4 mr-2" />
         Logout
       </Button>
     </header>
