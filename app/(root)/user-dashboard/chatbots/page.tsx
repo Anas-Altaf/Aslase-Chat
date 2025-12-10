@@ -40,7 +40,7 @@ export default function ChatbotsListPage() {
     const [newChatbot, setNewChatbot] = useState({
         name: '',
         businessId: '',
-        model: 'gpt-4o-mini' as Chatbot['model'],
+        model: 'gpt-4o-mini' as Chatbot['model'], // Fixed to gpt-4o-mini
         visibility: 'public' as Chatbot['visibility'],
     });
 
@@ -229,22 +229,6 @@ export default function ChatbotsListPage() {
                                             {business.name}
                                         </SelectItem>
                                     ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="bot-model">Model</Label>
-                            <Select
-                                value={newChatbot.model}
-                                onValueChange={(value) => setNewChatbot({ ...newChatbot, model: value as Chatbot['model'] })}
-                            >
-                                <SelectTrigger id="bot-model">
-                                    <SelectValue placeholder="Select a model" />
-                                </SelectTrigger>
-                                <SelectContent position="popper" sideOffset={4}>
-                                    <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                                    <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                                    <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

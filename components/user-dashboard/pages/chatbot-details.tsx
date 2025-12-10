@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Send, Copy, RotateCcw, RefreshCw, Check } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { trainChatbot } from '@/lib/services';
+import { sendChatMessage } from '@/lib/services/chat.service';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,8 @@ export default function ChatbotDetails() {
   const [copied, setCopied] = useState(false);
   const [isTraining, setIsTraining] = useState(false);
   const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [currentChatId, setCurrentChatId] = useState<string | undefined>(undefined);
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
     { role: 'assistant', content: 'Hi! How can I help?' },
   ]);
@@ -46,14 +49,47 @@ export default function ChatbotDetails() {
     }
   };
 
-  const handleSendMessage = () => {
-    if (!message.trim()) return;
+  const handleSendMessage = async () => {
+    if (!message.trim() || !selectedChatbot || isSending) return;
+    
+    const userMessage = message.trim();
+    setMessage('');
+    setIsSending(true);
+
+    // Add user message to UI immediately
     setChatMessages(prev => [
       ...prev,
-      { role: 'user', content: message },
-      { role: 'assistant', content: 'This is a sample response. In production, this would call your AI model.' },
+      { role: 'user', content: userMessage },
     ]);
-    setMessage('');
+
+    try {
+      // Send message to backend
+      const response = await sendChatMessage(
+        selectedChatbot.id,
+        userMessage,
+        currentChatId
+      );
+
+      // Store chat ID for subsequent messages
+      if (!currentChatId) {
+        setCurrentChatId(response.chatId);
+      }
+
+      // Add AI response to UI
+      setChatMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: response.message },
+      ]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message');
+      
+      // Remove user message on error
+      setChatMessages(prev => prev.slice(0, -1));
+      setMessage(userMessage); // Restore message
+    } finally {
+      setIsSending(false);
+    }
   };
 
   // Only show skeleton on initial app load, not on chatbot switch
@@ -78,7 +114,7 @@ export default function ChatbotDetails() {
       {/* Left Section - Details */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Section - Title and Details */}
-        <div className="flex justify-between items-start mb-4 flex-shrink-0">
+        <div className="flex justify-between items-start mb-4 shrink-0">
           <h1 className="text-3xl font-bold text-gray-900">{selectedChatbot.name}</h1>
           <div className="flex gap-2">
             <Button
@@ -96,7 +132,7 @@ export default function ChatbotDetails() {
         </div>
 
         {/* Details Grid */}
-        <div className="grid grid-cols-2 gap-4 flex-shrink-0">
+        <div className="grid grid-cols-2 gap-4 shrink-0">
           {/* Left Column - Chatbot Details */}
           <Card className="p-4 space-y-4">
             <div>
@@ -154,8 +190,8 @@ export default function ChatbotDetails() {
       </div>
 
       {/* Right Section - Chat Interface */}
-      <div className="w-80 flex flex-col flex-shrink-0 overflow-hidden">
-        <h2 className="text-2xl font-bold text-gray-900 mb-3 flex-shrink-0">Chatbot</h2>
+      <div className="w-80 flex flex-col shrink-0 overflow-hidden">
+        <h2 className="text-2xl font-bold text-gray-900 mb-3 shrink-0">Chatbot</h2>
         <Card className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 space-y-3 mb-3 overflow-y-auto p-3">
             {chatMessages.map((msg, index) => (
@@ -171,20 +207,21 @@ export default function ChatbotDetails() {
               </div>
             ))}
           </div>
-          <div className="flex gap-2 p-3 flex-shrink-0 border-t">
+          <div className="flex gap-2 p-3 shrink-0 border-t">
             <Input
               type="text"
               placeholder="Type your message..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+              onKeyDown={(e) => e.key === 'Enter' && !isSending && handleSendMessage()}
+              disabled={isSending}
             />
-            <Button size="icon" onClick={handleSendMessage}>
+            <Button size="icon" onClick={handleSendMessage} disabled={isSending}>
               <Send className="w-4 h-4" />
             </Button>
           </div>
         </Card>
-        <p className="text-right text-gray-500 text-xs mt-2 flex-shrink-0">Powered by AslasChat</p>
+        <p className="text-right text-gray-500 text-xs mt-2 shrink-0">Powered by AslasChat</p>
       </div>
     </div>
   );

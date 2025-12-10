@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getBusinesses, createBusiness, updateBusiness, deleteBusiness, getSampleBusinesses } from '@/lib/services/business.service';
+import { auth } from '@/lib/firebase/config';
 import type { Business } from '@/types';
 
 interface BusinessContextType {
@@ -11,7 +12,7 @@ interface BusinessContextType {
     isMutating: boolean;
     error: string | null;
     selectBusiness: (id: string | null) => void;
-    addBusiness: (data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>) => Promise<Business | null>;
+    addBusiness: (data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>, files?: File[]) => Promise<Business | null>;
     editBusiness: (id: string, data: Partial<Business>) => Promise<void>;
     removeBusiness: (id: string) => Promise<void>;
     refreshBusinesses: () => Promise<void>;
@@ -26,9 +27,16 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
     const [isMutating, setIsMutating] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Initial load
+    // Wait for auth and then load businesses
     useEffect(() => {
-        loadBusinesses();
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+                loadBusinesses();
+            } else {
+                setIsInitialLoading(false);
+            }
+        });
+        return unsubscribe;
     }, []);
 
     const loadBusinesses = async () => {
@@ -59,10 +67,10 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
         }
     }, [businesses]);
 
-    const addBusiness = useCallback(async (data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>): Promise<Business | null> => {
+    const addBusiness = useCallback(async (data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>, files?: File[]): Promise<Business | null> => {
         setIsMutating(true);
         try {
-            const response = await createBusiness(data);
+            const response = await createBusiness(data, files);
             if (response.success) {
                 setBusinesses(prev => [...prev, response.data]);
                 setSelectedBusiness(response.data);
