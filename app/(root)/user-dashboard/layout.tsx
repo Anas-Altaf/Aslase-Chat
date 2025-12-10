@@ -34,8 +34,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return (
         <BusinessProvider>
             <ChatbotProvider>
-                {/* dark theme gradeint */}
-                <div className="flex h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700  overflow-hidden">
+                {/* Premium light theme gradient */}
+                <div className="flex h-screen bg-gray-100 overflow-hidden">
                     {/* Mobile Menu Button */}
                     <Button
                         variant="ghost"
