@@ -61,28 +61,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         <ChatbotBar collapsed={false} />
                     </div>
 
-                    {/* Desktop Layout - All Resizable */}
+                    {/* Desktop Layout */}
                     <div className="hidden lg:flex flex-1 h-screen">
-                        <ResizablePanelGroup direction="horizontal" className="h-full">
-                            {/* Chatbot Sidebar Panel */}
-                            <ResizablePanel
-                                defaultSize={sidebarCollapsed ? 4 : 18}
-                                minSize={sidebarCollapsed ? 4 : 12}
-                                maxSize={sidebarCollapsed ? 4 : 25}
-                                className="min-w-0 transition-all duration-200"
-                            >
-                                <div className="h-full relative">
-                                    <ChatbotBar
-                                        collapsed={sidebarCollapsed}
-                                        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-                                    />
-                                </div>
-                            </ResizablePanel>
+                        {/* Chatbot Sidebar Panel - Fixed Width */}
+                        <div className={`${sidebarCollapsed ? 'w-16' : 'w-80'} transition-all duration-200 flex-shrink-0`}>
+                            <ChatbotBar
+                                collapsed={sidebarCollapsed}
+                                onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+                            />
+                        </div>
 
-                            <ResizableHandle withHandle />
+                        <ResizablePanelGroup direction="horizontal" className="h-full flex-1">
 
                             {/* Menu + Content Area */}
-                            <ResizablePanel defaultSize={sidebarCollapsed ? 100 : 82} minSize={60} className="min-w-0">
+                            <ResizablePanel defaultSize={100} minSize={60} className="min-w-0">
                                 <div className="flex flex-col h-full">
                                     <Header />
                                     <div className="flex-1 p-4 xl:p-6 overflow-hidden">

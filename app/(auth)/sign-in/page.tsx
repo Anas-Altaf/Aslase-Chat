@@ -103,7 +103,7 @@ export default function SignInPage() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-12 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+            className="w-full h-12 bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
             size="lg"
           >
             {loading ? (
@@ -163,6 +163,7 @@ export default function SignInPage() {
       </AuthLayout>
 
       <ForgotPasswordDialog
+
         open={forgotPasswordOpen}
         onOpenChange={setForgotPasswordOpen}
       />
