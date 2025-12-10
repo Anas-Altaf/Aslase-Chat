@@ -332,22 +332,6 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="chatbot-model">Model</Label>
-                <Select
-                  value={newChatbot.model}
-                  onValueChange={(value) => setNewChatbot({ ...newChatbot, model: value as Chatbot['model'] })}
-                >
-                  <SelectTrigger id="chatbot-model">
-                    <SelectValue placeholder="Select a model" />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4}>
-                    <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                    <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                    <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="chatbot-visibility">Visibility</Label>
                 <Select
                   value={newChatbot.visibility}
