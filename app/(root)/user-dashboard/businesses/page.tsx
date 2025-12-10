@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBusiness } from '@/contexts/BusinessContext';
+import { uploadBusinessDocument } from '@/lib/services/business.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,16 +19,21 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Building2, Plus, Globe, Mail, Phone, FileText, Trash2, Edit } from 'lucide-react';
+import { Building2, Plus, Globe, Mail, FileText, Trash2, Edit, Upload, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function BusinessesPage() {
     const router = useRouter();
-    const { businesses, isInitialLoading, addBusiness, removeBusiness, isMutating } = useBusiness();
+    const { businesses, isInitialLoading, addBusiness, removeBusiness, refreshBusinesses } = useBusiness();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [businessToDelete, setBusinessToDelete] = useState<string | null>(null);
+    const [isCreating, setIsCreating] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
     const [newBusiness, setNewBusiness] = useState({
         name: '',
         description: '',
@@ -35,31 +41,52 @@ export default function BusinessesPage() {
         contactPhone: '',
         urls: [''],
     });
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
     const handleCreate = async () => {
         if (!newBusiness.name.trim()) return;
+        setIsCreating(true);
         try {
-            await addBusiness({
+            // Create business first
+            const result = await addBusiness({
                 ...newBusiness,
                 urls: newBusiness.urls.filter(u => u.trim()),
             });
+
+            // Upload documents if any
+            if (pendingFiles.length > 0 && result) {
+                for (const file of pendingFiles) {
+                    await uploadBusinessDocument(result.id, { name: file.name, file });
+                }
+                await refreshBusinesses();
+            }
+
             toast.success('Business created successfully');
             setIsCreateOpen(false);
             setNewBusiness({ name: '', description: '', contactEmail: '', contactPhone: '', urls: [''] });
+            setPendingFiles([]);
         } catch (error) {
             toast.error('Failed to create business');
+        } finally {
+            setIsCreating(false);
         }
     };
 
     const handleDelete = async () => {
         if (!businessToDelete) return;
+        setIsDeleting(true);
+        setDeletingId(businessToDelete);
         try {
             await removeBusiness(businessToDelete);
             toast.success('Business deleted successfully');
             setIsDeleteOpen(false);
             setBusinessToDelete(null);
+            // Stay on businesses page after deletion
         } catch (error) {
             toast.error('Failed to delete business');
+        } finally {
+            setIsDeleting(false);
+            setDeletingId(null);
         }
     };
 
@@ -73,6 +100,26 @@ export default function BusinessesPage() {
         setNewBusiness({ ...newBusiness, urls });
     };
 
+    const removeUrl = (index: number) => {
+        const urls = [...newBusiness.urls];
+        urls.splice(index, 1);
+        setNewBusiness({ ...newBusiness, urls: urls.length > 0 ? urls : [''] });
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            setPendingFiles(prev => [...prev, ...Array.from(files)]);
+        }
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const removeFile = (index: number) => {
+        setPendingFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
     if (isInitialLoading) {
         return (
             <div className="space-y-6 animate-fadeIn">
@@ -82,7 +129,7 @@ export default function BusinessesPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {[1, 2, 3].map(i => (
-                        <Card key={i}>
+                        <Card key={`skeleton-${i}`}>
                             <CardContent className="pt-6">
                                 <Skeleton className="h-6 w-32 mb-2" />
                                 <Skeleton className="h-4 w-full mb-4" />
@@ -125,9 +172,14 @@ export default function BusinessesPage() {
                     {businesses.map((business, index) => (
                         <Card
                             key={`biz-card-${business.id}-${index}`}
-                            className="card-interactive cursor-pointer group"
+                            className={`card-interactive cursor-pointer group relative ${deletingId === business.id ? 'opacity-50 pointer-events-none' : ''}`}
                             onClick={() => router.push(`/user-dashboard/businesses/${business.id}`)}
                         >
+                            {deletingId === business.id && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-white/50 rounded-lg z-10">
+                                    <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+                                </div>
+                            )}
                             <CardHeader className="pb-3">
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3">
@@ -190,16 +242,17 @@ export default function BusinessesPage() {
                 </div>
             )}
 
-            {/* Create Business Dialog */}
+            {/* Create Business Dialog - Enhanced with documents */}
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="sm:max-w-lg">
+                <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
                     <DialogHeader>
                         <DialogTitle>Create New Business</DialogTitle>
                         <DialogDescription>
-                            Add a new business to organize your chatbots
+                            Add a new business with all its details
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+                    <div className="space-y-4 py-4 overflow-y-auto flex-1">
+                        {/* Basic Info */}
                         <div className="space-y-2">
                             <Label htmlFor="biz-name">Business Name *</Label>
                             <Input
@@ -216,8 +269,11 @@ export default function BusinessesPage() {
                                 placeholder="Brief description of your business..."
                                 value={newBusiness.description}
                                 onChange={(e) => setNewBusiness({ ...newBusiness, description: e.target.value })}
+                                className="text-gray-900"
                             />
                         </div>
+
+                        {/* Contact Info */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="biz-email">Contact Email</Label>
@@ -239,26 +295,99 @@ export default function BusinessesPage() {
                                 />
                             </div>
                         </div>
+
+                        {/* URLs */}
                         <div className="space-y-2">
-                            <Label>Website URLs</Label>
+                            <div className="flex items-center justify-between">
+                                <Label>Website URLs</Label>
+                                <Button variant="ghost" size="sm" onClick={addUrlField} type="button">
+                                    <Plus className="w-3 h-3 mr-1" />
+                                    Add
+                                </Button>
+                            </div>
                             {newBusiness.urls.map((url, index) => (
-                                <Input
-                                    key={`url-input-${index}`}
-                                    placeholder="https://example.com"
-                                    value={url}
-                                    onChange={(e) => updateUrl(index, e.target.value)}
-                                />
+                                <div key={`url-field-${index}`} className="flex gap-2">
+                                    <Input
+                                        placeholder="https://example.com"
+                                        value={url}
+                                        onChange={(e) => updateUrl(index, e.target.value)}
+                                    />
+                                    {newBusiness.urls.length > 1 && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => removeUrl(index)}
+                                            type="button"
+                                        >
+                                            <X className="w-4 h-4 text-gray-400" />
+                                        </Button>
+                                    )}
+                                </div>
                             ))}
-                            <Button variant="outline" size="sm" onClick={addUrlField}>
-                                <Plus className="w-4 h-4 mr-1" />
-                                Add URL
-                            </Button>
+                        </div>
+
+                        {/* Documents */}
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label>Documents</Label>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    type="button"
+                                >
+                                    <Upload className="w-3 h-3 mr-1" />
+                                    Upload
+                                </Button>
+                            </div>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileSelect}
+                                className="hidden"
+                                multiple
+                                accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                            />
+                            {pendingFiles.length === 0 ? (
+                                <div
+                                    className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer hover:border-gray-300 transition-colors"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <FileText className="w-6 h-6 text-gray-300 mx-auto mb-2" />
+                                    <p className="text-gray-400 text-xs">Click to upload documents</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {pendingFiles.map((file, index) => (
+                                        <div key={`file-${index}`} className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
+                                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6"
+                                                onClick={() => removeFile(index)}
+                                                type="button"
+                                            >
+                                                <X className="w-3 h-3 text-red-500" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                        <Button onClick={handleCreate} disabled={isMutating || !newBusiness.name.trim()}>
-                            {isMutating ? 'Creating...' : 'Create'}
+                        <Button onClick={handleCreate} disabled={isCreating || !newBusiness.name.trim()}>
+                            {isCreating ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Creating...
+                                </>
+                            ) : 'Create'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -275,8 +404,13 @@ export default function BusinessesPage() {
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
-                        <Button variant="destructive" onClick={handleDelete} disabled={isMutating}>
-                            {isMutating ? 'Deleting...' : 'Delete'}
+                        <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : 'Delete'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

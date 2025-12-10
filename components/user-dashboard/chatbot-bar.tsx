@@ -40,6 +40,12 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Plus,
   Bot,
   Building2,
@@ -47,12 +53,14 @@ import {
   ChevronRight,
   MoreVertical,
   PanelLeftClose,
+  PanelLeft,
   Edit,
   Trash2,
   Eye,
+  User,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Chatbot, Business } from '@/types';
+import type { Chatbot } from '@/types';
 
 interface ChatbotBarProps {
   collapsed?: boolean;
@@ -154,12 +162,16 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
   };
 
   const handleChatbotsTabClick = () => {
-    setChatbotsExpanded(!chatbotsExpanded);
+    if (!collapsed) {
+      setChatbotsExpanded(!chatbotsExpanded);
+    }
     router.push('/user-dashboard/chatbots');
   };
 
   const handleBusinessesTabClick = () => {
-    setBusinessesExpanded(!businessesExpanded);
+    if (!collapsed) {
+      setBusinessesExpanded(!businessesExpanded);
+    }
     router.push('/user-dashboard/businesses');
   };
 
@@ -170,16 +182,268 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
 
   const isLoading = chatbotsLoading || businessesLoading;
 
-  // If collapsed, show minimal view
+  // COLLAPSED VIEW - Icon only
   if (collapsed) {
-    return null;
+    return (
+      <TooltipProvider delayDuration={100}>
+        <Card className="h-full rounded-none border-r border-l-0 border-t-0 border-b-0 flex flex-col bg-white w-16">
+          {/* Logo */}
+          <div className="p-2 flex items-center justify-center">
+            <Link href="/" className="block">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <span className="text-green-700 font-bold text-lg">A</span>
+              </div>
+            </Link>
+          </div>
+
+          <Separator />
+
+          {/* Icons */}
+          <div className="flex-1 flex flex-col items-center py-4 gap-2">
+            {/* Expand button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10"
+                  onClick={onToggleCollapse}
+                >
+                  <PanelLeft className="w-5 h-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Expand sidebar</TooltipContent>
+            </Tooltip>
+
+            <Separator className="w-8 my-2" />
+
+            {/* Chatbots */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={pathname.includes('/chatbot') ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-10 w-10"
+                  onClick={handleChatbotsTabClick}
+                >
+                  <Bot className="w-5 h-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Chatbots ({chatbots.length})</TooltipContent>
+            </Tooltip>
+
+            {/* Businesses */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={pathname.includes('/businesses') ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-10 w-10"
+                  onClick={handleBusinessesTabClick}
+                >
+                  <Building2 className="w-5 h-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Businesses ({businesses.length})</TooltipContent>
+            </Tooltip>
+
+            {/* Add buttons */}
+            <Separator className="w-8 my-2" />
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 text-green-600"
+                  onClick={() => setIsCreateChatbotOpen(true)}
+                >
+                  <Plus className="w-5 h-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Add Chatbot</TooltipContent>
+            </Tooltip>
+          </div>
+
+          <Separator />
+
+          {/* Profile */}
+          <div className="p-2 flex justify-center">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link href="/profile">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src="/chatbot.png" alt={userName} />
+                    <AvatarFallback className="bg-green-100 text-green-700 text-sm">{userInitials}</AvatarFallback>
+                  </Avatar>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">{userName}</TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Dialogs still need to render */}
+          {renderDialogs()}
+        </Card>
+      </TooltipProvider>
+    );
   }
 
+  // Helper function to render dialogs (shared between collapsed and expanded views)
+  function renderDialogs() {
+    return (
+      <>
+        {/* Create Chatbot Dialog */}
+        <Dialog open={isCreateChatbotOpen} onOpenChange={setIsCreateChatbotOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create New Chatbot</DialogTitle>
+              <DialogDescription>
+                Add a new chatbot to your account.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="chatbot-name">Name</Label>
+                <Input
+                  id="chatbot-name"
+                  placeholder="My Chatbot"
+                  value={newChatbot.name}
+                  onChange={(e) => setNewChatbot({ ...newChatbot, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="chatbot-business">Business</Label>
+                <Select
+                  value={newChatbot.businessId}
+                  onValueChange={(value) => setNewChatbot({ ...newChatbot, businessId: value })}
+                >
+                  <SelectTrigger id="chatbot-business">
+                    <SelectValue placeholder="Select a business" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={4}>
+                    {businesses.map((business, index) => (
+                      <SelectItem key={`select-biz-${business.id}-${index}`} value={business.id}>
+                        {business.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="chatbot-model">Model</Label>
+                <Select
+                  value={newChatbot.model}
+                  onValueChange={(value) => setNewChatbot({ ...newChatbot, model: value as Chatbot['model'] })}
+                >
+                  <SelectTrigger id="chatbot-model">
+                    <SelectValue placeholder="Select a model" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={4}>
+                    <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                    <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                    <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="chatbot-visibility">Visibility</Label>
+                <Select
+                  value={newChatbot.visibility}
+                  onValueChange={(value) => setNewChatbot({ ...newChatbot, visibility: value as Chatbot['visibility'] })}
+                >
+                  <SelectTrigger id="chatbot-visibility">
+                    <SelectValue placeholder="Select visibility" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={4}>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCreateChatbotOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateChatbot} disabled={isCreatingChatbot || !newChatbot.name.trim() || !newChatbot.businessId}>
+                {isCreatingChatbot ? 'Creating...' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Create Business Dialog */}
+        <Dialog open={isCreateBusinessOpen} onOpenChange={setIsCreateBusinessOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create New Business</DialogTitle>
+              <DialogDescription>
+                Add a new business to organize your chatbots.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+              <div className="space-y-2">
+                <Label htmlFor="biz-name">Business Name *</Label>
+                <Input
+                  id="biz-name"
+                  placeholder="My Company"
+                  value={newBusiness.name}
+                  onChange={(e) => setNewBusiness({ ...newBusiness, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="biz-desc">Description</Label>
+                <Textarea
+                  id="biz-desc"
+                  placeholder="Brief description of your business..."
+                  value={newBusiness.description}
+                  onChange={(e) => setNewBusiness({ ...newBusiness, description: e.target.value })}
+                  className="text-gray-900"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="biz-email">Contact Email</Label>
+                  <Input
+                    id="biz-email"
+                    type="email"
+                    placeholder="contact@company.com"
+                    value={newBusiness.contactEmail}
+                    onChange={(e) => setNewBusiness({ ...newBusiness, contactEmail: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="biz-phone">Contact Phone</Label>
+                  <Input
+                    id="biz-phone"
+                    placeholder="+1 (555) 123-4567"
+                    value={newBusiness.contactPhone}
+                    onChange={(e) => setNewBusiness({ ...newBusiness, contactPhone: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCreateBusinessOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateBusiness} disabled={isCreatingBusiness || !newBusiness.name.trim()}>
+                {isCreatingBusiness ? 'Creating...' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  // EXPANDED VIEW - Full sidebar
   return (
     <Card className="h-full rounded-none border-r border-l-0 border-t-0 border-b-0 flex flex-col bg-white">
-      {/* Logo - Centered, no hover effects */}
-      <div className="p-3 xl:p-4 flex items-center justify-center">
-        <Link href="/" className="block">
+      {/* Logo - Centered */}
+      <div className="p-3 xl:p-4 flex items-center justify-between">
+        <Link href="/" className="block flex-1 flex justify-center">
           <Image
             src="/AslasChat.jpg"
             alt="AslasChat Logo"
@@ -188,6 +452,17 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
             className="max-w-[100px]"
           />
         </Link>
+        {onToggleCollapse && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 flex-shrink-0"
+            onClick={onToggleCollapse}
+            title="Collapse sidebar"
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
       <Separator />
@@ -407,147 +682,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
         </Link>
       </div>
 
-      {/* Create Chatbot Dialog */}
-      <Dialog open={isCreateChatbotOpen} onOpenChange={setIsCreateChatbotOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Create New Chatbot</DialogTitle>
-            <DialogDescription>
-              Add a new chatbot to your account.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="chatbot-name">Name</Label>
-              <Input
-                id="chatbot-name"
-                placeholder="My Chatbot"
-                value={newChatbot.name}
-                onChange={(e) => setNewChatbot({ ...newChatbot, name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="chatbot-business">Business</Label>
-              <Select
-                value={newChatbot.businessId}
-                onValueChange={(value) => setNewChatbot({ ...newChatbot, businessId: value })}
-              >
-                <SelectTrigger id="chatbot-business">
-                  <SelectValue placeholder="Select a business" />
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4}>
-                  {businesses.map((business, index) => (
-                    <SelectItem key={`select-biz-${business.id}-${index}`} value={business.id}>
-                      {business.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="chatbot-model">Model</Label>
-              <Select
-                value={newChatbot.model}
-                onValueChange={(value) => setNewChatbot({ ...newChatbot, model: value as Chatbot['model'] })}
-              >
-                <SelectTrigger id="chatbot-model">
-                  <SelectValue placeholder="Select a model" />
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4}>
-                  <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                  <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                  <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="chatbot-visibility">Visibility</Label>
-              <Select
-                value={newChatbot.visibility}
-                onValueChange={(value) => setNewChatbot({ ...newChatbot, visibility: value as Chatbot['visibility'] })}
-              >
-                <SelectTrigger id="chatbot-visibility">
-                  <SelectValue placeholder="Select visibility" />
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4}>
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateChatbotOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateChatbot} disabled={isCreatingChatbot || !newChatbot.name.trim() || !newChatbot.businessId}>
-              {isCreatingChatbot ? 'Creating...' : 'Create'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Business Dialog */}
-      <Dialog open={isCreateBusinessOpen} onOpenChange={setIsCreateBusinessOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Create New Business</DialogTitle>
-            <DialogDescription>
-              Add a new business to organize your chatbots.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-            <div className="space-y-2">
-              <Label htmlFor="biz-name">Business Name *</Label>
-              <Input
-                id="biz-name"
-                placeholder="My Company"
-                value={newBusiness.name}
-                onChange={(e) => setNewBusiness({ ...newBusiness, name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="biz-desc">Description</Label>
-              <Textarea
-                id="biz-desc"
-                placeholder="Brief description of your business..."
-                value={newBusiness.description}
-                onChange={(e) => setNewBusiness({ ...newBusiness, description: e.target.value })}
-                className="text-gray-900"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="biz-email">Contact Email</Label>
-                <Input
-                  id="biz-email"
-                  type="email"
-                  placeholder="contact@company.com"
-                  value={newBusiness.contactEmail}
-                  onChange={(e) => setNewBusiness({ ...newBusiness, contactEmail: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="biz-phone">Contact Phone</Label>
-                <Input
-                  id="biz-phone"
-                  placeholder="+1 (555) 123-4567"
-                  value={newBusiness.contactPhone}
-                  onChange={(e) => setNewBusiness({ ...newBusiness, contactPhone: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateBusinessOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateBusiness} disabled={isCreatingBusiness || !newBusiness.name.trim()}>
-              {isCreatingBusiness ? 'Creating...' : 'Create'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {renderDialogs()}
     </Card>
   );
 }

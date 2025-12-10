@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useBusiness } from '@/contexts/BusinessContext';
+import { uploadBusinessDocument, deleteBusinessDocument } from '@/lib/services/business.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +22,9 @@ import {
     FileText,
     Plus,
     Trash2,
-    Upload
+    Upload,
+    X,
+    Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Business } from '@/types';
@@ -29,13 +32,16 @@ import type { Business } from '@/types';
 export default function BusinessDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const { businesses, editBusiness, isMutating, isInitialLoading } = useBusiness();
+    const { businesses, editBusiness, isMutating, isInitialLoading, refreshBusinesses } = useBusiness();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const businessId = params.id as string;
     const business = businesses.find(b => b.id === businessId);
 
     const [formData, setFormData] = useState<Partial<Business>>({});
     const [hasChanges, setHasChanges] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [isDeletingDoc, setIsDeletingDoc] = useState<string | null>(null);
 
     useEffect(() => {
         if (business) {
@@ -49,7 +55,7 @@ export default function BusinessDetailPage() {
         }
     }, [business]);
 
-    const handleChange = (field: keyof Business, value: any) => {
+    const handleChange = (field: keyof Business, value: string | string[]) => {
         setFormData(prev => ({ ...prev, [field]: value }));
         setHasChanges(true);
     };
@@ -62,6 +68,41 @@ export default function BusinessDetailPage() {
             setHasChanges(false);
         } catch (error) {
             toast.error('Failed to update business');
+        }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0 || !businessId) return;
+
+        setIsUploading(true);
+        try {
+            for (const file of Array.from(files)) {
+                await uploadBusinessDocument(businessId, { name: file.name, file });
+            }
+            toast.success('Document(s) uploaded successfully');
+            await refreshBusinesses();
+        } catch (error) {
+            toast.error('Failed to upload document');
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
+    const handleDeleteDocument = async (docId: string) => {
+        if (!businessId) return;
+        setIsDeletingDoc(docId);
+        try {
+            await deleteBusinessDocument(businessId, docId);
+            toast.success('Document deleted');
+            await refreshBusinesses();
+        } catch (error) {
+            toast.error('Failed to delete document');
+        } finally {
+            setIsDeletingDoc(null);
         }
     };
 
@@ -102,7 +143,7 @@ export default function BusinessDetailPage() {
             <div className="flex flex-col items-center justify-center h-full text-center">
                 <Building2 className="w-12 h-12 text-gray-300 mb-4" />
                 <h2 className="text-xl font-semibold text-gray-900 mb-2">Business not found</h2>
-                <p className="text-gray-500 mb-4">The business you're looking for doesn't exist.</p>
+                <p className="text-gray-500 mb-4">The business you&apos;re looking for doesn&apos;t exist.</p>
                 <Button onClick={() => router.push('/user-dashboard/businesses')}>
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Back to Businesses
@@ -205,7 +246,7 @@ export default function BusinessDetailPage() {
                                 <p className="text-gray-400 text-sm">No URLs added yet</p>
                             ) : (
                                 (formData.urls || []).map((url, index) => (
-                                    <div key={index} className="flex gap-2">
+                                    <div key={`url-${index}`} className="flex gap-2">
                                         <div className="flex-1 flex items-center gap-2">
                                             <Globe className="w-4 h-4 text-gray-400 flex-shrink-0" />
                                             <Input
@@ -231,29 +272,73 @@ export default function BusinessDetailPage() {
                             <CardTitle className="text-lg">Documents</CardTitle>
                         </CardHeader>
                         <CardContent>
+                            {/* Hidden file input */}
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileUpload}
+                                className="hidden"
+                                multiple
+                                accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                            />
+
                             {business.documents.length === 0 ? (
                                 <div className="text-center py-6">
                                     <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                                     <p className="text-gray-500 text-sm mb-3">No documents yet</p>
-                                    <Button variant="outline" size="sm">
-                                        <Upload className="w-4 h-4 mr-2" />
-                                        Upload
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={isUploading}
+                                    >
+                                        {isUploading ? (
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <Upload className="w-4 h-4 mr-2" />
+                                        )}
+                                        {isUploading ? 'Uploading...' : 'Upload'}
                                     </Button>
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    {business.documents.map((doc) => (
-                                        <div key={doc.id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
-                                            <div className="flex items-center gap-2">
-                                                <FileText className="w-4 h-4 text-gray-400" />
-                                                <span className="text-sm text-gray-700">{doc.name}</span>
+                                    {business.documents.map((doc, docIndex) => (
+                                        <div key={`doc-${doc.id}-${docIndex}`} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 group">
+                                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                <span className="text-sm text-gray-700 truncate">{doc.name}</span>
                                             </div>
-                                            <Badge variant="outline" className="text-xs">{doc.type}</Badge>
+                                            <div className="flex items-center gap-2">
+                                                <Badge variant="outline" className="text-xs">{doc.type}</Badge>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => handleDeleteDocument(doc.id)}
+                                                    disabled={isDeletingDoc === doc.id}
+                                                >
+                                                    {isDeletingDoc === doc.id ? (
+                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                    ) : (
+                                                        <X className="w-3 h-3 text-red-500" />
+                                                    )}
+                                                </Button>
+                                            </div>
                                         </div>
                                     ))}
-                                    <Button variant="outline" size="sm" className="w-full mt-3">
-                                        <Upload className="w-4 h-4 mr-2" />
-                                        Upload More
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full mt-3"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={isUploading}
+                                    >
+                                        {isUploading ? (
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <Upload className="w-4 h-4 mr-2" />
+                                        )}
+                                        {isUploading ? 'Uploading...' : 'Upload More'}
                                     </Button>
                                 </div>
                             )}
