@@ -31,24 +31,13 @@ export default function ChatLogs() {
     { role: 'assistant', content: 'Hi! How can I help?' },
   ]);
 
-  // Cache sessions per chatbot ID
-  const sessionCache = useRef<Record<string, ChatSession[]>>({});
-  const lastChatbotId = useRef<string | null>(null);
-
-  // Load sessions only when chatbot changes AND not cached
+  // Load sessions when chatbot changes
   useEffect(() => {
-    if (!selectedChatbot) return;
-    if (selectedChatbot.id === lastChatbotId.current) return;
-
-    lastChatbotId.current = selectedChatbot.id;
-
-    // Use cached data if available
-    if (sessionCache.current[selectedChatbot.id]) {
-      setSessions(sessionCache.current[selectedChatbot.id]);
+    if (!selectedChatbot) {
+      setSessions([]);
       return;
     }
-
-    // Only load if not cached
+    
     loadSessions();
   }, [selectedChatbot?.id]);
 
@@ -61,7 +50,6 @@ export default function ChatLogs() {
       });
       if (response.success) {
         setSessions(response.data.items);
-        sessionCache.current[selectedChatbot.id] = response.data.items;
       }
     } catch (error) {
       toast.error('Failed to load chat sessions');
@@ -71,10 +59,6 @@ export default function ChatLogs() {
   }, [selectedChatbot, sourceFilter]);
 
   const handleFilter = () => {
-    // Clear cache for this chatbot and reload
-    if (selectedChatbot) {
-      delete sessionCache.current[selectedChatbot.id];
-    }
     loadSessions();
   };
 
