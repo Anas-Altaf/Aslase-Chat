@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Check } from 'lucide-react';
 
-export default function Hero() {
+export default function Hero1() {
   return (
     <section className="pt-40 pb-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
       <div className="max-w-6xl mx-auto">
@@ -10,26 +12,25 @@ export default function Hero() {
             <br />
             <span className="text-green-500">Support, Conversion, Retention, Growth</span>
           </h1>
-          
+
           <p className="mt-8 text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto font-medium">
             Give your website, app, or business the power to chat, guide, and convert automatically.
           </p>
 
           <div className="mt-12 flex flex-col items-center justify-center gap-8">
-            <Link
-              href="/sign-up"
-              className="px-8 py-4 text-lg font-semibold text-gray-900 border-2 border-gray-900 rounded-xl hover:bg-gray-100 transition-colors"
-            >
-              Start Free Trial
-            </Link>
-            
+            <Button asChild variant="outline" size="xl" className="rounded-xl">
+              <Link href="/sign-up">
+                Start Free Trial
+              </Link>
+            </Button>
+
             <div className="flex flex-col sm:flex-row items-center justify-center gap-8 text-gray-800 text-base font-medium">
               <div className="flex items-center gap-2">
-                <span className="text-green-500 text-xl">✓</span>
+                <Check className="w-5 h-5 text-green-500" />
                 <span>Build your ChatBot</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-green-500 text-xl">✓</span>
+                <Check className="w-5 h-5 text-green-500" />
                 <span>No Credit card required</span>
               </div>
             </div>
