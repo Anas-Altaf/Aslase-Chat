@@ -1,9 +1,35 @@
 // ==========================================
+// BUSINESS TYPES
+// ==========================================
+
+export interface BusinessDocument {
+    id: string;
+    name: string;
+    url: string;
+    type: 'pdf' | 'doc' | 'image' | 'other';
+    uploadedAt: string;
+}
+
+export interface Business {
+    id: string;
+    name: string;
+    description: string;
+    logo?: string;
+    urls: string[];
+    contactEmail: string;
+    contactPhone: string;
+    documents: BusinessDocument[];
+    createdAt: string;
+    updatedAt: string;
+}
+
+// ==========================================
 // CHATBOT TYPES
 // ==========================================
 
 export interface Chatbot {
     id: string;
+    businessId: string;
     name: string;
     model: 'gpt-4o-mini' | 'gpt-4o' | 'gpt-3.5-turbo';
     status: 'trained' | 'training' | 'error';

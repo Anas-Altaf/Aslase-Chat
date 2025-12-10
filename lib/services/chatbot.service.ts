@@ -11,6 +11,7 @@ import type {
 const sampleChatbots: Chatbot[] = [
     {
         id: 'VUyBtr3F23QcD2fF',
+        businessId: 'biz_1',
         name: 'Chatbot 7/2/2025, 2:50:46 PM',
         model: 'gpt-4o-mini',
         status: 'trained',
@@ -21,6 +22,7 @@ const sampleChatbots: Chatbot[] = [
     },
     {
         id: 'Xk9mPqR5TvWzA1bC',
+        businessId: 'biz_1',
         name: 'NEW Chatbot_',
         model: 'gpt-4o',
         status: 'training',
@@ -79,12 +81,14 @@ export async function getChatbotById(id: string): Promise<ApiResponse<Chatbot | 
 
 export async function createChatbot(data: {
     name: string;
+    businessId: string;
     model: Chatbot['model'];
     visibility: Chatbot['visibility'];
 }): Promise<ApiResponse<Chatbot>> {
     await delay(800);
     const newChatbot: Chatbot = {
         id: `cb_${Date.now()}`,
+        businessId: data.businessId,
         name: data.name,
         model: data.model,
         status: 'training',

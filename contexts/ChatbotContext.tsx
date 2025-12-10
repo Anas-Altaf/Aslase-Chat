@@ -15,7 +15,7 @@ interface ChatbotContextType {
     // Actions
     refreshChatbots: () => Promise<void>;
     selectChatbot: (id: string) => void; // Synchronous - no loading
-    addChatbot: (data: { name: string; model: Chatbot['model']; visibility: Chatbot['visibility'] }) => Promise<Chatbot>;
+    addChatbot: (data: { name: string; businessId: string; model: Chatbot['model']; visibility: Chatbot['visibility'] }) => Promise<Chatbot>;
     editChatbot: (id: string, data: Partial<Chatbot>) => Promise<void>;
     removeChatbot: (id: string) => Promise<void>;
     clearError: () => void;
@@ -65,7 +65,7 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
         }
     }, [chatbots]);
 
-    const addChatbot = useCallback(async (data: { name: string; model: Chatbot['model']; visibility: Chatbot['visibility'] }) => {
+    const addChatbot = useCallback(async (data: { name: string; businessId: string; model: Chatbot['model']; visibility: Chatbot['visibility'] }) => {
         setIsMutating(true);
         setError(null);
         try {

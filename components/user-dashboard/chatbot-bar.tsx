@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChatbot } from '@/contexts/ChatbotContext';
+import { useBusiness } from '@/contexts/BusinessContext';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -21,7 +23,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -30,8 +31,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Bot, Calendar, PanelLeftClose } from 'lucide-react';
-import type { Chatbot } from '@/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Plus,
+  Bot,
+  Building2,
+  ChevronDown,
+  ChevronRight,
+  MoreVertical,
+  PanelLeftClose
+} from 'lucide-react';
+import type { Chatbot, Business } from '@/types';
 
 interface ChatbotBarProps {
   collapsed?: boolean;
@@ -39,12 +54,22 @@ interface ChatbotBarProps {
 }
 
 export default function ChatbotBar({ collapsed = false, onToggleCollapse }: ChatbotBarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const { user } = useAuth();
-  const { chatbots, selectedChatbot, isInitialLoading, addChatbot, selectChatbot } = useChatbot();
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
+  const { chatbots, selectedChatbot, isInitialLoading: chatbotsLoading, addChatbot, selectChatbot } = useChatbot();
+  const { businesses, selectedBusiness, isInitialLoading: businessesLoading, selectBusiness } = useBusiness();
+
+  // Expand states
+  const [chatbotsExpanded, setChatbotsExpanded] = useState(true);
+  const [businessesExpanded, setBusinessesExpanded] = useState(true);
+
+  // Create chatbot dialog
+  const [isCreateChatbotOpen, setIsCreateChatbotOpen] = useState(false);
+  const [isCreatingChatbot, setIsCreatingChatbot] = useState(false);
   const [newChatbot, setNewChatbot] = useState({
     name: '',
+    businessId: '',
     model: 'gpt-4o-mini' as Chatbot['model'],
     visibility: 'public' as Chatbot['visibility'],
   });
@@ -52,28 +77,49 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
   const userName = user?.displayName || 'User';
   const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase();
 
-  const handleCreate = async () => {
-    if (!newChatbot.name.trim()) return;
-    setIsCreating(true);
+  const handleCreateChatbot = async () => {
+    if (!newChatbot.name.trim() || !newChatbot.businessId) return;
+    setIsCreatingChatbot(true);
     try {
       await addChatbot(newChatbot);
-      setIsCreateOpen(false);
-      setNewChatbot({ name: '', model: 'gpt-4o-mini', visibility: 'public' });
+      setIsCreateChatbotOpen(false);
+      setNewChatbot({ name: '', businessId: '', model: 'gpt-4o-mini', visibility: 'public' });
+      router.push('/user-dashboard/chatbot');
     } catch (error) {
       console.error('Failed to create chatbot:', error);
     } finally {
-      setIsCreating(false);
+      setIsCreatingChatbot(false);
     }
   };
 
-  const handleSelect = (id: string) => {
+  const handleSelectChatbot = (id: string) => {
     selectChatbot(id);
+    router.push('/user-dashboard/chatbot');
+  };
+
+  const handleChatbotsTabClick = () => {
+    setChatbotsExpanded(!chatbotsExpanded);
+    // Navigate to chatbots management when clicking the tab header
+    router.push('/user-dashboard/chatbots');
+  };
+
+  const handleBusinessesTabClick = () => {
+    setBusinessesExpanded(!businessesExpanded);
+    // Navigate to businesses management when clicking the tab header
+    router.push('/user-dashboard/businesses');
+  };
+
+  const handleSelectBusiness = (id: string) => {
+    selectBusiness(id);
+    router.push(`/user-dashboard/businesses/${id}`);
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
+
+  const isLoading = chatbotsLoading || businessesLoading;
 
   return (
     <Card className="h-full rounded-none border-r border-l-0 border-t-0 border-b-0 flex flex-col bg-white">
@@ -103,110 +149,144 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
 
       <Separator />
 
-      {/* Chatbots Section */}
-      <div className="flex-1 overflow-hidden p-2 xl:p-3">
-        <div className="flex items-center justify-between mb-2 xl:mb-3 px-1">
-          <h2 className="text-gray-700 font-semibold text-xs xl:text-sm">Chatbots</h2>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Create New Chatbot</DialogTitle>
-                <DialogDescription>
-                  Add a new chatbot to your account.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    placeholder="My Chatbot"
-                    value={newChatbot.name}
-                    onChange={(e) => setNewChatbot({ ...newChatbot, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="model">Model</Label>
-                  <Select
-                    value={newChatbot.model}
-                    onValueChange={(value) => setNewChatbot({ ...newChatbot, model: value as Chatbot['model'] })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                      <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                      <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="visibility">Visibility</Label>
-                  <Select
-                    value={newChatbot.visibility}
-                    onValueChange={(value) => setNewChatbot({ ...newChatbot, visibility: value as Chatbot['visibility'] })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select visibility" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="public">Public</SelectItem>
-                      <SelectItem value="private">Private</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreate} disabled={isCreating || !newChatbot.name.trim()}>
-                  {isCreating ? 'Creating...' : 'Create'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+      {/* Expandable Sections */}
+      <ScrollArea className="flex-1 overflow-hidden">
+        <div className="p-2 xl:p-3 space-y-1">
 
-        <ScrollArea className="flex-1 h-[calc(100%-2rem)]">
-          <div className="space-y-1.5">
-            {isInitialLoading ? (
-              <>
-                <ChatbotCardSkeleton />
-                <ChatbotCardSkeleton />
-              </>
-            ) : chatbots.length === 0 ? (
-              <div className="text-center py-6">
-                <Bot className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-gray-500 text-xs">No chatbots</p>
-                <Button
-                  variant="link"
-                  className="text-green-600 text-xs p-0 h-auto mt-1"
-                  onClick={() => setIsCreateOpen(true)}
-                >
-                  Create one
-                </Button>
+          {/* Chatbots Section */}
+          <div>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={handleChatbotsTabClick}
+                className={`flex-1 flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all duration-150 ${pathname.includes('/chatbot') ? 'bg-green-50 text-green-700' : 'hover:bg-gray-50 text-gray-700'
+                  }`}
+              >
+                {chatbotsExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                <Bot className="w-4 h-4" />
+                <span className="font-medium text-sm">Chatbots</span>
+                <Badge variant="secondary" className="ml-auto text-xs">{chatbots.length}</Badge>
+              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsCreateChatbotOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Chatbot
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Chatbots List */}
+            {chatbotsExpanded && (
+              <div className="ml-4 mt-1 space-y-1 animate-slideDown">
+                {isLoading ? (
+                  <>
+                    <Skeleton className="h-10 rounded-lg" />
+                    <Skeleton className="h-10 rounded-lg" />
+                  </>
+                ) : chatbots.length === 0 ? (
+                  <p className="text-gray-400 text-xs px-2 py-2">No chatbots yet</p>
+                ) : (
+                  chatbots.map((chatbot) => (
+                    <button
+                      key={chatbot.id}
+                      onClick={() => handleSelectChatbot(chatbot.id)}
+                      className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left selection-transition ${selectedChatbot?.id === chatbot.id
+                          ? 'bg-green-50 border border-green-300'
+                          : 'hover:bg-gray-50 border border-transparent'
+                        }`}
+                    >
+                      <Avatar className="w-6 h-6 rounded">
+                        <AvatarImage src="/chatbot.png" alt={chatbot.name} />
+                        <AvatarFallback className="rounded bg-green-100 text-green-700 text-[10px]">
+                          {chatbot.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs font-medium text-gray-800 truncate flex-1">{chatbot.name}</span>
+                      <Badge
+                        variant={chatbot.status === 'trained' ? 'success' : 'warning'}
+                        className="text-[9px] px-1.5 py-0"
+                      >
+                        {chatbot.status}
+                      </Badge>
+                    </button>
+                  ))
+                )}
               </div>
-            ) : (
-              chatbots.map((chatbot) => (
-                <ChatbotCard
-                  key={chatbot.id}
-                  chatbot={chatbot}
-                  isSelected={selectedChatbot?.id === chatbot.id}
-                  onSelect={() => handleSelect(chatbot.id)}
-                  formatDate={formatDate}
-                />
-              ))
             )}
           </div>
-        </ScrollArea>
-      </div>
+
+          {/* Businesses Section */}
+          <div>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={handleBusinessesTabClick}
+                className={`flex-1 flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all duration-150 ${pathname.includes('/businesses') ? 'bg-green-50 text-green-700' : 'hover:bg-gray-50 text-gray-700'
+                  }`}
+              >
+                {businessesExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                <Building2 className="w-4 h-4" />
+                <span className="font-medium text-sm">Businesses</span>
+                <Badge variant="secondary" className="ml-auto text-xs">{businesses.length}</Badge>
+              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => router.push('/user-dashboard/businesses/new')}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Business
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Businesses List */}
+            {businessesExpanded && (
+              <div className="ml-4 mt-1 space-y-1 animate-slideDown">
+                {isLoading ? (
+                  <>
+                    <Skeleton className="h-10 rounded-lg" />
+                    <Skeleton className="h-10 rounded-lg" />
+                  </>
+                ) : businesses.length === 0 ? (
+                  <p className="text-gray-400 text-xs px-2 py-2">No businesses yet</p>
+                ) : (
+                  businesses.map((business) => (
+                    <button
+                      key={business.id}
+                      onClick={() => handleSelectBusiness(business.id)}
+                      className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left selection-transition ${selectedBusiness?.id === business.id
+                          ? 'bg-green-50 border border-green-300'
+                          : 'hover:bg-gray-50 border border-transparent'
+                        }`}
+                    >
+                      <Avatar className="w-6 h-6 rounded">
+                        {business.logo ? (
+                          <AvatarImage src={business.logo} alt={business.name} />
+                        ) : null}
+                        <AvatarFallback className="rounded bg-purple-100 text-purple-700 text-[10px]">
+                          {business.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs font-medium text-gray-800 truncate flex-1">{business.name}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+        </div>
+      </ScrollArea>
 
       <Separator />
 
@@ -223,76 +303,86 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
           </div>
         </Link>
       </div>
+
+      {/* Create Chatbot Dialog */}
+      <Dialog open={isCreateChatbotOpen} onOpenChange={setIsCreateChatbotOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Chatbot</DialogTitle>
+            <DialogDescription>
+              Add a new chatbot to your account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="chatbot-name">Name</Label>
+              <Input
+                id="chatbot-name"
+                placeholder="My Chatbot"
+                value={newChatbot.name}
+                onChange={(e) => setNewChatbot({ ...newChatbot, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="chatbot-business">Business</Label>
+              <Select
+                value={newChatbot.businessId}
+                onValueChange={(value) => setNewChatbot({ ...newChatbot, businessId: value })}
+              >
+                <SelectTrigger id="chatbot-business">
+                  <SelectValue placeholder="Select a business" />
+                </SelectTrigger>
+                <SelectContent position="popper" sideOffset={4}>
+                  {businesses.map((business) => (
+                    <SelectItem key={business.id} value={business.id}>
+                      {business.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="chatbot-model">Model</Label>
+              <Select
+                value={newChatbot.model}
+                onValueChange={(value) => setNewChatbot({ ...newChatbot, model: value as Chatbot['model'] })}
+              >
+                <SelectTrigger id="chatbot-model">
+                  <SelectValue placeholder="Select a model" />
+                </SelectTrigger>
+                <SelectContent position="popper" sideOffset={4}>
+                  <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                  <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                  <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="chatbot-visibility">Visibility</Label>
+              <Select
+                value={newChatbot.visibility}
+                onValueChange={(value) => setNewChatbot({ ...newChatbot, visibility: value as Chatbot['visibility'] })}
+              >
+                <SelectTrigger id="chatbot-visibility">
+                  <SelectValue placeholder="Select visibility" />
+                </SelectTrigger>
+                <SelectContent position="popper" sideOffset={4}>
+                  <SelectItem value="public">Public</SelectItem>
+                  <SelectItem value="private">Private</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateChatbotOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateChatbot} disabled={isCreatingChatbot || !newChatbot.name.trim() || !newChatbot.businessId}>
+              {isCreatingChatbot ? 'Creating...' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
-  );
-}
-
-function ChatbotCard({
-  chatbot,
-  isSelected,
-  onSelect,
-  formatDate
-}: {
-  chatbot: Chatbot;
-  isSelected: boolean;
-  onSelect: () => void;
-  formatDate: (date: string) => string;
-}) {
-  return (
-    <button
-      onClick={onSelect}
-      className={`w-full text-left p-2.5 rounded-lg selection-transition ${isSelected
-        ? 'bg-green-50 border border-green-400 ring-2 ring-green-200/60 shadow-sm'
-        : 'bg-white border border-gray-100 hover:border-gray-200 hover:bg-gray-50/80 hover:shadow-sm'
-        }`}
-    >
-      <div className="flex items-center gap-2 mb-1.5">
-        <Avatar className="w-8 h-8 rounded-md flex-shrink-0">
-          <AvatarImage src="/chatbot.png" alt={chatbot.name} />
-          <AvatarFallback className="rounded-md bg-gradient-to-br from-green-100 to-emerald-100 text-green-700 text-xs font-semibold">
-            {chatbot.name.substring(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className="text-gray-900 text-xs font-semibold truncate">
-            {chatbot.name}
-          </p>
-          <p className="text-gray-400 text-[10px]">
-            {chatbot.model.toUpperCase()}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between gap-1">
-        <Badge
-          variant={chatbot.status === 'trained' ? 'success' : chatbot.status === 'training' ? 'warning' : 'destructive'}
-          className="text-[10px] px-1.5 py-0"
-        >
-          {chatbot.status}
-        </Badge>
-        <div className="flex items-center gap-0.5 text-gray-400">
-          <Calendar className="w-2.5 h-2.5" />
-          <span className="text-[10px]">{formatDate(chatbot.createdAt)}</span>
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function ChatbotCardSkeleton() {
-  return (
-    <div className="p-2.5 rounded-lg border border-gray-100 bg-white">
-      <div className="flex items-center gap-2 mb-1.5">
-        <Skeleton className="w-8 h-8 rounded-md" />
-        <div className="flex-1">
-          <Skeleton className="h-3 w-20 mb-1" />
-          <Skeleton className="h-2 w-12" />
-        </div>
-      </div>
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-4 w-12 rounded-full" />
-        <Skeleton className="h-2 w-14" />
-      </div>
-    </div>
   );
 }
