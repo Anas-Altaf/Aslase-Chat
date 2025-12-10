@@ -231,7 +231,7 @@ export default function ChatLogs() {
               </div>
             </div>
           </div>
-          <div className="flex gap-2 p-3 flex-shrink-0 border-t">
+          <div className="flex gap-2 p-3 flex-shrink-0 border-t border-gray-100">
             <Input
               type="text"
               placeholder="Type your message..."

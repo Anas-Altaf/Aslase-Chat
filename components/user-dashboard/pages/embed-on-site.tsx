@@ -46,7 +46,7 @@ export default function EmbedOnSite() {
           <p className="text-gray-600 text-sm mb-3">
             Add this iframe to your HTML to embed the chatbot anywhere on your website.
           </p>
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-start gap-3">
+          <div className="bg-gray-50 border border-gray-200/50 rounded-lg p-3 flex items-start gap-3">
             <code className="text-gray-900 text-xs flex-1 font-mono break-all whitespace-pre-wrap">
               {embedCode.iframe}
             </code>
@@ -76,7 +76,7 @@ export default function EmbedOnSite() {
           <p className="text-gray-600 text-sm mb-3">
             Add this script to show a chat bubble in the bottom right corner of your website.
           </p>
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-start gap-3">
+          <div className="bg-gray-50 border border-gray-200/50 rounded-lg p-3 flex items-start gap-3">
             <code className="text-gray-900 text-xs flex-1 font-mono break-all whitespace-pre-wrap">
               {embedCode.script}
             </code>

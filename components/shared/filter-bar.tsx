@@ -54,7 +54,7 @@ interface FilterSelectProps {
 
 export function FilterSelect({ options, placeholder, className }: FilterSelectProps) {
     return (
-        <select className={`px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${className}`}>
+        <select className={`px-3 py-2 border border-gray-200/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-150 ${className}`}>
             {placeholder && <option value="">{placeholder}</option>}
             {options.map((opt) => (
                 <option key={opt.value} value={opt.value}>

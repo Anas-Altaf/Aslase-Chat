@@ -109,7 +109,7 @@ export default function ChatInterface() {
                 id="primaryColor"
                 value={primaryColor}
                 onChange={(e) => setPrimaryColor(e.target.value)}
-                className="w-12 h-12 rounded-lg border border-gray-200 cursor-pointer"
+                className="w-12 h-12 rounded-lg border border-gray-200/50 cursor-pointer"
               />
               <Input
                 value={primaryColor}
