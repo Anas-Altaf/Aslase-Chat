@@ -9,12 +9,13 @@ import { Button } from '@/components/ui/button';
 interface PasswordInputProps {
     id: string;
     name: string;
-    label: string;
+    label?: string;
     value: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     placeholder?: string;
     autoComplete?: string;
     required?: boolean;
+    className?: string;
 }
 
 export function PasswordInput({
@@ -26,13 +27,14 @@ export function PasswordInput({
     placeholder = 'Your Password',
     autoComplete = 'current-password',
     required = true,
+    className = '',
 }: PasswordInputProps) {
     const [showPassword, setShowPassword] = React.useState(false);
 
     return (
         <div>
-            <Label htmlFor={id}>{label}</Label>
-            <div className="mt-2 relative">
+            {label && <Label htmlFor={id}>{label}</Label>}
+            <div className={label ? "mt-2 relative" : "relative"}>
                 <Input
                     id={id}
                     name={name}
@@ -42,7 +44,7 @@ export function PasswordInput({
                     value={value}
                     onChange={onChange}
                     placeholder={placeholder}
-                    className="pr-10"
+                    className={`pr-10 ${className}`}
                 />
                 <Button
                     type="button"

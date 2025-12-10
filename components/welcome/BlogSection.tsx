@@ -2,76 +2,23 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, ArrowRight, User } from 'lucide-react';
-import { useState } from 'react';
+import { Calendar, Clock, ArrowRight, User, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { blogPosts as defaultBlogPosts } from '@/lib/blogData';
 
 export default function BlogSection() {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [blogPosts, setBlogPosts] = useState(defaultBlogPosts);
 
-  const blogPosts = [
-    {
-      id: 1,
-      title: 'How AI Chatbots Are Transforming Customer Service',
-      excerpt: 'Discover how artificial intelligence is revolutionizing the way businesses interact with their customers and improve satisfaction rates.',
-      author: 'Sarah Johnson',
-      date: 'Dec 15, 2024',
-      readTime: '5 min read',
-      category: 'AI Technology',
-      image: '/hero2-img1.png',
-    },
-    {
-      id: 2,
-      title: '10 Best Practices for Building Effective Chatbots',
-      excerpt: 'Learn the essential strategies and techniques to create chatbots that truly engage users and drive business results.',
-      author: 'Michael Chen',
-      date: 'Dec 12, 2024',
-      readTime: '7 min read',
-      category: 'Best Practices',
-      image: '/hero2-img2.png',
-    },
-    {
-      id: 3,
-      title: 'The Future of Conversational AI in 2025',
-      excerpt: 'Explore the upcoming trends and innovations that will shape the conversational AI landscape in the coming year.',
-      author: 'Emily Rodriguez',
-      date: 'Dec 10, 2024',
-      readTime: '6 min read',
-      category: 'Industry Trends',
-      image: '/hero2-img3.png',
-    },
-    {
-      id: 4,
-      title: 'Integrating Chatbots with Your Existing Tech Stack',
-      excerpt: 'A comprehensive guide to seamlessly connecting your chatbot with CRM, analytics, and other business tools.',
-      author: 'David Kim',
-      date: 'Dec 8, 2024',
-      readTime: '8 min read',
-      category: 'Integration',
-      image: '/hero3-img.png',
-    },
-    {
-      id: 5,
-      title: 'Measuring Chatbot Success: Key Metrics That Matter',
-      excerpt: 'Understand which KPIs to track and how to optimize your chatbot performance based on data-driven insights.',
-      author: 'Lisa Anderson',
-      date: 'Dec 5, 2024',
-      readTime: '5 min read',
-      category: 'Analytics',
-      image: '/hero2-img1.png',
-    },
-    {
-      id: 6,
-      title: 'Creating Personalized User Experiences with AI',
-      excerpt: 'Learn how to leverage AI to deliver tailored conversations that resonate with each individual user.',
-      author: 'James Wilson',
-      date: 'Dec 3, 2024',
-      readTime: '6 min read',
-      category: 'Personalization',
-      image: '/hero2-img2.png',
-    },
-  ];
+  useEffect(() => {
+    const stored = localStorage.getItem('blogPosts');
+    if (stored) {
+      setBlogPosts(JSON.parse(stored));
+    }
+  }, []);
 
-  const categories = ['All', 'AI Technology', 'Best Practices', 'Industry Trends', 'Integration', 'Analytics', 'Personalization'];
+  const allCategories = Array.from(new Set(blogPosts.map(post => post.category)));
+  const categories = ['All', ...allCategories];
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   const filteredPosts = selectedCategory === 'All' 
@@ -83,9 +30,16 @@ export default function BlogSection() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
-          <h1 className="text-5xl sm:text-6xl font-black text-gray-900 tracking-tight mb-6">
-            Latest from Our <span className="text-green-500">Blog</span>
-          </h1>
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <h1 className="text-5xl sm:text-6xl font-black text-gray-900 tracking-tight">
+              Latest from Our <span className="text-green-500">Blog</span>
+            </h1>
+            <Link href="/admin/blogs">
+              <Button variant="outline" size="sm" className="rounded-full">
+                <Settings className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Insights, tips, and stories about AI chatbots and conversational technology.
           </p>

@@ -102,7 +102,7 @@ export default function ChatbotDetails() {
             <div>
               <p className="text-gray-600 text-sm mb-1">Chatbot ID</p>
               <div className="flex items-center gap-2">
-                <code className="text-gray-900 font-mono text-sm font-semibold">{selectedChatbot.id}</code>
+                <code className="text-gray-900 font-mono text-sm font-semibold">{selectedChatbot.id.substring(0, 14)}</code>
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopyId}>
                   {copied ? (
                     <Check className="w-4 h-4 text-green-500" />

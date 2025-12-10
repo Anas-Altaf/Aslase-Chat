@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, ArrowRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { DialogTitle } from '@radix-ui/react-dialog';
 
 interface ForgotPasswordDialogProps {
   open: boolean;
@@ -85,7 +86,8 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md " >
+        <DialogTitle >Forgotten Password?</DialogTitle>
         <div className="space-y-6">
           {step === 'email' ? (
             <>

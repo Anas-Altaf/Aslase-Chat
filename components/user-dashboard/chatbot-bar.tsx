@@ -49,8 +49,6 @@ import {
   Plus,
   Bot,
   Building2,
-  ChevronDown,
-  ChevronRight,
   MoreVertical,
   PanelLeftClose,
   PanelLeft,
@@ -74,9 +72,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
   const { chatbots, selectedChatbot, isInitialLoading: chatbotsLoading, addChatbot, selectChatbot, removeChatbot } = useChatbot();
   const { businesses, selectedBusiness, isInitialLoading: businessesLoading, selectBusiness, addBusiness, removeBusiness } = useBusiness();
 
-  // Expand states
-  const [chatbotsExpanded, setChatbotsExpanded] = useState(true);
-  const [businessesExpanded, setBusinessesExpanded] = useState(true);
+
 
   // Create chatbot dialog
   const [isCreateChatbotOpen, setIsCreateChatbotOpen] = useState(false);
@@ -162,16 +158,10 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
   };
 
   const handleChatbotsTabClick = () => {
-    if (!collapsed) {
-      setChatbotsExpanded(!chatbotsExpanded);
-    }
     router.push('/user-dashboard/chatbots');
   };
 
   const handleBusinessesTabClick = () => {
-    if (!collapsed) {
-      setBusinessesExpanded(!businessesExpanded);
-    }
     router.push('/user-dashboard/businesses');
   };
 
@@ -189,10 +179,14 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
         <Card className="h-full rounded-none border-r border-l-0 border-t-0 border-b-0 flex flex-col bg-white w-16">
           {/* Logo */}
           <div className="p-2 flex items-center justify-center">
-            <Link href="/" className="block">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <span className="text-green-700 font-bold text-lg">A</span>
-              </div>
+            <Link href="/user-dashboard" className="block">
+             <Image
+            src="/AslasChat.jpg"
+            alt="AslasChat Logo"
+            width={40}
+            height={40}
+            className="max-w-[100px]"
+          />
             </Link>
           </div>
 
@@ -443,7 +437,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
     <Card className="h-full rounded-none border-r border-l-0 border-t-0 border-b-0 flex flex-col bg-white">
       {/* Logo - Centered */}
       <div className="p-3 xl:p-4 flex items-center justify-between">
-        <Link href="/" className="block flex-1 flex justify-center">
+        <Link href="/user-dashboard" className="block flex-1 flex justify-center">
           <Image
             src="/AslasChat.jpg"
             alt="AslasChat Logo"
@@ -474,16 +468,11 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
           {/* Chatbots Section */}
           <div>
             <div className="flex items-center justify-between">
-              <button
-                onClick={handleChatbotsTabClick}
-                className={`flex-1 flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all duration-150 ${pathname.includes('/chatbot') ? 'bg-green-50 text-green-700' : 'hover:bg-gray-50 text-gray-700'
-                  }`}
-              >
-                {chatbotsExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                <Bot className="w-4 h-4" />
-                <span className="font-medium text-sm">Chatbots</span>
+              <div className="flex-1 flex items-center gap-2 px-2.5 py-2 rounded-lg">
+                <Bot className="w-4 h-4 text-gray-700" />
+                <span className="font-medium text-sm text-gray-700">Chatbots</span>
                 <Badge variant="secondary" className="ml-auto text-xs">{chatbots.length}</Badge>
-              </button>
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -500,8 +489,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
             </div>
 
             {/* Chatbots List */}
-            {chatbotsExpanded && (
-              <div className="ml-4 mt-1 space-y-1 animate-slideDown">
+            <div className="ml-2 mt-1 space-y-1 pr-1">
                 {isLoading ? (
                   <>
                     <Skeleton className="h-10 rounded-lg" />
@@ -513,14 +501,15 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                   chatbots.map((chatbot, index) => (
                     <div
                       key={`chatbot-${chatbot.id}-${index}`}
-                      className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg selection-transition group ${selectedChatbot?.id === chatbot.id
-                          ? 'bg-green-50 border border-green-300'
-                          : 'hover:bg-gray-50 border border-transparent'
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg selection-transition group border ${selectedChatbot?.id === chatbot.id
+                          ? 'bg-green-50 border-green-300'
+                          : 'hover:bg-gray-50 border-gray-200 hover:border-green-200'
                         }`}
                     >
                       <button
                         onClick={() => handleSelectChatbot(chatbot.id)}
-                        className="flex-1 flex items-center gap-2 text-left min-w-0"
+                        className="flex-1 flex items-center gap-2 text-left min-w-0 overflow-hidden truncate "
+                        title={chatbot.name.substring(0,20)}
                       >
                         <Avatar className="w-6 h-6 rounded flex-shrink-0">
                           <AvatarImage src="/chatbot.png" alt={chatbot.name} />
@@ -528,60 +517,56 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                             {chatbot.name.substring(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-xs font-medium text-gray-800 truncate">{chatbot.name}</span>
+                        <span className="text-xs font-medium text-gray-800 truncate block">{chatbot.name.substring(0,14)}</span>
                       </button>
-                      <Badge
-                        variant={chatbot.status === 'trained' ? 'success' : 'warning'}
-                        className="text-[9px] px-1.5 py-0 flex-shrink-0"
-                      >
-                        {chatbot.status}
-                      </Badge>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVertical className="w-3 h-3" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleSelectChatbot(chatbot.id)}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            View
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={(e) => handleDeleteChatbot(chatbot.id, e)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Badge
+                          variant={chatbot.status === 'trained' ? 'success' : 'warning'}
+                          className="text-[9px] px-1.5 py-0"
+                        >
+                          {chatbot.status}
+                        </Badge>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="w-3 h-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleSelectChatbot(chatbot.id)}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              View
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={(e) => handleDeleteChatbot(chatbot.id, e)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   ))
                 )}
-              </div>
-            )}
+            </div>
           </div>
 
           {/* Businesses Section */}
           <div>
             <div className="flex items-center justify-between">
-              <button
-                onClick={handleBusinessesTabClick}
-                className={`flex-1 flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all duration-150 ${pathname.includes('/businesses') ? 'bg-green-50 text-green-700' : 'hover:bg-gray-50 text-gray-700'
-                  }`}
-              >
-                {businessesExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                <Building2 className="w-4 h-4" />
-                <span className="font-medium text-sm">Businesses</span>
+              <div className="flex-1 flex items-center gap-2 px-2.5 py-2 rounded-lg">
+                <Building2 className="w-4 h-4 text-gray-700" />
+                <span className="font-medium text-sm text-gray-700">Businesses</span>
                 <Badge variant="secondary" className="ml-auto text-xs">{businesses.length}</Badge>
-              </button>
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -598,8 +583,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
             </div>
 
             {/* Businesses List */}
-            {businessesExpanded && (
-              <div className="ml-4 mt-1 space-y-1 animate-slideDown">
+            <div className="ml-2 mt-1 space-y-1 pr-1">
                 {isLoading ? (
                   <>
                     <Skeleton className="h-10 rounded-lg" />
@@ -611,14 +595,15 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                   businesses.map((business, index) => (
                     <div
                       key={`business-${business.id}-${index}`}
-                      className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg selection-transition group ${selectedBusiness?.id === business.id
-                          ? 'bg-green-50 border border-green-300'
-                          : 'hover:bg-gray-50 border border-transparent'
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg selection-transition group border ${selectedBusiness?.id === business.id
+                          ? 'bg-green-50 border-green-300'
+                          : 'hover:bg-gray-50 border-gray-200 hover:border-green-200'
                         }`}
                     >
                       <button
                         onClick={() => handleSelectBusiness(business.id)}
-                        className="flex-1 flex items-center gap-2 text-left min-w-0"
+                        className="flex-1 flex items-center gap-2 text-left min-w-0 overflow-hidden"
+                        title={business.name}
                       >
                         <Avatar className="w-6 h-6 rounded flex-shrink-0">
                           {business.logo ? (
@@ -628,7 +613,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                             {business.name.substring(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-xs font-medium text-gray-800 truncate">{business.name}</span>
+                        <span className="text-xs font-medium text-gray-800 truncate block">{business.name}</span>
                       </button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -660,7 +645,6 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                   ))
                 )}
               </div>
-            )}
           </div>
 
         </div>
