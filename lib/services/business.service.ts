@@ -1,158 +1,189 @@
 import type { Business, ApiResponse, PaginatedResponse } from '@/types';
+import { api } from '../api';
+import { auth } from '@/lib/firebase/config';
 
-// Simulate API delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// Backend business interface (matches backend schema)
+interface BackendBusiness {
+    _id: string;
+    name: string;
+    description?: string;
+    ownerUid: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+    address?: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
 
-// Sample businesses data
-const sampleBusinesses: Business[] = [
-    {
-        id: 'biz_1',
-        name: 'Aslas Technologies',
-        description: 'AI-powered solutions for modern businesses. We specialize in chatbots, automation, and digital transformation.',
-        logo: '/business-logo-1.png',
-        urls: ['https://aslastech.com', 'https://blog.aslastech.com'],
-        contactEmail: 'contact@aslastech.com',
-        contactPhone: '+1 (555) 123-4567',
-        documents: [
-            { id: 'doc_1', name: 'Company Overview.pdf', url: '/docs/overview.pdf', type: 'pdf', uploadedAt: '2024-01-15' },
-            { id: 'doc_2', name: 'Services Brochure.pdf', url: '/docs/brochure.pdf', type: 'pdf', uploadedAt: '2024-02-10' },
-        ],
-        createdAt: '2024-01-01',
-        updatedAt: '2024-06-15',
-    },
-    {
-        id: 'biz_2',
-        name: 'RetailMax Store',
-        description: 'Premium e-commerce platform for fashion and lifestyle products.',
-        logo: '/business-logo-2.png',
-        urls: ['https://retailmax.store'],
-        contactEmail: 'support@retailmax.store',
-        contactPhone: '+1 (555) 987-6543',
-        documents: [
-            { id: 'doc_3', name: 'Product Catalog.pdf', url: '/docs/catalog.pdf', type: 'pdf', uploadedAt: '2024-03-01' },
-        ],
-        createdAt: '2024-02-15',
-        updatedAt: '2024-05-20',
-    },
-    {
-        id: 'biz_3',
-        name: 'HealthFirst Clinic',
-        description: 'Providing quality healthcare services with a focus on patient experience.',
-        urls: ['https://healthfirst.clinic'],
-        contactEmail: 'info@healthfirst.clinic',
-        contactPhone: '+1 (555) 456-7890',
+// Convert backend business to frontend Business type
+function convertBackendToFrontend(backendBiz: BackendBusiness): Business {
+    return {
+        id: backendBiz._id,
+        name: backendBiz.name,
+        description: backendBiz.description || '',
+        urls: backendBiz.website ? [backendBiz.website] : [],
+        contactEmail: backendBiz.email || '',
+        contactPhone: backendBiz.phone || '',
         documents: [],
-        createdAt: '2024-03-10',
-        updatedAt: '2024-04-25',
-    },
-];
+        createdAt: backendBiz.createdAt,
+        updatedAt: backendBiz.updatedAt,
+    };
+}
 
 // Get all businesses
 export async function getBusinesses(): Promise<ApiResponse<PaginatedResponse<Business>>> {
-    await delay(300);
-    return {
-        success: true,
-        data: {
-            items: sampleBusinesses,
-            total: sampleBusinesses.length,
-            page: 1,
-            pageSize: 20,
-            hasMore: false,
-        },
-    };
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            return {
+                success: false,
+                error: 'User not authenticated',
+                data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false }
+            };
+        }
+
+        // Get businesses for current user using query parameter
+        const backendBusinesses: BackendBusiness[] = await api.get(`/businesses?ownerUid=${user.uid}`);
+        const businesses = backendBusinesses.map(convertBackendToFrontend);
+
+        return {
+            success: true,
+            data: {
+                items: businesses,
+                total: businesses.length,
+                page: 1,
+                pageSize: 20,
+                hasMore: false,
+            },
+        };
+    } catch (error) {
+        console.error('Error fetching businesses:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to fetch businesses',
+            data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false }
+        };
+    }
 }
 
 // Get single business by ID
 export async function getBusiness(id: string): Promise<ApiResponse<Business>> {
-    await delay(200);
-    const business = sampleBusinesses.find(b => b.id === id);
-    if (!business) {
-        return { success: false, data: null as unknown as Business, error: 'Business not found' };
+    try {
+        const backendBiz: BackendBusiness = await api.get(`/businesses/${id}`);
+        const business = convertBackendToFrontend(backendBiz);
+        return { success: true, data: business };
+    } catch (error) {
+        console.error('Error fetching business:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Business not found',
+            data: null as unknown as Business
+        };
     }
-    return { success: true, data: business };
 }
 
 // Create business
 export async function createBusiness(data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>): Promise<ApiResponse<Business>> {
-    await delay(400);
-    const uniqueId = `biz_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
-    const newBusiness: Business = {
-        ...data,
-        id: uniqueId,
-        documents: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    };
-    // Check if ID already exists (safety check)
-    const existingIndex = sampleBusinesses.findIndex(b => b.id === uniqueId);
-    if (existingIndex === -1) {
-        sampleBusinesses.push(newBusiness);
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            return {
+                success: false,
+                error: 'User not authenticated',
+                data: null as unknown as Business
+            };
+        }
+
+        // Convert frontend format to backend format
+        const backendData = {
+            name: data.name,
+            description: data.description || undefined,
+            ownerUid: user.uid,
+            email: data.contactEmail || undefined,
+            phone: data.contactPhone || undefined,
+            website: data.urls?.[0] || undefined,
+        };
+
+        const backendBiz: BackendBusiness = await api.post('/businesses', backendData);
+        const business = convertBackendToFrontend(backendBiz);
+        return { success: true, data: business };
+    } catch (error) {
+        console.error('Error creating business:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to create business',
+            data: null as unknown as Business
+        };
     }
-    return { success: true, data: newBusiness };
 }
 
 // Update business
 export async function updateBusiness(id: string, data: Partial<Business>): Promise<ApiResponse<Business>> {
-    await delay(300);
-    const index = sampleBusinesses.findIndex(b => b.id === id);
-    if (index === -1) {
-        return { success: false, data: null as unknown as Business, error: 'Business not found' };
+    try {
+        // Convert frontend format to backend format
+        const backendData: any = {};
+        if (data.name) backendData.name = data.name;
+        if (data.description !== undefined) backendData.description = data.description;
+        if (data.contactEmail !== undefined) backendData.email = data.contactEmail;
+        if (data.contactPhone !== undefined) backendData.phone = data.contactPhone;
+        if (data.urls && data.urls.length > 0) backendData.website = data.urls[0];
+
+        const backendBiz: BackendBusiness = await api.put(`/businesses/${id}`, backendData);
+        const business = convertBackendToFrontend(backendBiz);
+        return { success: true, data: business };
+    } catch (error) {
+        console.error('Error updating business:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to update business',
+            data: null as unknown as Business
+        };
     }
-    sampleBusinesses[index] = {
-        ...sampleBusinesses[index],
-        ...data,
-        updatedAt: new Date().toISOString(),
-    };
-    return { success: true, data: sampleBusinesses[index] };
 }
 
 // Delete business
 export async function deleteBusiness(id: string): Promise<ApiResponse<{ deleted: boolean }>> {
-    await delay(300);
-    const index = sampleBusinesses.findIndex(b => b.id === id);
-    if (index === -1) {
-        return { success: false, data: { deleted: false }, error: 'Business not found' };
+    try {
+        await api.delete(`/businesses/${id}`);
+        return { success: true, data: { deleted: true } };
+    } catch (error) {
+        console.error('Error deleting business:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to delete business',
+            data: { deleted: false }
+        };
     }
-    sampleBusinesses.splice(index, 1);
-    return { success: true, data: { deleted: true } };
 }
 
-// Upload document to business
+// Upload document to business (placeholder - will be implemented later)
 export async function uploadBusinessDocument(
     businessId: string,
     document: { name: string; file: File }
 ): Promise<ApiResponse<Business>> {
-    await delay(500);
-    const index = sampleBusinesses.findIndex(b => b.id === businessId);
-    if (index === -1) {
-        return { success: false, data: null as unknown as Business, error: 'Business not found' };
-    }
-    const newDoc = {
-        id: `doc_${Date.now()}`,
-        name: document.name,
-        url: `/docs/${document.name}`,
-        type: 'pdf' as const,
-        uploadedAt: new Date().toISOString(),
+    // TODO: Implement document upload API
+    console.warn('Document upload not yet implemented');
+    return {
+        success: false,
+        error: 'Document upload not yet implemented',
+        data: null as unknown as Business
     };
-    sampleBusinesses[index].documents.push(newDoc);
-    return { success: true, data: sampleBusinesses[index] };
 }
 
-// Delete document from business
+// Delete document from business (placeholder - will be implemented later)
 export async function deleteBusinessDocument(
     businessId: string,
     documentId: string
 ): Promise<ApiResponse<Business>> {
-    await delay(300);
-    const index = sampleBusinesses.findIndex(b => b.id === businessId);
-    if (index === -1) {
-        return { success: false, data: null as unknown as Business, error: 'Business not found' };
-    }
-    sampleBusinesses[index].documents = sampleBusinesses[index].documents.filter(d => d.id !== documentId);
-    return { success: true, data: sampleBusinesses[index] };
+    // TODO: Implement document delete API
+    console.warn('Document delete not yet implemented');
+    return {
+        success: false,
+        error: 'Document delete not yet implemented',
+        data: null as unknown as Business
+    };
 }
 
-// Get sample businesses for initial state (sync)
-export function getSampleBusinesses(): Business[] {
-    return [...sampleBusinesses];
-}
+
