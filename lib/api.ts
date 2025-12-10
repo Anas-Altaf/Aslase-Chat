@@ -77,11 +77,28 @@ export const api = {
     return response.json();
   },
 
+  async patch(endpoint: string, data: any) {
+    const response = await authenticatedFetch(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
   async delete(endpoint: string) {
     const response = await authenticatedFetch(endpoint, { method: 'DELETE' });
     if (!response.ok) {
       throw new Error(`API Error: ${response.statusText}`);
     }
-    return response.json();
+    // Handle empty or non-JSON responses
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return response.json();
+    }
+    // Return text for non-JSON responses
+    return response.text();
   },
 };

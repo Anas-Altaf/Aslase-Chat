@@ -130,7 +130,7 @@ export async function updateBusiness(id: string, data: Partial<Business>): Promi
         if (data.contactPhone !== undefined) backendData.phone = data.contactPhone;
         if (data.urls && data.urls.length > 0) backendData.website = data.urls[0];
 
-        const backendBiz: BackendBusiness = await api.put(`/businesses/${id}`, backendData);
+        const backendBiz: BackendBusiness = await api.patch(`/businesses/${id}`, backendData);
         const business = convertBackendToFrontend(backendBiz);
         return { success: true, data: business };
     } catch (error) {
