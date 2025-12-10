@@ -8,6 +8,8 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 
@@ -16,6 +18,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, displayName: string, phoneNumber: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -24,6 +27,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signUp: async () => { },
   signIn: async () => { },
+  signInWithGoogle: async () => { },
   logout: async () => { },
 });
 
@@ -70,6 +74,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     // await verifyTokenWithBackend(token);
   };
 
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
+    const token = await userCredential.user.getIdToken();
+    // await verifyTokenWithBackend(token);
+  };
+
   const logout = async () => {
     await signOut(auth);
   };
@@ -79,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     loading,
     signUp,
     signIn,
+    signInWithGoogle,
     logout,
   };
 
