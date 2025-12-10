@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Plus,
@@ -44,8 +46,12 @@ import {
   ChevronDown,
   ChevronRight,
   MoreVertical,
-  PanelLeftClose
+  PanelLeftClose,
+  Edit,
+  Trash2,
+  Eye,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { Chatbot, Business } from '@/types';
 
 interface ChatbotBarProps {
@@ -57,8 +63,8 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-  const { chatbots, selectedChatbot, isInitialLoading: chatbotsLoading, addChatbot, selectChatbot } = useChatbot();
-  const { businesses, selectedBusiness, isInitialLoading: businessesLoading, selectBusiness } = useBusiness();
+  const { chatbots, selectedChatbot, isInitialLoading: chatbotsLoading, addChatbot, selectChatbot, removeChatbot } = useChatbot();
+  const { businesses, selectedBusiness, isInitialLoading: businessesLoading, selectBusiness, addBusiness, removeBusiness } = useBusiness();
 
   // Expand states
   const [chatbotsExpanded, setChatbotsExpanded] = useState(true);
@@ -74,6 +80,17 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
     visibility: 'public' as Chatbot['visibility'],
   });
 
+  // Create business dialog
+  const [isCreateBusinessOpen, setIsCreateBusinessOpen] = useState(false);
+  const [isCreatingBusiness, setIsCreatingBusiness] = useState(false);
+  const [newBusiness, setNewBusiness] = useState({
+    name: '',
+    description: '',
+    contactEmail: '',
+    contactPhone: '',
+    urls: [''],
+  });
+
   const userName = user?.displayName || 'User';
   const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase();
 
@@ -82,13 +99,52 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
     setIsCreatingChatbot(true);
     try {
       await addChatbot(newChatbot);
+      toast.success('Chatbot created successfully');
       setIsCreateChatbotOpen(false);
       setNewChatbot({ name: '', businessId: '', model: 'gpt-4o-mini', visibility: 'public' });
       router.push('/user-dashboard/chatbot');
     } catch (error) {
-      console.error('Failed to create chatbot:', error);
+      toast.error('Failed to create chatbot');
     } finally {
       setIsCreatingChatbot(false);
+    }
+  };
+
+  const handleCreateBusiness = async () => {
+    if (!newBusiness.name.trim()) return;
+    setIsCreatingBusiness(true);
+    try {
+      await addBusiness({
+        ...newBusiness,
+        urls: newBusiness.urls.filter(u => u.trim()),
+      });
+      toast.success('Business created successfully');
+      setIsCreateBusinessOpen(false);
+      setNewBusiness({ name: '', description: '', contactEmail: '', contactPhone: '', urls: [''] });
+    } catch (error) {
+      toast.error('Failed to create business');
+    } finally {
+      setIsCreatingBusiness(false);
+    }
+  };
+
+  const handleDeleteChatbot = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await removeChatbot(id);
+      toast.success('Chatbot deleted');
+    } catch (error) {
+      toast.error('Failed to delete chatbot');
+    }
+  };
+
+  const handleDeleteBusiness = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await removeBusiness(id);
+      toast.success('Business deleted');
+    } catch (error) {
+      toast.error('Failed to delete business');
     }
   };
 
@@ -99,13 +155,11 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
 
   const handleChatbotsTabClick = () => {
     setChatbotsExpanded(!chatbotsExpanded);
-    // Navigate to chatbots management when clicking the tab header
     router.push('/user-dashboard/chatbots');
   };
 
   const handleBusinessesTabClick = () => {
     setBusinessesExpanded(!businessesExpanded);
-    // Navigate to businesses management when clicking the tab header
     router.push('/user-dashboard/businesses');
   };
 
@@ -114,37 +168,26 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
     router.push(`/user-dashboard/businesses/${id}`);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
   const isLoading = chatbotsLoading || businessesLoading;
+
+  // If collapsed, show minimal view
+  if (collapsed) {
+    return null;
+  }
 
   return (
     <Card className="h-full rounded-none border-r border-l-0 border-t-0 border-b-0 flex flex-col bg-white">
-      {/* Logo */}
-      <div className="p-3 xl:p-4 flex items-center justify-between">
-        <Link href="/" className="block transition-transform duration-200 hover:scale-105 flex-1">
+      {/* Logo - Centered, no hover effects */}
+      <div className="p-3 xl:p-4 flex items-center justify-center">
+        <Link href="/" className="block">
           <Image
             src="/AslasChat.jpg"
             alt="AslasChat Logo"
             width={100}
             height={60}
-            className="max-w-[120px]"
+            className="max-w-[100px]"
           />
         </Link>
-        {onToggleCollapse && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 flex-shrink-0"
-            onClick={onToggleCollapse}
-            title="Collapse sidebar"
-          >
-            <PanelLeftClose className="w-4 h-4" />
-          </Button>
-        )}
       </div>
 
       <Separator />
@@ -192,29 +235,59 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                 ) : chatbots.length === 0 ? (
                   <p className="text-gray-400 text-xs px-2 py-2">No chatbots yet</p>
                 ) : (
-                  chatbots.map((chatbot) => (
-                    <button
-                      key={chatbot.id}
-                      onClick={() => handleSelectChatbot(chatbot.id)}
-                      className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left selection-transition ${selectedChatbot?.id === chatbot.id
+                  chatbots.map((chatbot, index) => (
+                    <div
+                      key={`chatbot-${chatbot.id}-${index}`}
+                      className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg selection-transition group ${selectedChatbot?.id === chatbot.id
                           ? 'bg-green-50 border border-green-300'
                           : 'hover:bg-gray-50 border border-transparent'
                         }`}
                     >
-                      <Avatar className="w-6 h-6 rounded">
-                        <AvatarImage src="/chatbot.png" alt={chatbot.name} />
-                        <AvatarFallback className="rounded bg-green-100 text-green-700 text-[10px]">
-                          {chatbot.name.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs font-medium text-gray-800 truncate flex-1">{chatbot.name}</span>
+                      <button
+                        onClick={() => handleSelectChatbot(chatbot.id)}
+                        className="flex-1 flex items-center gap-2 text-left min-w-0"
+                      >
+                        <Avatar className="w-6 h-6 rounded flex-shrink-0">
+                          <AvatarImage src="/chatbot.png" alt={chatbot.name} />
+                          <AvatarFallback className="rounded bg-green-100 text-green-700 text-[10px]">
+                            {chatbot.name.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs font-medium text-gray-800 truncate">{chatbot.name}</span>
+                      </button>
                       <Badge
                         variant={chatbot.status === 'trained' ? 'success' : 'warning'}
-                        className="text-[9px] px-1.5 py-0"
+                        className="text-[9px] px-1.5 py-0 flex-shrink-0"
                       >
                         {chatbot.status}
                       </Badge>
-                    </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="w-3 h-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleSelectChatbot(chatbot.id)}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={(e) => handleDeleteChatbot(chatbot.id, e)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   ))
                 )}
               </div>
@@ -241,7 +314,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => router.push('/user-dashboard/businesses/new')}>
+                  <DropdownMenuItem onClick={() => setIsCreateBusinessOpen(true)}>
                     <Plus className="w-4 h-4 mr-2" />
                     Add Business
                   </DropdownMenuItem>
@@ -260,25 +333,55 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                 ) : businesses.length === 0 ? (
                   <p className="text-gray-400 text-xs px-2 py-2">No businesses yet</p>
                 ) : (
-                  businesses.map((business) => (
-                    <button
-                      key={business.id}
-                      onClick={() => handleSelectBusiness(business.id)}
-                      className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left selection-transition ${selectedBusiness?.id === business.id
+                  businesses.map((business, index) => (
+                    <div
+                      key={`business-${business.id}-${index}`}
+                      className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg selection-transition group ${selectedBusiness?.id === business.id
                           ? 'bg-green-50 border border-green-300'
                           : 'hover:bg-gray-50 border border-transparent'
                         }`}
                     >
-                      <Avatar className="w-6 h-6 rounded">
-                        {business.logo ? (
-                          <AvatarImage src={business.logo} alt={business.name} />
-                        ) : null}
-                        <AvatarFallback className="rounded bg-purple-100 text-purple-700 text-[10px]">
-                          {business.name.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs font-medium text-gray-800 truncate flex-1">{business.name}</span>
-                    </button>
+                      <button
+                        onClick={() => handleSelectBusiness(business.id)}
+                        className="flex-1 flex items-center gap-2 text-left min-w-0"
+                      >
+                        <Avatar className="w-6 h-6 rounded flex-shrink-0">
+                          {business.logo ? (
+                            <AvatarImage src={business.logo} alt={business.name} />
+                          ) : null}
+                          <AvatarFallback className="rounded bg-purple-100 text-purple-700 text-[10px]">
+                            {business.name.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs font-medium text-gray-800 truncate">{business.name}</span>
+                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="w-3 h-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleSelectBusiness(business.id)}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={(e) => handleDeleteBusiness(business.id, e)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   ))
                 )}
               </div>
@@ -333,8 +436,8 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                   <SelectValue placeholder="Select a business" />
                 </SelectTrigger>
                 <SelectContent position="popper" sideOffset={4}>
-                  {businesses.map((business) => (
-                    <SelectItem key={business.id} value={business.id}>
+                  {businesses.map((business, index) => (
+                    <SelectItem key={`select-biz-${business.id}-${index}`} value={business.id}>
                       {business.name}
                     </SelectItem>
                   ))}
@@ -379,6 +482,68 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
             </Button>
             <Button onClick={handleCreateChatbot} disabled={isCreatingChatbot || !newChatbot.name.trim() || !newChatbot.businessId}>
               {isCreatingChatbot ? 'Creating...' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Business Dialog */}
+      <Dialog open={isCreateBusinessOpen} onOpenChange={setIsCreateBusinessOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Business</DialogTitle>
+            <DialogDescription>
+              Add a new business to organize your chatbots.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-2">
+              <Label htmlFor="biz-name">Business Name *</Label>
+              <Input
+                id="biz-name"
+                placeholder="My Company"
+                value={newBusiness.name}
+                onChange={(e) => setNewBusiness({ ...newBusiness, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="biz-desc">Description</Label>
+              <Textarea
+                id="biz-desc"
+                placeholder="Brief description of your business..."
+                value={newBusiness.description}
+                onChange={(e) => setNewBusiness({ ...newBusiness, description: e.target.value })}
+                className="text-gray-900"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="biz-email">Contact Email</Label>
+                <Input
+                  id="biz-email"
+                  type="email"
+                  placeholder="contact@company.com"
+                  value={newBusiness.contactEmail}
+                  onChange={(e) => setNewBusiness({ ...newBusiness, contactEmail: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="biz-phone">Contact Phone</Label>
+                <Input
+                  id="biz-phone"
+                  placeholder="+1 (555) 123-4567"
+                  value={newBusiness.contactPhone}
+                  onChange={(e) => setNewBusiness({ ...newBusiness, contactPhone: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateBusinessOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateBusiness} disabled={isCreatingBusiness || !newBusiness.name.trim()}>
+              {isCreatingBusiness ? 'Creating...' : 'Create'}
             </Button>
           </DialogFooter>
         </DialogContent>

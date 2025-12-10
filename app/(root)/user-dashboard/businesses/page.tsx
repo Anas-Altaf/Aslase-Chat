@@ -122,9 +122,9 @@ export default function BusinessesPage() {
                 </Card>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {businesses.map(business => (
+                    {businesses.map((business, index) => (
                         <Card
-                            key={business.id}
+                            key={`biz-card-${business.id}-${index}`}
                             className="card-interactive cursor-pointer group"
                             onClick={() => router.push(`/user-dashboard/businesses/${business.id}`)}
                         >
@@ -243,7 +243,7 @@ export default function BusinessesPage() {
                             <Label>Website URLs</Label>
                             {newBusiness.urls.map((url, index) => (
                                 <Input
-                                    key={index}
+                                    key={`url-input-${index}`}
                                     placeholder="https://example.com"
                                     value={url}
                                     onChange={(e) => updateUrl(index, e.target.value)}
