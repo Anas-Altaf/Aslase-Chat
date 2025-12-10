@@ -101,4 +101,28 @@ export const api = {
     // Return text for non-JSON responses
     return response.text();
   },
+
+  async postFormData(endpoint: string, formData: FormData) {
+    const token = await getAuthToken();
+    
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+
+    // Don't set Content-Type header - browser will set it with boundary
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+    };
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+    return response.json();
+  },
 };

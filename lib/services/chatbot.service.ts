@@ -3,6 +3,35 @@ import type {
     ChatbotSettings,
     ApiResponse,
 } from '@/types';
+import { api } from '../api';
+import { auth } from '@/lib/firebase/config';
+
+// Backend chatbot interface (matches backend schema)
+interface BackendChatbot {
+    _id: string;
+    name: string;
+    description: string;
+    businessId: string;
+    userId: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// Convert backend chatbot to frontend Chatbot type
+function convertBackendToFrontend(backendChatbot: BackendChatbot): Chatbot {
+    return {
+        id: backendChatbot._id,
+        businessId: backendChatbot.businessId,
+        name: backendChatbot.name,
+        model: 'gpt-4o-mini', // Default model
+        status: 'trained',
+        visibility: 'public',
+        characterCount: 0,
+        createdAt: backendChatbot.createdAt,
+        lastTrainedAt: backendChatbot.createdAt,
+    };
+}
 
 // ==========================================
 // SAMPLE DATA
@@ -33,50 +62,79 @@ const sampleChatbots: Chatbot[] = [
     },
 ];
 
-const sampleSettings: Record<string, ChatbotSettings> = {
-    'VUyBtr3F23QcD2fF': {
-        chatbotId: 'VUyBtr3F23QcD2fF',
-        name: 'Chatbot 7/2/2025, 2:50:46 PM',
-        model: 'gpt-4o-mini',
-        temperature: 0.7,
-        maxTokens: 1024,
-        welcomeMessage: 'Hi! How can I help you today?',
-        placeholder: 'Type your message...',
-        primaryColor: '#22c55e',
-        rateLimitPerMinute: 20,
-        requireEmailCapture: false,
-        emailNotifications: true,
-        notificationEmail: 'admin@aslaschat.ai',
-        webhookUrl: '',
-    },
-};
+// const sampleSettings: Record<string, ChatbotSettings> = {
+//     'VUyBtr3F23QcD2fF': {
+//         chatbotId: 'VUyBtr3F23QcD2fF',
+//         name: 'Chatbot 7/2/2025, 2:50:46 PM',
+//         model: 'gpt-4o-mini',
+//         temperature: 0.7,
+//         maxTokens: 1024,
+//         welcomeMessage: 'Hi! How can I help you today?',
+//         placeholder: 'Type your message...',
+//         primaryColor: '#22c55e',
+//         rateLimitPerMinute: 20,
+//         requireEmailCapture: false,
+//         emailNotifications: true,
+//         notificationEmail: 'admin@aslaschat.ai',
+//         webhookUrl: '',
+//     },
+// };
 
 // ==========================================
 // SIMULATED DELAY (Remove in production)
 // ==========================================
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // ==========================================
 // CHATBOT API SERVICE
 // ==========================================
 
 export async function getChatbots(): Promise<ApiResponse<Chatbot[]>> {
-    await delay(500); // Simulate network delay
-    return {
-        success: true,
-        data: sampleChatbots,
-    };
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            return {
+                success: false,
+                error: 'User not authenticated',
+                data: []
+            };
+        }
+
+        const backendChatbots: BackendChatbot[] = await api.get(`/chatbots/owner/${user.uid}`);
+        const chatbots = backendChatbots.map(convertBackendToFrontend);
+
+        return {
+            success: true,
+            data: chatbots,
+        };
+    } catch (error) {
+        console.error('Error fetching chatbots:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to fetch chatbots',
+            data: []
+        };
+    }
 }
 
 export async function getChatbotById(id: string): Promise<ApiResponse<Chatbot | null>> {
-    await delay(300);
-    const chatbot = sampleChatbots.find(c => c.id === id) || null;
-    return {
-        success: !!chatbot,
-        data: chatbot,
-        error: chatbot ? undefined : 'Chatbot not found',
-    };
+    try {
+        const backendChatbot: BackendChatbot = await api.get(`/chatbots/${id}`);
+        const chatbot = convertBackendToFrontend(backendChatbot);
+        
+        return {
+            success: true,
+            data: chatbot,
+        };
+    } catch (error) {
+        console.error('Error fetching chatbot:', error);
+        return {
+            success: false,
+            data: null,
+            error: error instanceof Error ? error.message : 'Chatbot not found',
+        };
+    }
 }
 
 export async function createChatbot(data: {
@@ -85,62 +143,91 @@ export async function createChatbot(data: {
     model: Chatbot['model'];
     visibility: Chatbot['visibility'];
 }): Promise<ApiResponse<Chatbot>> {
-    await delay(800);
-    // Generate truly unique ID using random string
-    const uniqueId = `cb_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
-    const newChatbot: Chatbot = {
-        id: uniqueId,
-        businessId: data.businessId,
-        name: data.name,
-        model: data.model,
-        status: 'training',
-        visibility: data.visibility,
-        characterCount: 0,
-        createdAt: new Date().toISOString(),
-        lastTrainedAt: null,
-    };
-    // Check if ID already exists (shouldn't happen but safety check)
-    const existingIndex = sampleChatbots.findIndex(c => c.id === uniqueId);
-    if (existingIndex === -1) {
-        sampleChatbots.push(newChatbot);
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            return {
+                success: false,
+                error: 'User not authenticated',
+                data: null as unknown as Chatbot
+            };
+        }
+
+        const backendData = {
+            name: data.name,
+            description: data.name, // Use chatbot name as description
+            businessId: data.businessId,
+            userId: user.uid,
+            isActive: true,
+        };
+
+        const backendChatbot: BackendChatbot = await api.post('/chatbots', backendData);
+        const chatbot = convertBackendToFrontend(backendChatbot);
+
+        return {
+            success: true,
+            data: chatbot,
+        };
+    } catch (error) {
+        console.error('Error creating chatbot:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to create chatbot',
+            data: null as unknown as Chatbot
+        };
     }
-    return {
-        success: true,
-        data: newChatbot,
-    };
 }
 
 export async function updateChatbot(
     id: string,
     data: Partial<Chatbot>
 ): Promise<ApiResponse<Chatbot>> {
-    await delay(500);
-    const index = sampleChatbots.findIndex(c => c.id === id);
-    if (index === -1) {
-        return { success: false, data: null as any, error: 'Chatbot not found' };
+    try {
+        const backendChatbot: BackendChatbot = await api.patch(`/chatbots/${id}`, data);
+        const chatbot = convertBackendToFrontend(backendChatbot);
+
+        return {
+            success: true,
+            data: chatbot,
+        };
+    } catch (error) {
+        console.error('Error updating chatbot:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to update chatbot',
+            data: null as unknown as Chatbot
+        };
     }
-    sampleChatbots[index] = { ...sampleChatbots[index], ...data };
-    return {
-        success: true,
-        data: sampleChatbots[index],
-    };
 }
 
-export async function deleteChatbot(id: string): Promise<ApiResponse<boolean>> {
-    await delay(500);
-    const index = sampleChatbots.findIndex(c => c.id === id);
-    if (index === -1) {
-        return { success: false, data: false, error: 'Chatbot not found' };
-    }
-    sampleChatbots.splice(index, 1);
-    return {
-        success: true,
-        data: true,
+export async function deleteChatbot(id: string): Promise<ApiResponse<void>> {
+    try {
+        await api.delete(`/chatbots/${id}`);
+        
+        return {
+            success: true,
+            data: undefined,
+        };
+    } catch (error) {
+        console.error('Error deleting chatbot:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to delete chatbot',
+            data: undefined
+        };
     };
 }
 
 // ==========================================
-// SETTINGS API SERVICE
+// SAMPLE DATA FOR SETTINGS (TEMPORARY)
+// ==========================================
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const sampleSettings: Record<string, ChatbotSettings> = {};
+
+// ==========================================
+// CHATBOT SETTINGS API
 // ==========================================
 
 export async function getChatbotSettings(chatbotId: string): Promise<ApiResponse<ChatbotSettings | null>> {

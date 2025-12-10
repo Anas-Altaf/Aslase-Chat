@@ -13,6 +13,11 @@ interface BackendBusiness {
     website?: string;
     address?: string;
     isActive: boolean;
+    documents?: Array<{
+        fileName: string;
+        extractedText: string;
+        uploadedAt: string;
+    }>;
     createdAt: string;
     updatedAt: string;
 }
@@ -26,7 +31,13 @@ function convertBackendToFrontend(backendBiz: BackendBusiness): Business {
         urls: backendBiz.website ? [backendBiz.website] : [],
         contactEmail: backendBiz.email || '',
         contactPhone: backendBiz.phone || '',
-        documents: [],
+        documents: backendBiz.documents?.map((doc, index) => ({
+            id: `${backendBiz._id}-doc-${index}`,
+            name: doc.fileName,
+            url: '', // We don't store file URLs since we only store extracted text
+            type: doc.fileName.endsWith('.pdf') ? 'pdf' as const : 'doc' as const,
+            uploadedAt: doc.uploadedAt,
+        })) || [],
         createdAt: backendBiz.createdAt,
         updatedAt: backendBiz.updatedAt,
     };
@@ -85,7 +96,7 @@ export async function getBusiness(id: string): Promise<ApiResponse<Business>> {
 }
 
 // Create business
-export async function createBusiness(data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>): Promise<ApiResponse<Business>> {
+export async function createBusiness(data: Omit<Business, 'id' | 'createdAt' | 'updatedAt' | 'documents'>, files?: File[]): Promise<ApiResponse<Business>> {
     try {
         const user = auth.currentUser;
         if (!user) {
@@ -96,19 +107,51 @@ export async function createBusiness(data: Omit<Business, 'id' | 'createdAt' | '
             };
         }
 
-        // Convert frontend format to backend format
-        const backendData = {
-            name: data.name,
-            description: data.description || undefined,
-            ownerUid: user.uid,
-            email: data.contactEmail || undefined,
-            phone: data.contactPhone || undefined,
-            website: data.urls?.[0] || undefined,
-        };
+        console.log('createBusiness called with files:', files?.length || 0);
 
-        const backendBiz: BackendBusiness = await api.post('/businesses', backendData);
-        const business = convertBackendToFrontend(backendBiz);
-        return { success: true, data: business };
+        // If files are provided, use FormData
+        if (files && files.length > 0) {
+            console.log('Using FormData to send files:', files.map(f => f.name));
+            const formData = new FormData();
+            
+            // Append business data
+            formData.append('name', data.name);
+            formData.append('ownerUid', user.uid);
+            if (data.description) formData.append('description', data.description);
+            if (data.contactEmail) formData.append('email', data.contactEmail);
+            if (data.contactPhone) formData.append('phone', data.contactPhone);
+            if (data.urls?.[0]) formData.append('website', data.urls[0]);
+            
+            // Append files
+            files.forEach((file, index) => {
+                console.log(`Appending file ${index}:`, file.name, file.type, file.size);
+                formData.append('documents', file);
+            });
+
+            // Log FormData contents
+            for (let pair of formData.entries()) {
+                console.log(pair[0], ':', pair[1] instanceof File ? `File: ${pair[1].name}` : pair[1]);
+            }
+            
+            const backendBiz: BackendBusiness = await api.postFormData('/businesses', formData);
+            const business = convertBackendToFrontend(backendBiz);
+            return { success: true, data: business };
+        } else {
+            console.log('No files provided, sending as JSON');
+            // No files, send as JSON
+            const backendData = {
+                name: data.name,
+                description: data.description || undefined,
+                ownerUid: user.uid,
+                email: data.contactEmail || undefined,
+                phone: data.contactPhone || undefined,
+                website: data.urls?.[0] || undefined,
+            };
+
+            const backendBiz: BackendBusiness = await api.post('/businesses', backendData);
+            const business = convertBackendToFrontend(backendBiz);
+            return { success: true, data: business };
+        }
     } catch (error) {
         console.error('Error creating business:', error);
         return {

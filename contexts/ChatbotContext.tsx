@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { Chatbot } from '@/types';
 import { getChatbots, getChatbotById, createChatbot, updateChatbot, deleteChatbot } from '@/lib/services';
+import { auth } from '@/lib/firebase/config';
 
 interface ChatbotContextType {
     // State
@@ -29,7 +30,6 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [isMutating, setIsMutating] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const hasLoaded = useRef(false);
 
     const refreshChatbots = useCallback(async () => {
         setError(null);
@@ -147,12 +147,16 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
 
     const clearError = useCallback(() => setError(null), []);
 
-    // Load chatbots only once on mount
+    // Wait for auth and then load chatbots
     useEffect(() => {
-        if (!hasLoaded.current) {
-            hasLoaded.current = true;
-            refreshChatbots();
-        }
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+                refreshChatbots();
+            } else {
+                setIsInitialLoading(false);
+            }
+        });
+        return unsubscribe;
     }, []);
 
     return (

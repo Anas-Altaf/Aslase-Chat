@@ -9,10 +9,32 @@ export const businessService = {
   /**
    * Create a new business
    */
-  async create(data: CreateBusinessData): Promise<Business> {
+  async create(data: CreateBusinessData, files?: File[]): Promise<Business> {
     try {
-      const response = await api.post('/businesses', data);
-      return response;
+      // If files are provided, use FormData
+      if (files && files.length > 0) {
+        const formData = new FormData();
+        
+        // Append business data as JSON string or individual fields
+        Object.keys(data).forEach(key => {
+          const value = data[key as keyof CreateBusinessData];
+          if (value !== undefined && value !== null) {
+            formData.append(key, String(value));
+          }
+        });
+        
+        // Append files
+        files.forEach(file => {
+          formData.append('documents', file);
+        });
+        
+        const response = await api.postFormData('/businesses', formData);
+        return response;
+      } else {
+        // No files, send as JSON
+        const response = await api.post('/businesses', data);
+        return response;
+      }
     } catch (error) {
       console.error('Error creating business:', error);
       throw error;
@@ -79,6 +101,26 @@ export const businessService = {
       await api.delete(`/businesses/${id}`);
     } catch (error) {
       console.error('Error deleting business:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Upload documents to an existing business
+   */
+  async uploadDocuments(id: string, files: File[]): Promise<Business> {
+    try {
+      const formData = new FormData();
+      
+      // Append files
+      files.forEach(file => {
+        formData.append('documents', file);
+      });
+      
+      const response = await api.postFormData(`/businesses/${id}/upload-documents`, formData);
+      return response;
+    } catch (error) {
+      console.error('Error uploading documents:', error);
       throw error;
     }
   },

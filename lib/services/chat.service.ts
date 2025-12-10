@@ -5,6 +5,39 @@ import type {
     ApiResponse,
     PaginatedResponse,
 } from '@/types';
+import { api } from '../api';
+import { auth } from '@/lib/firebase/config';
+
+// ==========================================
+// CHAT MESSAGE API
+// ==========================================
+
+export interface SendMessageResponse {
+    chatId: string;
+    message: string;
+    timestamp: Date;
+}
+
+export async function sendChatMessage(
+    chatbotId: string,
+    message: string,
+    chatId?: string
+): Promise<SendMessageResponse> {
+    const user = auth.currentUser;
+    if (!user) {
+        throw new Error('User not authenticated');
+    }
+
+    const payload = {
+        chatbotId,
+        message,
+        userId: user.uid,
+        chatId,
+    };
+
+    const response = await api.post('/chatbots/chat/message', payload);
+    return response;
+}
 
 // ==========================================
 // SAMPLE DATA
@@ -95,27 +128,52 @@ export async function getChatSessions(
         minConfidence?: number;
     }
 ): Promise<ApiResponse<PaginatedResponse<ChatSession>>> {
-    await delay(400);
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            return {
+                success: false,
+                error: 'User not authenticated',
+                data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false }
+            };
+        }
 
-    let filtered = sampleSessions.filter(s => s.chatbotId === chatbotId);
+        // Get all chats for this chatbot
+        const chats = await api.get(`/chatbots/chat/user/all?chatbotId=${chatbotId}`);
+        
+        // Convert backend chats to frontend ChatSession format
+        const sessions: ChatSession[] = chats.map((chat: any) => ({
+            id: chat._id,
+            chatbotId: chat.chatbotId,
+            messages: chat.messages.map((msg: any, index: number) => ({
+                id: `${chat._id}-${index}`,
+                role: msg.role,
+                content: msg.content,
+                timestamp: msg.timestamp
+            })),
+            source: 'embed', // Default source
+            confidenceScore: 0.85, // Default confidence
+            createdAt: chat.createdAt
+        }));
 
-    if (filters?.source) {
-        filtered = filtered.filter(s => s.source === filters.source);
+        return {
+            success: true,
+            data: {
+                items: sessions,
+                total: sessions.length,
+                page: 1,
+                pageSize: 20,
+                hasMore: false,
+            },
+        };
+    } catch (error) {
+        console.error('Error fetching chat sessions:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to fetch chat sessions',
+            data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false }
+        };
     }
-    if (filters?.minConfidence !== undefined) {
-        filtered = filtered.filter(s => s.confidenceScore >= filters.minConfidence!);
-    }
-
-    return {
-        success: true,
-        data: {
-            items: filtered,
-            total: filtered.length,
-            page: 1,
-            pageSize: 20,
-            hasMore: false,
-        },
-    };
 }
 
 export async function getChatSessionById(id: string): Promise<ApiResponse<ChatSession | null>> {
@@ -150,32 +208,65 @@ export async function getLeads(
         endDate?: string;
     }
 ): Promise<ApiResponse<PaginatedResponse<Lead>>> {
-    await delay(400);
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            return {
+                success: false,
+                error: 'User not authenticated',
+                data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false }
+            };
+        }
 
-    const filtered = sampleLeads.filter(l => l.chatbotId === chatbotId);
+        // Fetch leads from backend for this chatbot
+        const backendLeads = await api.get(`/leads/chatbot/${chatbotId}`);
+        
+        // Convert backend leads to frontend format
+        const leads: Lead[] = backendLeads.map((lead: any) => ({
+            id: lead._id,
+            chatbotId: lead.chatbot_id,
+            name: lead.userName ,
+            email: lead.userEmail || '',
+            phone: lead.phone || '',
+            message: `Contact information captured`, 
+            createdAt: lead.timestamp || lead.createdAt
+        }));
 
-    return {
-        success: true,
-        data: {
-            items: filtered,
-            total: filtered.length,
-            page: 1,
-            pageSize: 20,
-            hasMore: false,
-        },
-    };
+        return {
+            success: true,
+            data: {
+                items: leads,
+                total: leads.length,
+                page: 1,
+                pageSize: 20,
+                hasMore: false,
+            },
+        };
+    } catch (error) {
+        console.error('Error fetching leads:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to fetch leads',
+            data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false }
+        };
+    }
 }
 
 export async function deleteLead(id: string): Promise<ApiResponse<boolean>> {
-    await delay(300);
-    const index = sampleLeads.findIndex(l => l.id === id);
-    if (index !== -1) {
-        sampleLeads.splice(index, 1);
+    try {
+        await api.delete(`/leads/${id}`);
+        return {
+            success: true,
+            data: true,
+        };
+    } catch (error) {
+        console.error('Error deleting lead:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to delete lead',
+            data: false
+        };
     }
-    return {
-        success: true,
-        data: true,
-    };
 }
 
 export async function exportLeads(

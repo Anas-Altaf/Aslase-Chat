@@ -94,6 +94,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
     contactPhone: '',
     urls: [''],
   });
+  const [businessDocuments, setBusinessDocuments] = useState<File[]>([]);
 
   const userName = user?.displayName || 'User';
   const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -118,14 +119,20 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
     if (!newBusiness.name.trim()) return;
     setIsCreatingBusiness(true);
     try {
+      console.log('Creating business with documents:', businessDocuments.length);
+      console.log('Files:', businessDocuments.map(f => ({ name: f.name, size: f.size, type: f.type })));
+      
       await addBusiness({
         ...newBusiness,
         urls: newBusiness.urls.filter(u => u.trim()),
-      });
+      }, businessDocuments);
+      
       toast.success('Business created successfully');
       setIsCreateBusinessOpen(false);
       setNewBusiness({ name: '', description: '', contactEmail: '', contactPhone: '', urls: [''] });
+      setBusinessDocuments([]);
     } catch (error) {
+      console.error('Error creating business:', error);
       toast.error('Failed to create business');
     } finally {
       setIsCreatingBusiness(false);
@@ -162,6 +169,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
   };
 
   const handleBusinessesTabClick = () => {
+    console.log('🟢 Businesses tab clicked, navigating to /user-dashboard/businesses');
     router.push('/user-dashboard/businesses');
   };
 
@@ -217,8 +225,13 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                 <Button
                   variant={pathname.includes('/chatbot') ? 'secondary' : 'ghost'}
                   size="icon"
-                  className="h-10 w-10"
-                  onClick={handleChatbotsTabClick}
+                  className="h-10 w-10 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleChatbotsTabClick();
+                  }}
+                  type="button"
                 >
                   <Bot className="w-5 h-5" />
                 </Button>
@@ -232,8 +245,13 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                 <Button
                   variant={pathname.includes('/businesses') ? 'secondary' : 'ghost'}
                   size="icon"
-                  className="h-10 w-10"
-                  onClick={handleBusinessesTabClick}
+                  className="h-10 w-10 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleBusinessesTabClick();
+                  }}
+                  type="button"
                 >
                   <Building2 className="w-5 h-5" />
                 </Button>
@@ -325,22 +343,6 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="chatbot-model">Model</Label>
-                <Select
-                  value={newChatbot.model}
-                  onValueChange={(value) => setNewChatbot({ ...newChatbot, model: value as Chatbot['model'] })}
-                >
-                  <SelectTrigger id="chatbot-model">
-                    <SelectValue placeholder="Select a model" />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4}>
-                    <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                    <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                    <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="chatbot-visibility">Visibility</Label>
                 <Select
                   value={newChatbot.visibility}
@@ -417,6 +419,25 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                   />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="biz-documents">Business Documents (PDF, DOCX)</Label>
+                <Input
+                  id="biz-documents"
+                  type="file"
+                  accept=".pdf,.docx"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setBusinessDocuments(files);
+                  }}
+                  className="cursor-pointer"
+                />
+                {businessDocuments.length > 0 && (
+                  <div className="text-sm text-gray-600">
+                    {businessDocuments.length} file(s) selected
+                  </div>
+                )}
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateBusinessOpen(false)}>
@@ -468,11 +489,14 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
           {/* Chatbots Section */}
           <div>
             <div className="flex items-center justify-between">
-              <div className="flex-1 flex items-center gap-2 px-2.5 py-2 rounded-lg">
+              <button
+                onClick={handleChatbotsTabClick}
+                className="flex-1 flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+              >
                 <Bot className="w-4 h-4 text-gray-700" />
                 <span className="font-medium text-sm text-gray-700">Chatbots</span>
                 <Badge variant="secondary" className="ml-auto text-xs">{chatbots.length}</Badge>
-              </div>
+              </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -562,11 +586,14 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
           {/* Businesses Section */}
           <div>
             <div className="flex items-center justify-between">
-              <div className="flex-1 flex items-center gap-2 px-2.5 py-2 rounded-lg">
+              <button
+                onClick={handleBusinessesTabClick}
+                className="flex-1 flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+              >
                 <Building2 className="w-4 h-4 text-gray-700" />
                 <span className="font-medium text-sm text-gray-700">Businesses</span>
                 <Badge variant="secondary" className="ml-auto text-xs">{businesses.length}</Badge>
-              </div>
+              </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-7 w-7">
