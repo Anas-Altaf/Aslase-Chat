@@ -79,7 +79,7 @@ export default function Hero1() {
 
           {/* Subtitle */}
           <p
-            className={`mt-10 text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto font-medium leading-relaxed transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            className={`mt-10 text-lg sm:text-xl text-white-600 max-w-3xl mx-auto font-medium leading-relaxed transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
           >
             Give your website, app, or business the power to{' '}
@@ -109,7 +109,7 @@ export default function Hero1() {
 
           {/* Trust badges */}
           <div
-            className={`mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10 text-gray-600 transition-all duration-700 delay-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            className={`mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10 text-white-600 transition-all duration-700 delay-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
           >
             {[
