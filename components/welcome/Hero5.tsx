@@ -6,7 +6,7 @@ import { ArrowRight, Sparkles, Mail, Bot } from 'lucide-react';
 
 export default function Hero5() {
   return (
-    <section className="py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/50 relative overflow-hidden">
+    <section className="py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-900 via-slate-900/10 to-slate-900 relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute top-10 left-10 w-64 h-64 bg-green-200/30 rounded-full blur-3xl"></div>
       <div className="absolute bottom-10 right-10 w-80 h-80 bg-emerald-200/30 rounded-full blur-3xl"></div>
@@ -32,14 +32,14 @@ export default function Hero5() {
           </div>
 
           {/* Main heading */}
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 tracking-tight mb-6">
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight mb-6">
             Get a <span className="gradient-text">Free Chatbot</span>
             <br />
             for Your Business
           </h2>
 
           {/* Subheading */}
-          <p className="text-lg sm:text-xl text-gray-600 font-medium mb-10 max-w-2xl mx-auto">
+          <p className="text-lg sm:text-xl text-white font-medium mb-10 max-w-2xl mx-auto">
             Start for free today – <span className="text-green-600 font-semibold">no credit card required</span>.
             Transform your customer experience in minutes.
           </p>
