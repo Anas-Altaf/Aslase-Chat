@@ -25,7 +25,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Bot, Plus, Trash2, Building2, Calendar } from 'lucide-react';
+import { Bot, Plus, Trash2, Building2, Calendar, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Chatbot } from '@/types';
 
@@ -43,14 +43,87 @@ export default function ChatbotsListPage() {
         model: 'gpt-4o-mini' as Chatbot['model'], // Fixed to gpt-4o-mini
         visibility: 'public' as Chatbot['visibility'],
     });
+    const [errors, setErrors] = useState({
+        name: '',
+        businessId: '',
+    });
+    const [touched, setTouched] = useState({
+        name: false,
+        businessId: false,
+    });
+
+    const validateName = (value: string): string => {
+        if (!value.trim()) {
+            return 'Chatbot name is required';
+        }
+        if (value.trim().length < 2) {
+            return 'Name must be at least 2 characters';
+        }
+        if (value.trim().length > 50) {
+            return 'Name must be less than 50 characters';
+        }
+        return '';
+    };
+
+    const validateBusinessId = (value: string): string => {
+        if (!value) {
+            return 'Business selection is required';
+        }
+        return '';
+    };
+
+    const handleNameChange = (value: string) => {
+        setNewChatbot({ ...newChatbot, name: value });
+        if (touched.name) {
+            setErrors({ ...errors, name: validateName(value) });
+        }
+    };
+
+    const handleNameBlur = () => {
+        setTouched({ ...touched, name: true });
+        setErrors({ ...errors, name: validateName(newChatbot.name) });
+    };
+
+    const handleBusinessChange = (value: string) => {
+        setNewChatbot({ ...newChatbot, businessId: value });
+        if (touched.businessId) {
+            setErrors({ ...errors, businessId: validateBusinessId(value) });
+        }
+    };
+
+    const handleBusinessBlur = () => {
+        setTouched({ ...touched, businessId: true });
+        setErrors({ ...errors, businessId: validateBusinessId(newChatbot.businessId) });
+    };
 
     const handleCreate = async () => {
-        if (!newChatbot.name.trim() || !newChatbot.businessId) return;
+        // Validate all fields
+        const nameError = validateName(newChatbot.name);
+        const businessError = validateBusinessId(newChatbot.businessId);
+        
+        setErrors({
+            name: nameError,
+            businessId: businessError,
+        });
+        
+        setTouched({
+            name: true,
+            businessId: true,
+        });
+
+        // Check for errors
+        if (nameError || businessError) {
+            toast.error('Please fix all validation errors');
+            return;
+        }
+
         try {
             await addChatbot(newChatbot);
             toast.success('Chatbot created successfully');
             setIsCreateOpen(false);
             setNewChatbot({ name: '', businessId: '', model: 'gpt-4o-mini', visibility: 'public' });
+            setErrors({ name: '', businessId: '' });
+            setTouched({ name: false, businessId: false });
         } catch (error) {
             toast.error('Failed to create chatbot');
         }
@@ -206,31 +279,76 @@ export default function ChatbotsListPage() {
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="bot-name">Name *</Label>
-                            <Input
-                                id="bot-name"
-                                placeholder="My Chatbot"
-                                value={newChatbot.name}
-                                onChange={(e) => setNewChatbot({ ...newChatbot, name: e.target.value })}
-                            />
+                            <Label htmlFor="bot-name" className="text-gray-700 font-medium">
+                                Chatbot Name <span className="text-red-500">*</span>
+                            </Label>
+                            <div className="relative">
+                                <Input
+                                    id="bot-name"
+                                    placeholder="e.g., Customer Support Bot"
+                                    value={newChatbot.name}
+                                    onChange={(e) => handleNameChange(e.target.value)}
+                                    onBlur={handleNameBlur}
+                                    className={`transition-all ${
+                                        errors.name && touched.name
+                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                            : 'border-gray-300 focus:border-green-500 focus:ring-green-500'
+                                    }`}
+                                />
+                                {errors.name && touched.name && (
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                        <AlertCircle className="w-4 h-4 text-red-500" />
+                                    </div>
+                                )}
+                            </div>
+                            {errors.name && touched.name && (
+                                <p className="text-xs text-red-600 flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" />
+                                    {errors.name}
+                                </p>
+                            )}
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="bot-business">Business *</Label>
+                            <Label htmlFor="bot-business" className="text-gray-700 font-medium">
+                                Business <span className="text-red-500">*</span>
+                            </Label>
                             <Select
                                 value={newChatbot.businessId}
-                                onValueChange={(value) => setNewChatbot({ ...newChatbot, businessId: value })}
+                                onValueChange={handleBusinessChange}
+                                onOpenChange={(open) => {
+                                    if (!open) handleBusinessBlur();
+                                }}
                             >
-                                <SelectTrigger id="bot-business">
+                                <SelectTrigger 
+                                    id="bot-business"
+                                    className={`transition-all ${
+                                        errors.businessId && touched.businessId
+                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                                            : 'border-gray-300 focus:border-green-500 focus:ring-green-500'
+                                    }`}
+                                >
                                     <SelectValue placeholder="Select a business" />
                                 </SelectTrigger>
                                 <SelectContent position="popper" sideOffset={4}>
-                                    {businesses.map((business, index) => (
-                                        <SelectItem key={`select-biz-${business.id}-${index}`} value={business.id}>
-                                            {business.name}
-                                        </SelectItem>
-                                    ))}
+                                    {businesses.length === 0 ? (
+                                        <div className="p-4 text-sm text-gray-500 text-center">
+                                            No businesses available. Create a business first.
+                                        </div>
+                                    ) : (
+                                        businesses.map((business, index) => (
+                                            <SelectItem key={`select-biz-${business.id}-${index}`} value={business.id}>
+                                                {business.name}
+                                            </SelectItem>
+                                        ))
+                                    )}
                                 </SelectContent>
                             </Select>
+                            {errors.businessId && touched.businessId && (
+                                <p className="text-xs text-red-600 flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" />
+                                    {errors.businessId}
+                                </p>
+                            )}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="bot-visibility">Visibility</Label>
@@ -249,9 +367,28 @@ export default function ChatbotsListPage() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                        <Button onClick={handleCreate} disabled={isMutating || !newChatbot.name.trim() || !newChatbot.businessId}>
-                            {isMutating ? 'Creating...' : 'Create'}
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                setIsCreateOpen(false);
+                                setErrors({ name: '', businessId: '' });
+                                setTouched({ name: false, businessId: false });
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={handleCreate} 
+                            disabled={
+                                isMutating || 
+                                !newChatbot.name.trim() || 
+                                !newChatbot.businessId ||
+                                (touched.name && errors.name !== '') ||
+                                (touched.businessId && errors.businessId !== '')
+                            }
+                            className="disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isMutating ? 'Creating...' : 'Create Chatbot'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
