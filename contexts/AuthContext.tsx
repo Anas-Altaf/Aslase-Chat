@@ -10,6 +10,7 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
@@ -22,6 +23,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   updateUserProfile: (data: { displayName?: string; photoURL?: string }) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -32,6 +34,7 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGoogle: async () => { },
   logout: async () => { },
   updateUserProfile: async () => { },
+  resetPassword: async () => { },
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -131,6 +134,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setUser({ ...auth.currentUser });
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email, {
+        url: `${window.location.origin}/sign-in`,
+        handleCodeInApp: false,
+      });
+    } catch (error: any) {
+      console.error('Error sending password reset email:', error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -139,6 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     signInWithGoogle,
     logout,
     updateUserProfile,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
