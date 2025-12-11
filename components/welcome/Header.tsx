@@ -43,14 +43,14 @@ export default function Header() {
         <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-br from-green-400 via-emerald-500 to-teal-500 opacity-80"></div>
 
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
+          <div className="flex items-center justify-between h-20 ">
             {/* Logo */}
             <Link href="/" className="flex items-center group">
-              <div className="relative">
+              <div className="relative ">
                 <img
                   src="/AslasChat.jpg"
                   alt="AslasChat"
-                  className="h-16 w-auto transition-transform duration-300 group-hover:scale-105"
+                  className="h-16 w-auto transition-transform duration-300 group-hover:scale-105 rounded-full"
                 />
                 <div className="absolute -inset-2 bg-linear-to-br from-green-400/20 to-emerald-400/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>
