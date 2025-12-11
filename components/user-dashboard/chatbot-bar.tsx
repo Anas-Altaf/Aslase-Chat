@@ -501,19 +501,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                 <span className="font-medium text-sm text-gray-700">Chatbots</span>
                 <Badge variant="secondary" className="ml-auto text-xs">{chatbots.length}</Badge>
               </button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setIsCreateChatbotOpen(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Chatbot
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+             
             </div>
 
             {/* Chatbots List */}
@@ -604,19 +592,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                 <span className="font-medium text-sm text-gray-700">Businesses</span>
                 <Badge variant="secondary" className="ml-auto text-xs">{businesses.length}</Badge>
               </button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setIsCreateBusinessOpen(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Business
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              
             </div>
 
             {/* Businesses List */}
