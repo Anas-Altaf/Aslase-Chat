@@ -136,6 +136,27 @@ export async function deleteChatbot(id: string): Promise<ApiResponse<void>> {
 }
 
 // ==========================================
+// CHATBOT TRAINING
+// ==========================================
+
+export async function trainChatbot(
+  chatbotId: string,
+): Promise<ApiResponse<{ success: boolean }>> {
+  try {
+    // Trigger re-training by updating the chatbot via the existing PATCH endpoint
+    await api.patch(`/chatbots/${chatbotId}`, { isActive: true });
+    return { success: true, data: { success: true } };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to train chatbot",
+      data: { success: false },
+    };
+  }
+}
+
+// ==========================================
 // CHATBOT SETTINGS
 // ==========================================
 
