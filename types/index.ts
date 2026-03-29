@@ -80,7 +80,10 @@ export interface ChatSession {
     messages: ChatMessage[];
     source: 'embed' | 'api' | 'playground';
     confidenceScore: number;
+    isAnonymous?: boolean;
+    messageCount?: number;
     createdAt: string;
+    updatedAt?: string;
 }
 
 // ==========================================
@@ -173,6 +176,37 @@ export interface ChatQuery {
     replySentiment: SentimentType;
     leadCaptured: boolean;
     createdAt: string;
+}
+
+// ==========================================
+// USER TYPES
+// ==========================================
+
+export interface User {
+    id: string;           // mapped from _id
+    uid: string;          // Firebase UID
+    email: string;
+    displayName: string;
+    phoneNumber?: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// ==========================================
+// BUSINESS ANALYTICS TYPES
+// ==========================================
+
+export interface BusinessAnalytics {
+    businessId: string;
+    totals: {
+        totalConversations: number;
+        totalMessages: number;
+        totalLeads: number;
+        totalQueries: number;
+        sentimentBreakdown: SentimentBreakdown;
+    };
+    perChatbot: ChatbotAnalytics[];
 }
 
 // ==========================================

@@ -47,6 +47,10 @@ export default function Queries() {
   const [anonFilter, setAnonFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [appliedFrom, setAppliedFrom] = useState('');
+  const [appliedTo, setAppliedTo] = useState('');
 
   // Delete state
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -64,6 +68,8 @@ export default function Queries() {
         sentiment: sentimentFilter !== 'all' ? (sentimentFilter as SentimentType) : undefined,
         isAnonymous: anonFilter !== 'all' ? anonFilter === 'true' : undefined,
         search: search || undefined,
+        from: appliedFrom || undefined,
+        to: appliedTo || undefined,
         page,
         limit: PAGE_SIZE,
       });
@@ -83,10 +89,24 @@ export default function Queries() {
   useEffect(() => {
     if (!selectedChatbot) { setQueries([]); setTotal(0); return; }
     loadQueries();
-  }, [selectedChatbot?.id, sentimentFilter, anonFilter, search, page]);
+  }, [selectedChatbot?.id, sentimentFilter, anonFilter, search, appliedFrom, appliedTo, page]);
 
   const handleSearch = () => {
     setSearch(searchInput);
+    setPage(1);
+  };
+
+  const handleApplyDates = () => {
+    setAppliedFrom(fromDate);
+    setAppliedTo(toDate);
+    setPage(1);
+  };
+
+  const handleClearDates = () => {
+    setFromDate('');
+    setToDate('');
+    setAppliedFrom('');
+    setAppliedTo('');
     setPage(1);
   };
 
@@ -171,7 +191,7 @@ export default function Queries() {
       </div>
 
       {/* Filters */}
-      <Card className="p-3 mb-4 shrink-0">
+      <Card className="p-3 mb-4 shrink-0 space-y-2">
         <div className="flex gap-2 flex-wrap items-center">
           <Select
             value={sentimentFilter}
@@ -214,6 +234,30 @@ export default function Queries() {
               <Search className="w-4 h-4" />
             </Button>
           </div>
+        </div>
+        <div className="flex gap-2 flex-wrap items-center">
+          <span className="text-xs font-medium text-gray-500 shrink-0">From:</span>
+          <Input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="h-8 text-sm w-36"
+          />
+          <span className="text-xs font-medium text-gray-500 shrink-0">To:</span>
+          <Input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="h-8 text-sm w-36"
+          />
+          <Button size="sm" className="h-8" onClick={handleApplyDates}>
+            Apply
+          </Button>
+          {(appliedFrom || appliedTo) && (
+            <Button size="sm" variant="ghost" className="h-8 text-gray-400" onClick={handleClearDates}>
+              Clear
+            </Button>
+          )}
         </div>
       </Card>
 

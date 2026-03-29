@@ -18,7 +18,8 @@ import {
   Bell,
   Shield,
   Palette,
-  Search
+  Search,
+  User as UserIcon,
 } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,7 @@ export default function Menubar() {
         { label: 'Leads', href: '/user-dashboard/leads', icon: Users },
         { label: 'Queries', href: '/user-dashboard/queries', icon: Search },
         { label: 'Analytics', href: '/user-dashboard/analytics', icon: BarChart },
+        { label: 'Users', href: '/user-dashboard/users', icon: UserIcon },
       ],
     },
     {

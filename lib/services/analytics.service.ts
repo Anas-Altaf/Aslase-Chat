@@ -1,5 +1,6 @@
 import type {
   ChatbotAnalytics,
+  BusinessAnalytics,
   Integration,
   ApiResponse,
 } from "@/types";
@@ -32,6 +33,26 @@ export async function getAnalytics(
   chatbotId: string,
 ): Promise<ApiResponse<ChatbotAnalytics>> {
   return getChatbotAnalytics(chatbotId);
+}
+
+export async function getBusinessAnalytics(
+  businessId: string,
+): Promise<ApiResponse<BusinessAnalytics>> {
+  try {
+    const data = await api.get<BusinessAnalytics>(
+      `/analytics/business/${businessId}`,
+    );
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch business analytics",
+      data: null as unknown as BusinessAnalytics,
+    };
+  }
 }
 
 // ==========================================

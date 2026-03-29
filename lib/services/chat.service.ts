@@ -23,7 +23,10 @@ interface BackendChat {
   _id: string;
   chatbotId: string;
   messages: BackendMessage[];
+  isAnonymous?: boolean;
+  messageCount?: number;
   createdAt: string;
+  updatedAt?: string;
 }
 
 interface BackendLead {
@@ -47,7 +50,7 @@ function convertChat(chat: BackendChat): ChatSession {
   return {
     id: chat._id,
     chatbotId: chat.chatbotId,
-    messages: chat.messages.map((msg, index) => ({
+    messages: (chat.messages ?? []).map((msg, index) => ({
       id: `${chat._id}-${index}`,
       role: msg.role,
       content: msg.content,
@@ -55,7 +58,10 @@ function convertChat(chat: BackendChat): ChatSession {
     })),
     source: "embed" as const,
     confidenceScore: 0,
+    isAnonymous: chat.isAnonymous ?? true,
+    messageCount: chat.messageCount ?? (chat.messages?.length ?? 0),
     createdAt: chat.createdAt,
+    updatedAt: chat.updatedAt,
   };
 }
 
@@ -100,27 +106,36 @@ export async function sendChatMessage(
 
 export async function getChatSessions(
   chatbotId: string,
-  _filters?: {
-    source?: string;
-    startDate?: string;
-    endDate?: string;
+  filters?: {
+    page?: number;
+    limit?: number;
+    isAnonymous?: boolean;
   },
 ): Promise<ApiResponse<PaginatedResponse<ChatSession>>> {
   try {
+    const page = filters?.page ?? 1;
+    const limit = filters?.limit ?? 50;
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (filters?.isAnonymous !== undefined) {
+      params.set("isAnonymous", String(filters.isAnonymous));
+    }
+
+    // Owner endpoint — returns ALL conversations for this chatbot (not just own chats)
     const result = await api.get<BackendPaginatedResult<BackendChat>>(
-      `/chatbots/chat/user/all?chatbotId=${chatbotId}&page=1&limit=50`,
+      `/chatbots/${chatbotId}/chats?${params.toString()}`,
     );
 
     const sessions = (result.data ?? []).map(convertChat);
+    const totalPages = result.totalPages ?? (result as any).pages ?? 1;
 
     return {
       success: true,
       data: {
         items: sessions,
         total: result.total ?? sessions.length,
-        page: result.page ?? 1,
-        pageSize: result.limit ?? 50,
-        hasMore: (result.page ?? 1) < (result.totalPages ?? 1),
+        page: result.page ?? page,
+        pageSize: result.limit ?? limit,
+        hasMore: (result.page ?? page) < totalPages,
       },
     };
   } catch (error) {
@@ -135,20 +150,26 @@ export async function getChatSessions(
   }
 }
 
-export async function getChatSessionById(
-  id: string,
+export async function getChatHistory(
+  chatId: string,
 ): Promise<ApiResponse<ChatSession | null>> {
   try {
-    const chat = await api.get<BackendChat>(`/chatbots/chat/${id}`);
+    const chat = await api.get<BackendChat>(`/chatbots/chat/${chatId}`);
     return { success: true, data: convertChat(chat) };
   } catch (error) {
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "Chat session not found",
+        error instanceof Error ? error.message : "Failed to load chat history",
       data: null,
     };
   }
+}
+
+export async function getChatSessionById(
+  id: string,
+): Promise<ApiResponse<ChatSession | null>> {
+  return getChatHistory(id);
 }
 
 export async function exportChatSessions(

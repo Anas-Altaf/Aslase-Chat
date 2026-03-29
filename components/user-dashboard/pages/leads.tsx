@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Mail, Phone, User, Trash2, Tag, Info } from 'lucide-react';
+import { Mail, Phone, User, Trash2, Tag, Info, Filter } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { getLeads, deleteLead, updateLead } from '@/lib/services';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -47,6 +48,10 @@ export default function Leads() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [appliedFrom, setAppliedFrom] = useState('');
+  const [appliedTo, setAppliedTo] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -57,6 +62,8 @@ export default function Leads() {
     try {
       const res = await getLeads(selectedChatbot.id, {
         status: statusFilter !== 'all' ? statusFilter : undefined,
+        from: appliedFrom || undefined,
+        to: appliedTo || undefined,
       });
       if (res.success) {
         setLeads(res.data.items);
@@ -73,7 +80,19 @@ export default function Leads() {
   useEffect(() => {
     if (!selectedChatbot) { setLeads([]); return; }
     loadLeads();
-  }, [selectedChatbot?.id, statusFilter]);
+  }, [selectedChatbot?.id, statusFilter, appliedFrom, appliedTo]);
+
+  const handleApplyDateFilter = () => {
+    setAppliedFrom(fromDate);
+    setAppliedTo(toDate);
+  };
+
+  const handleClearDates = () => {
+    setFromDate('');
+    setToDate('');
+    setAppliedFrom('');
+    setAppliedTo('');
+  };
 
   const handleStatusChange = async (lead: Lead, newStatus: LeadStatus) => {
     setUpdatingId(lead.id);
@@ -141,11 +160,11 @@ export default function Leads() {
       </div>
 
       {/* Filters */}
-      <Card className="p-3 mb-4 shrink-0">
-        <div className="flex gap-2 items-center">
+      <Card className="p-3 mb-4 shrink-0 space-y-2">
+        <div className="flex flex-wrap gap-2 items-center">
           <span className="text-xs font-medium text-gray-500 shrink-0">Status:</span>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-36 h-8 text-sm">
+            <SelectTrigger className="w-32 h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -156,6 +175,29 @@ export default function Leads() {
               <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
+          <span className="text-xs font-medium text-gray-500 shrink-0">From:</span>
+          <Input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="h-8 text-sm w-36"
+          />
+          <span className="text-xs font-medium text-gray-500 shrink-0">To:</span>
+          <Input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="h-8 text-sm w-36"
+          />
+          <Button size="sm" className="h-8" onClick={handleApplyDateFilter}>
+            <Filter className="w-3 h-3 mr-1" />
+            Apply
+          </Button>
+          {(appliedFrom || appliedTo) && (
+            <Button size="sm" variant="ghost" className="h-8 text-gray-400" onClick={handleClearDates}>
+              Clear
+            </Button>
+          )}
         </div>
       </Card>
 

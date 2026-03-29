@@ -1,136 +1,280 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Filter, Calendar, MessageCircle, User } from 'lucide-react';
+import {
+  Send,
+  MessageCircle,
+  User,
+  ChevronLeft,
+  ChevronRight,
+  ArrowLeft,
+  Bot,
+  UserCircle,
+  EyeOff,
+} from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
-import { getChatSessions, exportChatSessions, sendChatMessage } from '@/lib/services';
+import { getChatSessions, getChatHistory, sendChatMessage } from '@/lib/services';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import type { ChatSession } from '@/types';
+import type { ChatSession, ChatMessage } from '@/types';
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+type RightPanelMode = 'playground' | 'history';
+
+// ── Session Card ─────────────────────────────────────────────────────────────
+
+function SessionCard({
+  session,
+  isSelected,
+  onClick,
+}: {
+  session: ChatSession;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  const firstUserMsg = session.messages.find((m) => m.role === 'user');
+  const msgCount = session.messageCount ?? session.messages.length;
+  const preview = firstUserMsg?.content ?? 'Session started';
+
+  return (
+    <Card
+      onClick={onClick}
+      className={cn(
+        'p-3 cursor-pointer transition-all duration-200 hover:shadow-md',
+        isSelected ? 'border-green-500 bg-green-50 shadow-md' : 'hover:border-gray-300',
+      )}
+    >
+      <div className="flex items-start gap-2.5">
+        <div
+          className={cn(
+            'rounded-full p-1.5 shrink-0 mt-0.5',
+            session.isAnonymous ? 'bg-gray-100' : 'bg-green-100',
+          )}
+        >
+          {session.isAnonymous ? (
+            <EyeOff className="w-3.5 h-3.5 text-gray-500" />
+          ) : (
+            <UserCircle className="w-3.5 h-3.5 text-green-600" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-sm font-medium text-gray-900 truncate">
+              {session.isAnonymous ? 'Anonymous visitor' : 'Identified user'}
+            </span>
+            {session.isAnonymous && (
+              <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-medium shrink-0">
+                Anon
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-500 truncate mb-1">{preview}</p>
+          <div className="flex items-center gap-2 text-[11px] text-gray-400">
+            <MessageCircle className="w-3 h-3" />
+            <span>{msgCount} msg{msgCount !== 1 ? 's' : ''}</span>
+            <span>·</span>
+            <span>{new Date(session.createdAt).toLocaleDateString()}</span>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// ── Message Bubble ────────────────────────────────────────────────────────────
+
+function MessageBubble({ msg }: { msg: ChatMessage }) {
+  const isUser = msg.role === 'user';
+  return (
+    <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
+      <div className="flex items-end gap-2 max-w-[80%]">
+        {!isUser && (
+          <div className="rounded-full bg-green-100 p-1 shrink-0">
+            <Bot className="w-3 h-3 text-green-600" />
+          </div>
+        )}
+        <div
+          className={cn(
+            'px-3 py-2 rounded-2xl text-sm leading-relaxed',
+            isUser
+              ? 'bg-green-500 text-white rounded-br-sm'
+              : 'bg-gray-100 text-gray-900 rounded-bl-sm',
+          )}
+        >
+          {msg.content}
+          {msg.timestamp && (
+            <p
+              className={cn(
+                'text-[10px] mt-1',
+                isUser ? 'text-green-100' : 'text-gray-400',
+              )}
+            >
+              {new Date(msg.timestamp).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </p>
+          )}
+        </div>
+        {isUser && (
+          <div className="rounded-full bg-gray-200 p-1 shrink-0">
+            <User className="w-3 h-3 text-gray-600" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
 
 export default function ChatLogs() {
   const { selectedChatbot, isInitialLoading } = useChatbot();
+
+  // Session list state
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [sourceFilter, setSourceFilter] = useState<string>('all');
-  const [message, setMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [currentChatId, setCurrentChatId] = useState<string | undefined>(undefined);
-  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
-    { role: 'assistant', content: 'Hi! How can I help?' },
-  ]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const LIMIT = 20;
 
-  // Load sessions when chatbot changes
+  // Right panel state
+  const [mode, setMode] = useState<RightPanelMode>('playground');
+  const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // Playground state
+  const [playMessage, setPlayMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [currentChatId, setCurrentChatId] = useState<string | undefined>();
+  const [chatMessages, setChatMessages] = useState<
+    Array<{ role: 'user' | 'assistant'; content: string }>
+  >([{ role: 'assistant', content: 'Hi! How can I help?' }]);
+
+  const historyBottomRef = useRef<HTMLDivElement>(null);
+  const playBottomRef = useRef<HTMLDivElement>(null);
+
+  // ── Load sessions ────────────────────────────────────────────────────────
+
+  const loadSessions = useCallback(
+    async (p = page) => {
+      if (!selectedChatbot) return;
+      setIsLoading(true);
+      try {
+        const res = await getChatSessions(selectedChatbot.id, { page: p, limit: LIMIT });
+        if (res.success) {
+          setSessions(res.data.items);
+          setTotal(res.data.total);
+          setTotalPages(Math.ceil(res.data.total / LIMIT) || 1);
+        } else {
+          toast.error(res.error ?? 'Failed to load chat sessions');
+        }
+      } catch {
+        toast.error('Failed to load chat sessions');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [selectedChatbot, page],
+  );
+
   useEffect(() => {
     if (!selectedChatbot) {
       setSessions([]);
+      setTotal(0);
+      setTotalPages(1);
+      setPage(1);
+      setMode('playground');
+      setSelectedSession(null);
       return;
     }
-    
-    loadSessions();
+    loadSessions(1);
+    setPage(1);
   }, [selectedChatbot?.id]);
 
-  const loadSessions = useCallback(async () => {
-    if (!selectedChatbot) return;
-    setIsLoading(true);
-    try {
-      const response = await getChatSessions(selectedChatbot.id, {
-        source: sourceFilter === 'all' ? undefined : sourceFilter,
-      });
-      if (response.success) {
-        setSessions(response.data.items);
-      }
-    } catch (error) {
-      toast.error('Failed to load chat sessions');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedChatbot, sourceFilter]);
+  // ── Pagination ────────────────────────────────────────────────────────────
 
-  const handleFilter = () => {
-    loadSessions();
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    loadSessions(newPage);
   };
 
-  const handleExport = async () => {
-    if (!selectedChatbot) return;
-    setIsExporting(true);
+  // ── History viewer ────────────────────────────────────────────────────────
+
+  const handleSelectSession = async (session: ChatSession) => {
+    setSelectedSession(session);
+    setMode('history');
+
+    // If messages are already loaded (list endpoint includes them), use them
+    if (session.messages.length > 0) return;
+
+    setIsLoadingHistory(true);
     try {
-      const response = await exportChatSessions(selectedChatbot.id);
-      if (response.success) {
-        toast.success('Export ready! Download link: ' + response.data);
+      const res = await getChatHistory(session.id);
+      if (res.success && res.data) {
+        setSelectedSession(res.data);
+      } else {
+        toast.error(res.error ?? 'Failed to load chat history');
       }
-    } catch (error) {
-      toast.error('Failed to export chat logs');
+    } catch {
+      toast.error('Failed to load chat history');
     } finally {
-      setIsExporting(false);
+      setIsLoadingHistory(false);
     }
   };
+
+  useEffect(() => {
+    if (mode === 'history') {
+      historyBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [selectedSession?.messages.length, mode]);
+
+  // ── Playground ────────────────────────────────────────────────────────────
 
   const handleSendMessage = async () => {
-    if (!message.trim() || !selectedChatbot || isSending) return;
-    
-    const userMessage = message.trim();
-    setMessage('');
-    setIsSending(true);
+    if (!playMessage.trim() || !selectedChatbot || isSending) return;
 
-    // Add user message to UI immediately
-    setChatMessages(prev => [
-      ...prev,
-      { role: 'user', content: userMessage },
-    ]);
+    const userMsg = playMessage.trim();
+    setPlayMessage('');
+    setIsSending(true);
+    setChatMessages((prev) => [...prev, { role: 'user', content: userMsg }]);
 
     try {
-      // Send message to backend
-      const response = await sendChatMessage(
-        selectedChatbot.id,
-        userMessage,
-        currentChatId
-      );
-
-      // Store chat ID for subsequent messages
-      if (!currentChatId) {
-        setCurrentChatId(response.chatId);
-      }
-
-      // Add AI response to UI
-      setChatMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: response.message },
-      ]);
-
-      // Refresh chat sessions to show new chat
-      loadSessions();
-    } catch (error) {
-      console.error('Error sending message:', error);
+      const res = await sendChatMessage(selectedChatbot.id, userMsg, currentChatId);
+      if (!currentChatId) setCurrentChatId(res.chatId);
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: res.message }]);
+      loadSessions(page);
+    } catch {
       toast.error('Failed to send message');
-      
-      // Remove user message on error
-      setChatMessages(prev => prev.slice(0, -1));
-      setMessage(userMessage); // Restore message
+      setChatMessages((prev) => prev.slice(0, -1));
+      setPlayMessage(userMsg);
     } finally {
       setIsSending(false);
     }
   };
 
-  // Show skeleton only on initial app load
+  useEffect(() => {
+    if (mode === 'playground') {
+      playBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages.length, mode]);
+
+  // ── Early returns ─────────────────────────────────────────────────────────
+
   if (isInitialLoading) {
     return (
-      <div className="flex gap-6 h-full overflow-hidden">
-        <div className="flex-1 flex flex-col">
-          <Skeleton className="h-10 w-48 mb-4" />
-          <Skeleton className="h-32 mb-4" />
-          <Skeleton className="h-48" />
+      <div className="flex gap-4 h-full overflow-hidden">
+        <div className="flex-1 space-y-3">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-16" />
+          <Skeleton className="h-16" />
+          <Skeleton className="h-16" />
         </div>
         <Skeleton className="w-80 h-full" />
       </div>
@@ -145,145 +289,181 @@ export default function ChatLogs() {
     );
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
-    <div className="flex gap-6 h-full overflow-hidden">
-      {/* Left Section - Chat Logs */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-4 flex-shrink-0">
-          <h1 className="text-3xl font-bold text-gray-900">Chat Logs</h1>
-          <Button
-            variant="secondary"
-            onClick={handleExport}
-            disabled={isExporting}
-          >
-            {isExporting ? 'Exporting...' : 'Export'}
-          </Button>
+    <div className="flex gap-4 h-full overflow-hidden">
+      {/* ── Left: Session List ── */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <div className="flex items-center justify-between mb-3 shrink-0">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Chat Logs</h1>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {total} conversation{total !== 1 ? 's' : ''} total
+            </p>
+          </div>
         </div>
 
-        {/* Filters */}
-        <Card className="p-4 mb-4 flex-shrink-0">
-          <h3 className="text-gray-900 font-semibold mb-3 text-sm">Filters</h3>
-          <div className="flex gap-3 items-end mb-3">
-            <div className="flex-1">
-              <div className="flex gap-2 items-center">
-                <Input
-                  type="text"
-                  placeholder="Select a Date Range"
-                  className="flex-1"
-                />
-                <Calendar className="w-4 h-4 text-gray-400" />
-              </div>
+        {/* Sessions list */}
+        <div className="flex-1 overflow-y-auto space-y-2">
+          {isLoading && sessions.length === 0 ? (
+            <>
+              <Skeleton className="h-20" />
+              <Skeleton className="h-20" />
+              <Skeleton className="h-20" />
+            </>
+          ) : sessions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-32 text-gray-400">
+              <MessageCircle className="w-8 h-8 mb-2 opacity-50" />
+              <p className="text-sm">No conversations yet</p>
             </div>
-            <Button onClick={handleFilter} size="sm" disabled={isLoading}>
-              <Filter className="w-4 h-4" />
-              {isLoading ? 'Loading...' : 'Filter'}
+          ) : (
+            sessions.map((session) => (
+              <SessionCard
+                key={session.id}
+                session={session}
+                isSelected={selectedSession?.id === session.id}
+                onClick={() => handleSelectSession(session)}
+              />
+            ))
+          )}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-3 shrink-0 border-t border-gray-100 mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(page - 1)}
+              disabled={page <= 1 || isLoading}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Prev
+            </Button>
+            <span className="text-sm text-gray-500">
+              Page {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(page + 1)}
+              disabled={page >= totalPages || isLoading}
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Select value={sourceFilter} onValueChange={setSourceFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Source" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Sources</SelectItem>
-                <SelectItem value="embed">Embedded</SelectItem>
-                <SelectItem value="api">API</SelectItem>
-                <SelectItem value="playground">Playground</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Confidence Score" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Scores</SelectItem>
-                <SelectItem value="high">High (80%+)</SelectItem>
-                <SelectItem value="medium">Medium (50-80%)</SelectItem>
-                <SelectItem value="low">Low (&lt;50%)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </Card>
-
-        {/* Sessions */}
-        <div className="flex-1 overflow-y-auto">
-          <h3 className="text-gray-900 font-semibold mb-3 text-sm flex-shrink-0">Embedded Site Sessions</h3>
-          <div className="space-y-3">
-            {isLoading && sessions.length === 0 ? (
-              <>
-                <Skeleton className="h-20" />
-                <Skeleton className="h-20" />
-                <Skeleton className="h-20" />
-              </>
-            ) : sessions.length === 0 ? (
-              <p className="text-gray-500 text-sm text-center py-8">No chat sessions found</p>
-            ) : (
-              sessions.map((session) => (
-                <Card key={session.id} className="p-3">
-                  <div className="flex items-start gap-2 mb-1">
-                    <User className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-gray-900 font-medium text-sm">
-                      {session.messages[0]?.role === 'user'
-                        ? `Customer: ${session.messages[0].content}`
-                        : 'Customer started chat'
-                      }
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-2 mb-1 ml-6">
-                    <MessageCircle className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-gray-700 text-sm">
-                      {session.messages[1]?.role === 'assistant'
-                        ? `Bot: ${session.messages[1].content.substring(0, 60)}...`
-                        : 'Bot responded'
-                      }
-                    </p>
-                  </div>
-                  <p className="text-gray-500 text-xs ml-6">
-                    {new Date(session.createdAt).toLocaleDateString()}
-                  </p>
-                </Card>
-              ))
-            )}
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Right Section - Chat Interface */}
-      <div className="w-80 flex flex-col flex-shrink-0 overflow-hidden">
-        <h2 className="text-2xl font-bold text-gray-900 mb-3 flex-shrink-0">Chatbot</h2>
-        <Card className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 space-y-3 mb-3 overflow-y-auto p-3">
-            {chatMessages.map((msg, index) => (
-              <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`px-3 py-2 rounded-lg max-w-xs text-sm ${
-                    msg.role === 'user'
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 text-gray-900'
-                  }`}
-                >
-                  {msg.content}
-                </div>
+      {/* ── Right: Playground or History ── */}
+      <div className="w-80 flex flex-col shrink-0 overflow-hidden">
+        {mode === 'history' && selectedSession ? (
+          <>
+            {/* History header */}
+            <div className="flex items-center gap-2 mb-3 shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setMode('playground'); setSelectedSession(null); }}
+                className="text-gray-500 hover:text-gray-900 -ml-1"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back
+              </Button>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">Conversation</p>
+                <p className="text-[11px] text-gray-400">
+                  {new Date(selectedSession.createdAt).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                  {' · '}
+                  {selectedSession.messageCount ?? selectedSession.messages.length} messages
+                </p>
               </div>
-            ))}
-          </div>
-          <div className="flex gap-2 p-3 flex-shrink-0 border-t border-gray-100">
-            <Input
-              type="text"
-              placeholder="Type your message..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !isSending && handleSendMessage()}
-              disabled={isSending}
-            />
-            <Button size="icon" onClick={handleSendMessage} disabled={isSending}>
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
-        </Card>
-        <p className="text-right text-gray-500 text-xs mt-2 flex-shrink-0">Powered by AslasChat</p>
+            </div>
+
+            {/* History thread */}
+            <Card className="flex-1 overflow-y-auto p-3 space-y-3">
+              {isLoadingHistory ? (
+                <>
+                  <Skeleton className="h-10 w-3/4" />
+                  <Skeleton className="h-10 w-2/3 ml-auto" />
+                  <Skeleton className="h-10 w-3/4" />
+                </>
+              ) : selectedSession.messages.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">No messages recorded</p>
+              ) : (
+                <>
+                  {selectedSession.messages.map((msg, i) => (
+                    <MessageBubble key={i} msg={msg} />
+                  ))}
+                  <div ref={historyBottomRef} />
+                </>
+              )}
+            </Card>
+          </>
+        ) : (
+          <>
+            {/* Playground header */}
+            <div className="mb-3 shrink-0">
+              <h2 className="text-lg font-bold text-gray-900">Chat Playground</h2>
+              <p className="text-xs text-gray-500">Test your chatbot live</p>
+            </div>
+
+            {/* Playground chat */}
+            <Card className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                {chatMessages.map((msg, i) => (
+                  <div
+                    key={i}
+                    className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}
+                  >
+                    <div
+                      className={cn(
+                        'px-3 py-2 rounded-2xl text-sm max-w-[85%] leading-relaxed',
+                        msg.role === 'user'
+                          ? 'bg-green-500 text-white rounded-br-sm'
+                          : 'bg-gray-100 text-gray-900 rounded-bl-sm',
+                      )}
+                    >
+                      {msg.content}
+                    </div>
+                  </div>
+                ))}
+                {isSending && (
+                  <div className="flex justify-start">
+                    <div className="px-3 py-2 rounded-2xl bg-gray-100 text-gray-500 text-sm rounded-bl-sm">
+                      <span className="animate-pulse">...</span>
+                    </div>
+                  </div>
+                )}
+                <div ref={playBottomRef} />
+              </div>
+              <div className="flex gap-2 p-3 shrink-0 border-t border-gray-100">
+                <Input
+                  placeholder="Type a message..."
+                  value={playMessage}
+                  onChange={(e) => setPlayMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && !isSending && handleSendMessage()}
+                  disabled={isSending}
+                  className="text-sm"
+                />
+                <Button
+                  size="icon"
+                  onClick={handleSendMessage}
+                  disabled={isSending || !playMessage.trim()}
+                  className="shrink-0"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </Card>
+          </>
+        )}
       </div>
     </div>
   );
