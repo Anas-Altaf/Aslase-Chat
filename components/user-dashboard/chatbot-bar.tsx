@@ -422,7 +422,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                 <Input
                   id="biz-documents"
                   type="file"
-                  accept=".pdf,.docx"
+                  accept=".pdf,.docx,.txt"
                   multiple
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);

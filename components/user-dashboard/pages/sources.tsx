@@ -264,7 +264,7 @@ export default function Sources() {
                   ref={fileInputRef}
                   type="file"
                   className="hidden"
-                  accept=".pdf,.doc,.docx"
+                  accept=".pdf,.doc,.docx,.txt"
                   multiple
                   onChange={handleFileSelect}
                   disabled={isUploading}

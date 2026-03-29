@@ -622,7 +622,7 @@ export default function BusinessesPage() {
                                     onChange={handleFileSelect}
                                     className="hidden"
                                     multiple
-                                    accept=".pdf,.docx"
+                                    accept=".pdf,.docx,.txt"
                                 />
                                 
                                 {pendingFiles.length === 0 ? (
