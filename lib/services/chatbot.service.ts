@@ -1,8 +1,11 @@
-import type { Chatbot, ChatbotSettings, ApiResponse } from "@/types";
+import type { Chatbot, ChatbotSettings, BackendChatbotSettings, ApiResponse } from "@/types";
 import { api } from "../api";
 import { auth } from "@/lib/firebase/config";
 
-// Backend chatbot interface (matches backend schema)
+// ==========================================
+// BACKEND CHATBOT INTERFACE
+// ==========================================
+
 interface BackendChatbot {
   _id: string;
   name: string;
@@ -29,7 +32,7 @@ function convertBackendToFrontend(backendChatbot: BackendChatbot): Chatbot {
 }
 
 // ==========================================
-// CHATBOT API SERVICE
+// CHATBOT CRUD
 // ==========================================
 
 export async function getChatbots(): Promise<ApiResponse<Chatbot[]>> {
@@ -48,8 +51,7 @@ export async function getChatbots(): Promise<ApiResponse<Chatbot[]>> {
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to fetch chatbots",
+      error: error instanceof Error ? error.message : "Failed to fetch chatbots",
       data: [],
     };
   }
@@ -73,8 +75,8 @@ export async function getChatbotById(
 export async function createChatbot(data: {
   name: string;
   businessId: string;
-  model: Chatbot["model"];
-  visibility: Chatbot["visibility"];
+  model: string;
+  visibility: string;
 }): Promise<ApiResponse<Chatbot>> {
   try {
     const user = auth.currentUser;
@@ -85,7 +87,6 @@ export async function createChatbot(data: {
         data: null as unknown as Chatbot,
       };
     }
-
     const backendChatbot = await api.post<BackendChatbot>("/chatbots", {
       name: data.name,
       businessId: data.businessId,
@@ -96,8 +97,7 @@ export async function createChatbot(data: {
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to create chatbot",
+      error: error instanceof Error ? error.message : "Failed to create chatbot",
       data: null as unknown as Chatbot,
     };
   }
@@ -116,25 +116,8 @@ export async function updateChatbot(
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to update chatbot",
+      error: error instanceof Error ? error.message : "Failed to update chatbot",
       data: null as unknown as Chatbot,
-    };
-  }
-}
-
-export async function trainChatbot(
-  chatbotId: string,
-): Promise<ApiResponse<{ queued: boolean }>> {
-  try {
-    // Backend train endpoint may not be available in all environments yet.
-    await api.post(`/chatbots/${chatbotId}/train`, {});
-    return { success: true, data: { queued: true } };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to train chatbot",
-      data: { queued: false },
     };
   }
 }
@@ -146,45 +129,110 @@ export async function deleteChatbot(id: string): Promise<ApiResponse<void>> {
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to delete chatbot",
+      error: error instanceof Error ? error.message : "Failed to delete chatbot",
       data: undefined,
     };
   }
 }
 
 // ==========================================
-// CHATBOT SETTINGS (in-memory until backend endpoint exists)
+// CHATBOT SETTINGS
 // ==========================================
 
-const settingsStore: Record<string, ChatbotSettings> = {};
+const localKey = (id: string) => `chatbot_ui_settings_${id}`;
+
+const UI_DEFAULTS = {
+  placeholder: "Type your message...",
+  primaryColor: "#22c55e",
+  rateLimitPerMinute: 20,
+  requireEmailCapture: false,
+  emailNotifications: false,
+  notificationEmail: "",
+  webhookUrl: "",
+};
 
 export async function getChatbotSettings(
   chatbotId: string,
 ): Promise<ApiResponse<ChatbotSettings | null>> {
-  const settings = settingsStore[chatbotId] ?? null;
-  return { success: !!settings, data: settings };
+  try {
+    const backendSettings = await api.get<BackendChatbotSettings>(
+      `/chatbots/${chatbotId}/settings`,
+    );
+
+    const stored: Partial<ChatbotSettings> =
+      typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem(localKey(chatbotId)) ?? "{}")
+        : {};
+
+    const merged: ChatbotSettings = {
+      chatbotId,
+      name: stored.name ?? "",
+      model: backendSettings.model ?? "gpt-4o-mini",
+      temperature: backendSettings.temperature ?? 0.7,
+      maxTokens: backendSettings.maxTokens ?? 1024,
+      systemPromptOverride: backendSettings.systemPromptOverride,
+      welcomeMessage:
+        backendSettings.welcomeMessage ?? "Hi! How can I help you today?",
+      ...UI_DEFAULTS,
+      ...stored,
+    };
+
+    return { success: true, data: merged };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to load settings",
+      data: null,
+    };
+  }
 }
 
 export async function updateChatbotSettings(
   chatbotId: string,
   data: Partial<ChatbotSettings>,
 ): Promise<ApiResponse<ChatbotSettings>> {
-  const defaults: ChatbotSettings = {
-    chatbotId,
-    name: "",
-    model: "gpt-4o-mini",
-    temperature: 0.7,
-    maxTokens: 1024,
-    welcomeMessage: "Hi! How can I help you today?",
-    placeholder: "Type your message...",
-    primaryColor: "#22c55e",
-    rateLimitPerMinute: 20,
-    requireEmailCapture: false,
-    emailNotifications: false,
-    notificationEmail: "",
-    webhookUrl: "",
-  };
-  settingsStore[chatbotId] = { ...defaults, ...settingsStore[chatbotId], ...data, chatbotId };
-  return { success: true, data: settingsStore[chatbotId] };
+  try {
+    // Extract backend-relevant fields only
+    const backendFields: BackendChatbotSettings = {};
+    if (data.model !== undefined) backendFields.model = data.model;
+    if (data.temperature !== undefined) backendFields.temperature = data.temperature;
+    if (data.maxTokens !== undefined) backendFields.maxTokens = data.maxTokens;
+    if (data.systemPromptOverride !== undefined)
+      backendFields.systemPromptOverride = data.systemPromptOverride;
+    if (data.welcomeMessage !== undefined)
+      backendFields.welcomeMessage = data.welcomeMessage;
+
+    if (Object.keys(backendFields).length > 0) {
+      await api.patch(`/chatbots/${chatbotId}/settings`, backendFields);
+    }
+
+    // Persist all fields (including UI-only) to localStorage
+    const current: Partial<ChatbotSettings> =
+      typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem(localKey(chatbotId)) ?? "{}")
+        : {};
+    if (typeof window !== "undefined") {
+      localStorage.setItem(
+        localKey(chatbotId),
+        JSON.stringify({ ...current, ...data }),
+      );
+    }
+
+    const result = await getChatbotSettings(chatbotId);
+    return result.success && result.data
+      ? { success: true, data: result.data }
+      : {
+          success: false,
+          error: result.error ?? "Failed to reload settings",
+          data: null as unknown as ChatbotSettings,
+        };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to update settings",
+      data: null as unknown as ChatbotSettings,
+    };
+  }
 }

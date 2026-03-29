@@ -1,133 +1,163 @@
-import type {
-    Source,
-    SourceStats,
-    ApiResponse,
-} from '@/types';
+import type { Source, SourceStats, ApiResponse } from "@/types";
+import { api } from "../api";
 
 // ==========================================
-// SAMPLE DATA
+// BACKEND SHAPE
 // ==========================================
 
-const sampleSources: Source[] = [
-    {
-        id: 'src_1',
-        chatbotId: 'VUyBtr3F23QcD2fF',
-        type: 'file',
-        name: '1621154940000 Aadaas Hindusi.pdf',
-        characterCount: 20338,
-        createdAt: '2025-07-02T15:00:00Z',
-    },
-    {
-        id: 'src_2',
-        chatbotId: 'VUyBtr3F23QcD2fF',
-        type: 'file',
-        name: 'AslasChat_para.txt',
-        characterCount: 2778,
-        createdAt: '2025-07-02T15:05:00Z',
-    },
-    {
-        id: 'src_3',
-        chatbotId: 'VUyBtr3F23QcD2fF',
-        type: 'text',
-        name: 'Company Description',
-        characterCount: 37,
-        createdAt: '2025-07-02T15:10:00Z',
-    },
-];
+interface BackendSource {
+  _id: string;
+  chatbotId: string;
+  type: "url" | "document" | "text";
+  title: string;
+  content: string;
+  sourceUrl?: string;
+  fileName?: string;
+  createdAt: string;
+}
 
-// ==========================================
-// SIMULATED DELAY
-// ==========================================
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+function convertSource(s: BackendSource): Source {
+  return {
+    id: s._id,
+    chatbotId: s.chatbotId,
+    type: s.type,
+    title: s.title,
+    content: s.content,
+    sourceUrl: s.sourceUrl,
+    fileName: s.fileName,
+    characterCount: s.content?.length ?? 0,
+    createdAt: s.createdAt,
+  };
+}
 
 // ==========================================
 // SOURCES API SERVICE
 // ==========================================
 
-export async function getSources(chatbotId: string): Promise<ApiResponse<Source[]>> {
-    await delay(400);
-    const sources = sampleSources.filter(s => s.chatbotId === chatbotId);
+export async function getSources(
+  chatbotId: string,
+): Promise<ApiResponse<Source[]>> {
+  try {
+    const backendSources = await api.get<BackendSource[]>(
+      `/sources/chatbot/${chatbotId}`,
+    );
+    return { success: true, data: backendSources.map(convertSource) };
+  } catch (error) {
     return {
-        success: true,
-        data: sources,
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch sources",
+      data: [],
     };
+  }
 }
 
-export async function getSourceStats(chatbotId: string): Promise<ApiResponse<SourceStats>> {
-    await delay(200);
-    const sources = sampleSources.filter(s => s.chatbotId === chatbotId);
-
-    const stats: SourceStats = {
-        totalCharacters: sources.reduce((sum, s) => sum + s.characterCount, 0),
-        characterLimit: 1100000,
-        fileCount: sources.filter(s => s.type === 'file').length,
-        fileCharacters: sources.filter(s => s.type === 'file').reduce((sum, s) => sum + s.characterCount, 0),
-        qnaCount: sources.filter(s => s.type === 'qna').length,
-        qnaCharacters: sources.filter(s => s.type === 'qna').reduce((sum, s) => sum + s.characterCount, 0),
-        textCharacters: sources.filter(s => s.type === 'text').reduce((sum, s) => sum + s.characterCount, 0),
-    };
-
+export async function uploadDocuments(
+  chatbotId: string,
+  files: File[],
+): Promise<ApiResponse<Source[]>> {
+  try {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("documents", file));
+    const backendSources = await api.postFormData<BackendSource[]>(
+      `/sources/${chatbotId}/documents`,
+      formData,
+    );
     return {
-        success: true,
-        data: stats,
+      success: true,
+      data: Array.isArray(backendSources)
+        ? backendSources.map(convertSource)
+        : [],
     };
-}
-
-export async function uploadSource(
-    chatbotId: string,
-    file: { name: string; content: string }
-): Promise<ApiResponse<Source>> {
-    await delay(1500); // Simulate upload
-
-    const newSource: Source = {
-        id: `src_${Date.now()}`,
-        chatbotId,
-        type: 'file',
-        name: file.name,
-        characterCount: file.content.length,
-        createdAt: new Date().toISOString(),
-    };
-
-    sampleSources.push(newSource);
-
+  } catch (error) {
     return {
-        success: true,
-        data: newSource,
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to upload documents",
+      data: [],
     };
+  }
 }
 
 export async function addTextSource(
-    chatbotId: string,
-    data: { name: string; content: string }
+  chatbotId: string,
+  title: string,
+  content: string,
 ): Promise<ApiResponse<Source>> {
-    await delay(500);
-
-    const newSource: Source = {
-        id: `src_${Date.now()}`,
-        chatbotId,
-        type: 'text',
-        name: data.name,
-        characterCount: data.content.length,
-        createdAt: new Date().toISOString(),
-    };
-
-    sampleSources.push(newSource);
-
+  try {
+    const backendSource = await api.post<BackendSource>("/sources/text", {
+      chatbotId,
+      title,
+      content,
+    });
+    return { success: true, data: convertSource(backendSource) };
+  } catch (error) {
     return {
-        success: true,
-        data: newSource,
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to add text source",
+      data: null as unknown as Source,
     };
+  }
 }
 
-export async function deleteSource(id: string): Promise<ApiResponse<boolean>> {
-    await delay(300);
-    const index = sampleSources.findIndex(s => s.id === id);
-    if (index !== -1) {
-        sampleSources.splice(index, 1);
-    }
+export async function scrapeUrls(
+  chatbotId: string,
+  urls: string[],
+): Promise<ApiResponse<Source[]>> {
+  try {
+    const backendSources = await api.post<BackendSource[]>("/sources/scrape", {
+      chatbotId,
+      urls,
+    });
     return {
-        success: true,
-        data: true,
+      success: true,
+      data: Array.isArray(backendSources)
+        ? backendSources.map(convertSource)
+        : [],
     };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to scrape URLs",
+      data: [],
+    };
+  }
+}
+
+export async function deleteSource(
+  id: string,
+): Promise<ApiResponse<boolean>> {
+  try {
+    await api.delete(`/sources/${id}`);
+    return { success: true, data: true };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to delete source",
+      data: false,
+    };
+  }
+}
+
+// ==========================================
+// STATS HELPER (pure function — no API call)
+// ==========================================
+
+export function computeSourceStats(sources: Source[]): SourceStats {
+  const files = sources.filter((s) => s.type === "document");
+  const texts = sources.filter((s) => s.type === "text");
+  const urls = sources.filter((s) => s.type === "url");
+
+  return {
+    totalCharacters: sources.reduce((sum, s) => sum + s.characterCount, 0),
+    characterLimit: 1_100_000,
+    fileCount: files.length,
+    fileCharacters: files.reduce((sum, s) => sum + s.characterCount, 0),
+    qnaCount: 0,
+    qnaCharacters: 0,
+    textCharacters: texts.reduce((sum, s) => sum + s.characterCount, 0),
+    urlCount: urls.length,
+    urlCharacters: urls.reduce((sum, s) => sum + s.characterCount, 0),
+  };
 }

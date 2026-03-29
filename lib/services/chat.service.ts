@@ -1,37 +1,77 @@
 import type {
-    ChatSession,
-    Lead,
-    ApiResponse,
-    PaginatedResponse,
-} from '@/types';
-import { api } from '../api';
-import { auth } from '@/lib/firebase/config';
+  ChatSession,
+  Lead,
+  LeadStatus,
+  LeadSource,
+  ApiResponse,
+  PaginatedResponse,
+  BackendPaginatedResult,
+} from "@/types";
+import { api } from "../api";
 
 // ==========================================
 // BACKEND SHAPES
 // ==========================================
 
 interface BackendMessage {
-    role: 'user' | 'assistant';
-    content: string;
-    timestamp: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
 }
 
 interface BackendChat {
-    _id: string;
-    chatbotId: string;
-    messages: BackendMessage[];
-    createdAt: string;
+  _id: string;
+  chatbotId: string;
+  messages: BackendMessage[];
+  createdAt: string;
 }
 
 interface BackendLead {
-    _id: string;
-    chatbot_id: string;
-    userName: string;
-    userEmail?: string;
-    phone?: string;
-    timestamp?: string;
-    createdAt?: string;
+  _id: string;
+  chatbot_id: string;
+  userName: string;
+  userEmail?: string;
+  phone?: string;
+  status: LeadStatus;
+  source: LeadSource;
+  notes?: string;
+  additionalInfo: Record<string, any>;
+  capturedAt: string;
+}
+
+// ==========================================
+// CONVERTERS
+// ==========================================
+
+function convertChat(chat: BackendChat): ChatSession {
+  return {
+    id: chat._id,
+    chatbotId: chat.chatbotId,
+    messages: chat.messages.map((msg, index) => ({
+      id: `${chat._id}-${index}`,
+      role: msg.role,
+      content: msg.content,
+      timestamp: msg.timestamp,
+    })),
+    source: "embed" as const,
+    confidenceScore: 0,
+    createdAt: chat.createdAt,
+  };
+}
+
+function convertLead(lead: BackendLead): Lead {
+  return {
+    id: lead._id,
+    chatbotId: lead.chatbot_id,
+    name: lead.userName,
+    email: lead.userEmail ?? "",
+    phone: lead.phone ?? "",
+    status: lead.status ?? "new",
+    source: lead.source ?? "website",
+    notes: lead.notes,
+    additionalInfo: lead.additionalInfo ?? {},
+    capturedAt: lead.capturedAt,
+  };
 }
 
 // ==========================================
@@ -39,19 +79,19 @@ interface BackendLead {
 // ==========================================
 
 export interface SendMessageResponse {
-    chatId: string;
-    message: string;
-    timestamp: Date;
+  chatId: string;
+  message: string;
+  timestamp: Date;
 }
 
 export async function sendChatMessage(
-    chatbotId: string,
-    message: string,
-    chatId?: string,
+  chatbotId: string,
+  message: string,
+  chatId?: string,
 ): Promise<SendMessageResponse> {
-    const payload: Record<string, string> = { chatbotId, message };
-    if (chatId) payload.chatId = chatId;
-    return api.post<SendMessageResponse>('/chatbots/chat/message', payload);
+  const payload: Record<string, string> = { chatbotId, message };
+  if (chatId) payload.chatId = chatId;
+  return api.post<SendMessageResponse>("/chatbots/chat/message", payload);
 }
 
 // ==========================================
@@ -59,84 +99,63 @@ export async function sendChatMessage(
 // ==========================================
 
 export async function getChatSessions(
-    chatbotId: string,
-    _filters?: {
-        source?: string;
-        startDate?: string;
-        endDate?: string;
-        minConfidence?: number;
-    },
+  chatbotId: string,
+  _filters?: {
+    source?: string;
+    startDate?: string;
+    endDate?: string;
+  },
 ): Promise<ApiResponse<PaginatedResponse<ChatSession>>> {
-    try {
-        const user = auth.currentUser;
-        if (!user) {
-            return {
-                success: false,
-                error: 'User not authenticated',
-                data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false },
-            };
-        }
+  try {
+    const result = await api.get<BackendPaginatedResult<BackendChat>>(
+      `/chatbots/chat/user/all?chatbotId=${chatbotId}&page=1&limit=50`,
+    );
 
-        const chats = await api.get<BackendChat[]>(`/chatbots/chat/user/all?chatbotId=${chatbotId}`);
+    const sessions = (result.data ?? []).map(convertChat);
 
-        const sessions: ChatSession[] = chats.map((chat) => ({
-            id: chat._id,
-            chatbotId: chat.chatbotId,
-            messages: chat.messages.map((msg, index) => ({
-                id: `${chat._id}-${index}`,
-                role: msg.role,
-                content: msg.content,
-                timestamp: msg.timestamp,
-            })),
-            source: 'embed' as const,
-            confidenceScore: 0,
-            createdAt: chat.createdAt,
-        }));
-
-        return {
-            success: true,
-            data: { items: sessions, total: sessions.length, page: 1, pageSize: 20, hasMore: false },
-        };
-    } catch (error) {
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Failed to fetch chat sessions',
-            data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false },
-        };
-    }
+    return {
+      success: true,
+      data: {
+        items: sessions,
+        total: result.total ?? sessions.length,
+        page: result.page ?? 1,
+        pageSize: result.limit ?? 50,
+        hasMore: (result.page ?? 1) < (result.totalPages ?? 1),
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch chat sessions",
+      data: { items: [], total: 0, page: 1, pageSize: 50, hasMore: false },
+    };
+  }
 }
 
-export async function getChatSessionById(id: string): Promise<ApiResponse<ChatSession | null>> {
-    try {
-        const chat = await api.get<BackendChat>(`/chatbots/chat/${id}`);
-        const session: ChatSession = {
-            id: chat._id,
-            chatbotId: chat.chatbotId,
-            messages: chat.messages.map((msg, index) => ({
-                id: `${chat._id}-${index}`,
-                role: msg.role,
-                content: msg.content,
-                timestamp: msg.timestamp,
-            })),
-            source: 'embed' as const,
-            confidenceScore: 0,
-            createdAt: chat.createdAt,
-        };
-        return { success: true, data: session };
-    } catch (error) {
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Chat session not found',
-            data: null,
-        };
-    }
+export async function getChatSessionById(
+  id: string,
+): Promise<ApiResponse<ChatSession | null>> {
+  try {
+    const chat = await api.get<BackendChat>(`/chatbots/chat/${id}`);
+    return { success: true, data: convertChat(chat) };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Chat session not found",
+      data: null,
+    };
+  }
 }
 
 export async function exportChatSessions(
-    _chatbotId: string,
-    _format: 'csv' | 'json' = 'csv',
+  _chatbotId: string,
+  _format: "csv" | "json" = "csv",
 ): Promise<ApiResponse<string>> {
-    return { success: false, error: 'Export not yet implemented', data: '' };
+  return { success: false, error: "Export not yet implemented", data: "" };
 }
 
 // ==========================================
@@ -144,60 +163,78 @@ export async function exportChatSessions(
 // ==========================================
 
 export async function getLeads(
-    chatbotId: string,
-    _filters?: { startDate?: string; endDate?: string },
+  chatbotId: string,
+  filters?: { status?: string; from?: string; to?: string; page?: number; limit?: number },
 ): Promise<ApiResponse<PaginatedResponse<Lead>>> {
-    try {
-        const user = auth.currentUser;
-        if (!user) {
-            return {
-                success: false,
-                error: 'User not authenticated',
-                data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false },
-            };
-        }
+  try {
+    const params = new URLSearchParams();
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.from) params.set("from", filters.from);
+    if (filters?.to) params.set("to", filters.to);
+    if (filters?.page) params.set("page", String(filters.page));
+    if (filters?.limit) params.set("limit", String(filters.limit));
 
-        const backendLeads = await api.get<BackendLead[]>(`/leads/chatbot/${chatbotId}`);
+    const qs = params.toString();
+    const result = await api.get<BackendPaginatedResult<BackendLead>>(
+      `/leads/chatbot/${chatbotId}${qs ? `?${qs}` : ""}`,
+    );
 
-        const leads: Lead[] = backendLeads.map((lead) => ({
-            id: lead._id,
-            chatbotId: lead.chatbot_id,
-            name: lead.userName,
-            email: lead.userEmail || '',
-            phone: lead.phone || '',
-            message: 'Contact information captured',
-            createdAt: lead.timestamp || lead.createdAt || '',
-        }));
+    const leads = (result.data ?? []).map(convertLead);
 
-        return {
-            success: true,
-            data: { items: leads, total: leads.length, page: 1, pageSize: 20, hasMore: false },
-        };
-    } catch (error) {
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Failed to fetch leads',
-            data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false },
-        };
-    }
+    return {
+      success: true,
+      data: {
+        items: leads,
+        total: result.total ?? leads.length,
+        page: result.page ?? 1,
+        pageSize: result.limit ?? 20,
+        hasMore: (result.page ?? 1) < (result.totalPages ?? 1),
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to fetch leads",
+      data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false },
+    };
+  }
+}
+
+export async function updateLead(
+  id: string,
+  data: { status?: LeadStatus; notes?: string; additionalInfo?: Record<string, any> },
+): Promise<ApiResponse<Lead>> {
+  try {
+    const backendLead = await api.patch<BackendLead>(`/leads/${id}`, data);
+    return { success: true, data: convertLead(backendLead) };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to update lead",
+      data: null as unknown as Lead,
+    };
+  }
 }
 
 export async function deleteLead(id: string): Promise<ApiResponse<boolean>> {
-    try {
-        await api.delete(`/leads/${id}`);
-        return { success: true, data: true };
-    } catch (error) {
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Failed to delete lead',
-            data: false,
-        };
-    }
+  try {
+    await api.delete(`/leads/${id}`);
+    return { success: true, data: true };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to delete lead",
+      data: false,
+    };
+  }
 }
 
 export async function exportLeads(
-    _chatbotId: string,
-    _format: 'csv' | 'json' = 'csv',
+  _chatbotId: string,
+  _format: "csv" | "json" = "csv",
 ): Promise<ApiResponse<string>> {
-    return { success: false, error: 'Export not yet implemented', data: '' };
+  return { success: false, error: "Export not yet implemented", data: "" };
 }

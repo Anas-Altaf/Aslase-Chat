@@ -33,7 +33,7 @@ export default function General() {
       const response = await getChatbotSettings(selectedChatbot.id);
       if (response.success && response.data) {
         setSettings(response.data);
-        setName(response.data.name);
+        setName(response.data.name || selectedChatbot?.name || '');
       }
     } catch (error) {
       toast.error('Failed to load settings');

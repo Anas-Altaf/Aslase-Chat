@@ -17,7 +17,8 @@ import {
   BarChart,
   Bell,
   Shield,
-  Palette
+  Palette,
+  Search
 } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { Button } from '@/components/ui/button';
@@ -60,6 +61,7 @@ export default function Menubar() {
       submenu: [
         { label: 'Chat Logs', href: '/user-dashboard/chat-logs', icon: MessageSquare },
         { label: 'Leads', href: '/user-dashboard/leads', icon: Users },
+        { label: 'Queries', href: '/user-dashboard/queries', icon: Search },
         { label: 'Analytics', href: '/user-dashboard/analytics', icon: BarChart },
       ],
     },

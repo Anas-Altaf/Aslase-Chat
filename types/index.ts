@@ -31,7 +31,7 @@ export interface Chatbot {
     id: string;
     businessId: string;
     name: string;
-    model: 'gpt-4o-mini' | 'gpt-4o' | 'gpt-3.5-turbo';
+    model: string;
     status: 'trained' | 'training' | 'error';
     visibility: 'public' | 'private';
     characterCount: number;
@@ -40,29 +40,31 @@ export interface Chatbot {
     avatar?: string;
 }
 
-export interface ChatbotSettings {
+// Fields persisted to backend via PATCH /chatbots/:id/settings
+export interface BackendChatbotSettings {
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+    systemPromptOverride?: string;
+    welcomeMessage?: string;
+}
+
+// Full settings used by components (backend fields + UI-only via localStorage)
+export interface ChatbotSettings extends BackendChatbotSettings {
     chatbotId: string;
-    // General
-    name: string;
-    // Model
-    model: Chatbot['model'];
-    temperature: number;
-    maxTokens: number;
-    // Chat Interface
-    welcomeMessage: string;
+    name: string;               // from chatbot doc; saved via PATCH /chatbots/:id
+    // UI-only (localStorage):
     placeholder: string;
     primaryColor: string;
-    // Security
     rateLimitPerMinute: number;
     requireEmailCapture: boolean;
-    // Notifications
     emailNotifications: boolean;
     notificationEmail: string;
     webhookUrl: string;
 }
 
 // ==========================================
-// CHAT & LEADS TYPES
+// CHAT & SESSIONS TYPES
 // ==========================================
 
 export interface ChatMessage {
@@ -81,14 +83,24 @@ export interface ChatSession {
     createdAt: string;
 }
 
+// ==========================================
+// LEADS TYPES
+// ==========================================
+
+export type LeadStatus = 'new' | 'contacted' | 'converted' | 'rejected';
+export type LeadSource = 'website' | 'public_widget' | 'api' | 'whatsapp' | 'instagram' | 'slack';
+
 export interface Lead {
     id: string;
     chatbotId: string;
     name: string;
     email: string;
     phone: string;
-    message: string;
-    createdAt: string;
+    status: LeadStatus;
+    source: LeadSource;
+    notes?: string;
+    additionalInfo: Record<string, any>;
+    capturedAt: string;
 }
 
 // ==========================================
@@ -98,9 +110,12 @@ export interface Lead {
 export interface Source {
     id: string;
     chatbotId: string;
-    type: 'file' | 'text' | 'qna' | 'website';
-    name: string;
-    characterCount: number;
+    type: 'document' | 'text' | 'url';
+    title: string;
+    content: string;
+    sourceUrl?: string;
+    fileName?: string;
+    characterCount: number;     // computed: content.length
     createdAt: string;
 }
 
@@ -112,25 +127,52 @@ export interface SourceStats {
     qnaCount: number;
     qnaCharacters: number;
     textCharacters: number;
+    urlCount: number;
+    urlCharacters: number;
 }
 
 // ==========================================
 // ANALYTICS TYPES
 // ==========================================
 
-export interface AnalyticsData {
+export interface SentimentBreakdown {
+    positive: number;
+    negative: number;
+    neutral: number;
+}
+
+export interface ChatbotAnalytics {
     chatbotId: string;
-    period: 'daily' | 'weekly' | 'monthly';
-    data: {
-        date: string;
-        chats: number;
-        leads: number;
-    }[];
-    totals: {
-        totalChats: number;
-        totalLeads: number;
-        avgConfidence: number;
-    };
+    chatbotName: string;
+    totalConversations: number;
+    totalMessages: number;
+    totalLeads: number;
+    totalQueries: number;
+    sentimentBreakdown: SentimentBreakdown;
+    dailyMessageVolume: Array<{ date: string; count: number }>;
+    topQueries: Array<{ query: string; count: number }>;
+}
+
+// Legacy alias (kept for compatibility)
+export type AnalyticsData = ChatbotAnalytics;
+
+// ==========================================
+// QUERIES TYPES
+// ==========================================
+
+export type SentimentType = 'Positive' | 'Negative' | 'Neutral';
+
+export interface ChatQuery {
+    id: string;
+    chatbotId: string;
+    sessionId: string | null;
+    isAnonymous: boolean;
+    userMessage: string;
+    botResponse: string;
+    userSentiment: SentimentType;
+    replySentiment: SentimentType;
+    leadCaptured: boolean;
+    createdAt: string;
 }
 
 // ==========================================
@@ -157,10 +199,20 @@ export interface ApiResponse<T> {
     error?: string;
 }
 
+// Frontend paginated response (used by components)
 export interface PaginatedResponse<T> {
     items: T[];
     total: number;
     page: number;
     pageSize: number;
     hasMore: boolean;
+}
+
+// Backend paginated result shape (used internally in services)
+export interface BackendPaginatedResult<T> {
+    data: T[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
 }
