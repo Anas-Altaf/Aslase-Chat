@@ -18,10 +18,13 @@ import {
 import { toast } from "sonner";
 import type { ChatbotSettings } from "@/types";
 
-const MODEL_OPTIONS: ChatbotSettings["model"][] = [
-  "gpt-4o-mini",
-  "gpt-4o",
-  "gpt-3.5-turbo",
+const MODEL_OPTIONS: { value: string; label: string }[] = [
+  { value: "openai/gpt-4o-mini", label: "GPT-4o Mini (Recommended)" },
+  { value: "openai/gpt-4o", label: "GPT-4o (More Powerful)" },
+  { value: "openai/gpt-3.5-turbo", label: "GPT-3.5 Turbo (Fastest)" },
+  { value: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet" },
+  { value: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash" },
+  { value: "meta-llama/llama-3.1-8b-instruct", label: "Llama 3.1 8B (Free)" },
 ];
 
 export default function Model() {
@@ -29,14 +32,12 @@ export default function Model() {
   const [settings, setSettings] = useState<ChatbotSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [model, setModel] = useState<ChatbotSettings["model"]>("gpt-4o-mini");
+  const [model, setModel] = useState<string>("openai/gpt-4o-mini");
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(1024);
 
   const handleModelChange = (value: string) => {
-    if (MODEL_OPTIONS.includes(value as ChatbotSettings["model"])) {
-      setModel(value as ChatbotSettings["model"]);
-    }
+    setModel(value);
   };
 
   useEffect(() => {
@@ -52,9 +53,9 @@ export default function Model() {
       const response = await getChatbotSettings(selectedChatbot.id);
       if (response.success && response.data) {
         setSettings(response.data);
-        setModel(response.data.model);
-        setTemperature(response.data.temperature);
-        setMaxTokens(response.data.maxTokens);
+        setModel(response.data.model ?? "openai/gpt-4o-mini");
+        setTemperature(response.data.temperature ?? 0.7);
+        setMaxTokens(response.data.maxTokens ?? 1024);
       }
     } catch (error) {
       toast.error("Failed to load settings");
@@ -108,13 +109,11 @@ export default function Model() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="gpt-4o-mini">
-                  GPT-4o Mini (Recommended)
-                </SelectItem>
-                <SelectItem value="gpt-4o">GPT-4o (More Powerful)</SelectItem>
-                <SelectItem value="gpt-3.5-turbo">
-                  GPT-3.5 Turbo (Fastest)
-                </SelectItem>
+                {MODEL_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

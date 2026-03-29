@@ -13,6 +13,13 @@ interface BackendChatbot {
   businessId: string;
   userId: string;
   isActive: boolean;
+  settings?: {
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+    systemPromptOverride?: string;
+    welcomeMessage?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -22,12 +29,12 @@ function convertBackendToFrontend(backendChatbot: BackendChatbot): Chatbot {
     id: backendChatbot._id,
     businessId: backendChatbot.businessId,
     name: backendChatbot.name,
-    model: "gpt-4o-mini",
-    status: "trained",
+    model: backendChatbot.settings?.model ?? "openai/gpt-4o-mini",
+    status: backendChatbot.isActive ? "trained" : "error",
     visibility: "public",
     characterCount: 0,
     createdAt: backendChatbot.createdAt,
-    lastTrainedAt: backendChatbot.createdAt,
+    lastTrainedAt: backendChatbot.updatedAt,
   };
 }
 
