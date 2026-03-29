@@ -29,84 +29,82 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  signUp: async () => { },
-  signIn: async () => { },
-  signInWithGoogle: async () => { },
-  logout: async () => { },
-  updateUserProfile: async () => { },
-  resetPassword: async () => { },
+  signUp: async () => {},
+  signIn: async () => {},
+  signInWithGoogle: async () => {},
+  logout: async () => {},
+  updateUserProfile: async () => {},
+  resetPassword: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+async function verifyTokenWithBackend(token: string): Promise<void> {
+  const response = await fetch(`${API_URL}/auth/verify-token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+  if (!response.ok) {
+    throw new Error('Token verification failed');
+  }
+}
+
+async function saveUserToMongoDB(
+  uid: string,
+  email: string,
+  displayName: string,
+  phoneNumber: string,
+): Promise<void> {
+  await fetch(`${API_URL}/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ uid, email, displayName, phoneNumber }),
+  });
+}
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
       setLoading(false);
     });
-
     return unsubscribe;
   }, []);
 
-  const verifyTokenWithBackend = async (token: string) => {
-    const response = await fetch('http://localhost:3000/auth/verify-token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
+  const signUp = async (
+    email: string,
+    password: string,
+    displayName: string,
+    phoneNumber?: string,
+  ) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(userCredential.user, { displayName });
+
+    await setDoc(doc(db, 'users', userCredential.user.uid), {
+      uid: userCredential.user.uid,
+      displayName,
+      email,
+      phoneNumber: phoneNumber || '',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     });
-    console.log("res======>", response);
 
-    if (!response.ok) {
-      throw new Error('Token verification failed');
-    }
-  };
-
-  const signUp = async (email: string, password: string, displayName: string, phoneNumber?: string) => {
+    // Sync to MongoDB — non-fatal; Firebase is the auth source of truth
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, { displayName });
-      
-      // Store user data in Firestore
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        uid: userCredential.user.uid,
-        displayName,
+      await saveUserToMongoDB(
+        userCredential.user.uid,
         email,
-        phoneNumber: phoneNumber || '',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-      
-      console.log('User data saved to Firestore successfully');
-
-      // Also store user in MongoDB via backend API
-      try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-        await fetch(`${API_URL}/users`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            uid: userCredential.user.uid,
-            email,
-            displayName,
-            phoneNumber: phoneNumber || '',
-          }),
-        });
-        console.log('User data saved to MongoDB successfully');
-      } catch (error) {
-        console.error('Failed to create user in MongoDB:', error);
-        // Continue anyway - user is created in Firebase
-      }
-    } catch (error) {
-      console.error('Error in signUp:', error);
-      throw error;
+        displayName,
+        phoneNumber || '',
+      );
+    } catch {
+      // Intentionally ignored: user exists in Firebase/Firestore
     }
   };
 
@@ -118,9 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    const userCredential = await signInWithPopup(auth, provider);
-    const token = await userCredential.user.getIdToken();
-    // await verifyTokenWithBackend(token);
+    await signInWithPopup(auth, provider);
   };
 
   const logout = async () => {
@@ -130,33 +126,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateUserProfile = async (data: { displayName?: string; photoURL?: string }) => {
     if (!auth.currentUser) throw new Error('No user logged in');
     await updateProfile(auth.currentUser, data);
-    // Force refresh the user state
     setUser({ ...auth.currentUser });
   };
 
   const resetPassword = async (email: string) => {
-    try {
-      await sendPasswordResetEmail(auth, email, {
-        url: `${window.location.origin}/sign-in`,
-        handleCodeInApp: false,
-      });
-    } catch (error: any) {
-      console.error('Error sending password reset email:', error);
-      throw error;
-    }
+    await sendPasswordResetEmail(auth, email, {
+      url: `${window.location.origin}/sign-in`,
+      handleCodeInApp: false,
+    });
   };
 
-  const value = {
-    user,
-    loading,
-    signUp,
-    signIn,
-    signInWithGoogle,
-    logout,
-    updateUserProfile,
-    resetPassword,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{ user, loading, signUp, signIn, signInWithGoogle, logout, updateUserProfile, resetPassword }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
-

@@ -2,127 +2,111 @@ import { auth } from './firebase/config';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-/**
- * Get the current user's ID token for API authentication
- */
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 export async function getAuthToken(): Promise<string | null> {
   const user = auth.currentUser;
   if (!user) return null;
-  
   try {
-    const token = await user.getIdToken();
-    return token;
-  } catch (error) {
-    console.error('Error getting auth token:', error);
+    return await user.getIdToken();
+  } catch {
     return null;
   }
 }
 
-/**
- * Make an authenticated API request
- */
 export async function authenticatedFetch(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<Response> {
   const token = await getAuthToken();
-  
   if (!token) {
-    throw new Error('No authentication token available');
+    throw new ApiError(401, 'No authentication token available');
   }
 
   const headers = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
+    Authorization: `Bearer ${token}`,
     ...options.headers,
   };
 
-  return fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  return fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
 }
 
-/**
- * API helper functions
- */
-export const api = {
-  async get(endpoint: string) {
-    const response = await authenticatedFetch(endpoint, { method: 'GET' });
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
+async function parseResponse<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    let message = response.statusText || `HTTP ${response.status}`;
+    try {
+      const body = await response.json();
+      if (body?.message) message = body.message;
+    } catch {
+      // ignore parse error, use default message
     }
-    return response.json();
+    throw new ApiError(response.status, message);
+  }
+  return response.json() as Promise<T>;
+}
+
+export const api = {
+  async get<T = unknown>(endpoint: string): Promise<T> {
+    const response = await authenticatedFetch(endpoint, { method: 'GET' });
+    return parseResponse<T>(response);
   },
 
-  async post(endpoint: string, data: any) {
+  async post<T = unknown>(endpoint: string, data: unknown): Promise<T> {
     const response = await authenticatedFetch(endpoint, {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
-    }
-    return response.json();
+    return parseResponse<T>(response);
   },
 
-  async put(endpoint: string, data: any) {
+  async put<T = unknown>(endpoint: string, data: unknown): Promise<T> {
     const response = await authenticatedFetch(endpoint, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
-    }
-    return response.json();
+    return parseResponse<T>(response);
   },
 
-  async patch(endpoint: string, data: any) {
+  async patch<T = unknown>(endpoint: string, data: unknown): Promise<T> {
     const response = await authenticatedFetch(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
-    }
-    return response.json();
+    return parseResponse<T>(response);
   },
 
-  async delete(endpoint: string) {
+  async delete<T = unknown>(endpoint: string): Promise<T> {
     const response = await authenticatedFetch(endpoint, { method: 'DELETE' });
     if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
+      throw new ApiError(response.status, response.statusText || `HTTP ${response.status}`);
     }
-    // Handle empty or non-JSON responses
     const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      return response.json();
+    if (contentType?.includes('application/json')) {
+      return response.json() as Promise<T>;
     }
-    // Return text for non-JSON responses
-    return response.text();
+    return response.text() as unknown as T;
   },
 
-  async postFormData(endpoint: string, formData: FormData) {
+  async postFormData<T = unknown>(endpoint: string, formData: FormData): Promise<T> {
     const token = await getAuthToken();
-    
     if (!token) {
-      throw new Error('No authentication token available');
+      throw new ApiError(401, 'No authentication token available');
     }
-
-    // Don't set Content-Type header - browser will set it with boundary
-    const headers = {
-      'Authorization': `Bearer ${token}`,
-    };
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
-      headers,
+      headers: { Authorization: `Bearer ${token}` },
       body: formData,
     });
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
-    }
-    return response.json();
+    return parseResponse<T>(response);
   },
 };

@@ -70,7 +70,7 @@ export async function getBusinesses(): Promise<ApiResponse<PaginatedResponse<Bus
             },
         };
     } catch (error) {
-        console.error('Error fetching businesses:', error);
+        // error swallowed — caller receives success:false
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to fetch businesses',
@@ -86,7 +86,7 @@ export async function getBusiness(id: string): Promise<ApiResponse<Business>> {
         const business = convertBackendToFrontend(backendBiz);
         return { success: true, data: business };
     } catch (error) {
-        console.error('Error fetching business:', error);
+        // error swallowed — caller receives success:false
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Business not found',
@@ -107,38 +107,21 @@ export async function createBusiness(data: Omit<Business, 'id' | 'createdAt' | '
             };
         }
 
-        console.log('createBusiness called with files:', files?.length || 0);
-
         // If files are provided, use FormData
         if (files && files.length > 0) {
-            console.log('Using FormData to send files:', files.map(f => f.name));
             const formData = new FormData();
-            
-            // Append business data
             formData.append('name', data.name);
             formData.append('ownerUid', user.uid);
             if (data.description) formData.append('description', data.description);
             if (data.contactEmail) formData.append('email', data.contactEmail);
             if (data.contactPhone) formData.append('phone', data.contactPhone);
             if (data.urls?.[0]) formData.append('website', data.urls[0]);
-            
-            // Append files
-            files.forEach((file, index) => {
-                console.log(`Appending file ${index}:`, file.name, file.type, file.size);
-                formData.append('documents', file);
-            });
+            files.forEach((file) => formData.append('documents', file));
 
-            // Log FormData contents
-            for (let pair of formData.entries()) {
-                console.log(pair[0], ':', pair[1] instanceof File ? `File: ${pair[1].name}` : pair[1]);
-            }
-            
             const backendBiz: BackendBusiness = await api.postFormData('/businesses', formData);
             const business = convertBackendToFrontend(backendBiz);
             return { success: true, data: business };
         } else {
-            console.log('No files provided, sending as JSON');
-            // No files, send as JSON
             const backendData = {
                 name: data.name,
                 description: data.description || undefined,
@@ -153,7 +136,7 @@ export async function createBusiness(data: Omit<Business, 'id' | 'createdAt' | '
             return { success: true, data: business };
         }
     } catch (error) {
-        console.error('Error creating business:', error);
+        // error swallowed — caller receives success:false
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to create business',
@@ -177,7 +160,7 @@ export async function updateBusiness(id: string, data: Partial<Business>): Promi
         const business = convertBackendToFrontend(backendBiz);
         return { success: true, data: business };
     } catch (error) {
-        console.error('Error updating business:', error);
+        // error swallowed — caller receives success:false
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to update business',
@@ -192,7 +175,7 @@ export async function deleteBusiness(id: string): Promise<ApiResponse<{ deleted:
         await api.delete(`/businesses/${id}`);
         return { success: true, data: { deleted: true } };
     } catch (error) {
-        console.error('Error deleting business:', error);
+        // error swallowed — caller receives success:false
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to delete business',
@@ -207,7 +190,7 @@ export async function uploadBusinessDocument(
     document: { name: string; file: File }
 ): Promise<ApiResponse<Business>> {
     // TODO: Implement document upload API
-    console.warn('Document upload not yet implemented');
+    // not yet implemented
     return {
         success: false,
         error: 'Document upload not yet implemented',
@@ -221,7 +204,7 @@ export async function deleteBusinessDocument(
     documentId: string
 ): Promise<ApiResponse<Business>> {
     // TODO: Implement document delete API
-    console.warn('Document delete not yet implemented');
+    // not yet implemented
     return {
         success: false,
         error: 'Document delete not yet implemented',

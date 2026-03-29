@@ -1,31 +1,43 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useChatbot } from '@/contexts/ChatbotContext';
-import { getChatbotSettings, updateChatbotSettings } from '@/lib/services';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useState, useEffect } from "react";
+import { useChatbot } from "@/contexts/ChatbotContext";
+import { getChatbotSettings, updateChatbotSettings } from "@/lib/services";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { toast } from 'sonner';
-import type { ChatbotSettings } from '@/types';
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import type { ChatbotSettings } from "@/types";
+
+const MODEL_OPTIONS: ChatbotSettings["model"][] = [
+  "gpt-4o-mini",
+  "gpt-4o",
+  "gpt-3.5-turbo",
+];
 
 export default function Model() {
   const { selectedChatbot, editChatbot } = useChatbot();
   const [settings, setSettings] = useState<ChatbotSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [model, setModel] = useState('gpt-4o-mini');
+  const [model, setModel] = useState<ChatbotSettings["model"]>("gpt-4o-mini");
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(1024);
+
+  const handleModelChange = (value: string) => {
+    if (MODEL_OPTIONS.includes(value as ChatbotSettings["model"])) {
+      setModel(value as ChatbotSettings["model"]);
+    }
+  };
 
   useEffect(() => {
     if (selectedChatbot) {
@@ -45,7 +57,7 @@ export default function Model() {
         setMaxTokens(response.data.maxTokens);
       }
     } catch (error) {
-      toast.error('Failed to load settings');
+      toast.error("Failed to load settings");
     } finally {
       setIsLoading(false);
     }
@@ -55,11 +67,15 @@ export default function Model() {
     if (!selectedChatbot) return;
     setIsSaving(true);
     try {
-      await updateChatbotSettings(selectedChatbot.id, { model, temperature, maxTokens });
-      await editChatbot(selectedChatbot.id, { model: model as any });
-      toast.success('Model settings saved');
+      await updateChatbotSettings(selectedChatbot.id, {
+        model,
+        temperature,
+        maxTokens,
+      });
+      await editChatbot(selectedChatbot.id, { model });
+      toast.success("Model settings saved");
     } catch (error) {
-      toast.error('Failed to save settings');
+      toast.error("Failed to save settings");
     } finally {
       setIsSaving(false);
     }
@@ -79,7 +95,7 @@ export default function Model() {
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
         <h1 className="text-2xl font-bold text-gray-900">Model</h1>
         <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Save Changes'}
+          {isSaving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
 
@@ -87,14 +103,18 @@ export default function Model() {
         <Card className="p-4 space-y-4">
           <div className="space-y-2">
             <Label>AI Model</Label>
-            <Select value={model} onValueChange={setModel}>
+            <Select value={model} onValueChange={handleModelChange}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="gpt-4o-mini">GPT-4o Mini (Recommended)</SelectItem>
+                <SelectItem value="gpt-4o-mini">
+                  GPT-4o Mini (Recommended)
+                </SelectItem>
                 <SelectItem value="gpt-4o">GPT-4o (More Powerful)</SelectItem>
-                <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo (Fastest)</SelectItem>
+                <SelectItem value="gpt-3.5-turbo">
+                  GPT-3.5 Turbo (Fastest)
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>

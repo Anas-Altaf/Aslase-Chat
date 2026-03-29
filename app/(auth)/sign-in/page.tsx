@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { validateEmail, validatePassword, toErrorMessage } from '@/lib/validations/auth.validation';
 import { toast } from 'sonner';
 import { AuthLayout } from '@/components/shared/auth-layout';
 import { PasswordInput } from '@/components/shared/password-input';
@@ -24,28 +25,6 @@ export default function SignInPage() {
   const [touched, setTouched] = useState({ email: false, password: false });
   const router = useRouter();
   const { signIn, signInWithGoogle } = useAuth();
-
-  const validateEmail = (value: string) => {
-    if (!value) {
-      return 'Email is required';
-    }
-    // More strict email validation requiring proper TLD (at least 2 characters)
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(value)) {
-      return 'Please enter a valid email address';
-    }
-    return '';
-  };
-
-  const validatePassword = (value: string) => {
-    if (!value) {
-      return 'Password is required';
-    }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
-    }
-    return '';
-  };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -94,8 +73,8 @@ export default function SignInPage() {
       await signIn(email, password);
       toast.success('Successfully signed in!');
       router.push('/user-dashboard');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to sign in. Please try again.');
+    } catch (err) {
+      toast.error(toErrorMessage(err, 'Failed to sign in. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -107,8 +86,8 @@ export default function SignInPage() {
       await signInWithGoogle();
       toast.success('Successfully signed in with Google!');
       router.push('/user-dashboard');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to sign in with Google.');
+    } catch (err) {
+      toast.error(toErrorMessage(err, 'Failed to sign in with Google.'));
     } finally {
       setGoogleLoading(false);
     }

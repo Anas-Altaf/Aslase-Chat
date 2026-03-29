@@ -4,6 +4,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  validateEmail,
+  validateStrongPassword,
+  validateDisplayName,
+  validateConfirmPassword,
+  validatePhoneNumber,
+  toErrorMessage,
+} from '@/lib/validations/auth.validation';
 import { toast } from 'sonner';
 import { AuthLayout } from '@/components/shared/auth-layout';
 import { PasswordInput } from '@/components/shared/password-input';
@@ -42,67 +50,6 @@ export default function SignUpPage() {
   const router = useRouter();
   const { signUp, signInWithGoogle } = useAuth();
 
-  const validateDisplayName = (value: string) => {
-    if (!value.trim()) {
-      return 'Full name is required';
-    }
-    if (value.trim().length < 2) {
-      return 'Name must be at least 2 characters';
-    }
-    return '';
-  };
-
-  const validateEmail = (value: string) => {
-    if (!value) {
-      return 'Email is required';
-    }
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(value)) {
-      return 'Please enter a valid email address';
-    }
-    return '';
-  };
-
-  const validatePassword = (value: string) => {
-    if (!value) {
-      return 'Password is required';
-    }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
-    }
-    if (!/(?=.*[a-z])/.test(value)) {
-      return 'Password must contain at least one lowercase letter';
-    }
-    if (!/(?=.*[A-Z])/.test(value)) {
-      return 'Password must contain at least one uppercase letter';
-    }
-    if (!/(?=.*\d)/.test(value)) {
-      return 'Password must contain at least one number';
-    }
-    return '';
-  };
-
-  const validateConfirmPassword = (value: string) => {
-    if (!value) {
-      return 'Please confirm your password';
-    }
-    if (value !== formData.password) {
-      return 'Passwords do not match';
-    }
-    return '';
-  };
-
-  const validatePhoneNumber = (value: string) => {
-    if (!value) {
-      return 'Phone number is required';
-    }
-    const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
-    if (!phoneRegex.test(value)) {
-      return 'Please enter a valid phone number';
-    }
-    return '';
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({
@@ -121,17 +68,16 @@ export default function SignUpPage() {
           error = validateEmail(value);
           break;
         case 'password':
-          error = validatePassword(value);
-          // Also revalidate confirm password if it's been touched
+          error = validateStrongPassword(value);
           if (touched.confirmPassword) {
             setErrors(prev => ({
               ...prev,
-              confirmPassword: value !== formData.confirmPassword ? 'Passwords do not match' : ''
+              confirmPassword: validateConfirmPassword(formData.confirmPassword, value),
             }));
           }
           break;
         case 'confirmPassword':
-          error = validateConfirmPassword(value);
+          error = validateConfirmPassword(value, formData.password);
           break;
         case 'referredBy':
           error = validatePhoneNumber(value);
@@ -153,10 +99,10 @@ export default function SignUpPage() {
         error = validateEmail(formData.email);
         break;
       case 'password':
-        error = validatePassword(formData.password);
+        error = validateStrongPassword(formData.password);
         break;
       case 'confirmPassword':
-        error = validateConfirmPassword(formData.confirmPassword);
+        error = validateConfirmPassword(formData.confirmPassword, formData.password);
         break;
       case 'referredBy':
         error = validatePhoneNumber(formData.referredBy);
@@ -171,8 +117,8 @@ export default function SignUpPage() {
     // Validate all fields
     const displayNameErr = validateDisplayName(formData.displayName);
     const emailErr = validateEmail(formData.email);
-    const passwordErr = validatePassword(formData.password);
-    const confirmPasswordErr = validateConfirmPassword(formData.confirmPassword);
+    const passwordErr = validateStrongPassword(formData.password);
+    const confirmPasswordErr = validateConfirmPassword(formData.confirmPassword, formData.password);
     const referredByErr = validatePhoneNumber(formData.referredBy);
     const termsErr = !agreedToTerms ? 'You must agree to the Terms and Privacy Policy' : '';
 
@@ -203,8 +149,8 @@ export default function SignUpPage() {
       await signUp(formData.email, formData.password, formData.displayName, formData.referredBy);
       toast.success('Account created successfully!');
       router.push('/user-dashboard');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create account. Please try again.');
+    } catch (err) {
+      toast.error(toErrorMessage(err, 'Failed to create account. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -216,8 +162,8 @@ export default function SignUpPage() {
       await signInWithGoogle();
       toast.success('Successfully signed up with Google!');
       router.push('/user-dashboard');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to sign up with Google.');
+    } catch (err) {
+      toast.error(toErrorMessage(err, 'Failed to sign up with Google.'));
     } finally {
       setGoogleLoading(false);
     }

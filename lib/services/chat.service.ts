@@ -1,12 +1,38 @@
 import type {
     ChatSession,
-    ChatMessage,
     Lead,
     ApiResponse,
     PaginatedResponse,
 } from '@/types';
 import { api } from '../api';
 import { auth } from '@/lib/firebase/config';
+
+// ==========================================
+// BACKEND SHAPES
+// ==========================================
+
+interface BackendMessage {
+    role: 'user' | 'assistant';
+    content: string;
+    timestamp: string;
+}
+
+interface BackendChat {
+    _id: string;
+    chatbotId: string;
+    messages: BackendMessage[];
+    createdAt: string;
+}
+
+interface BackendLead {
+    _id: string;
+    chatbot_id: string;
+    userName: string;
+    userEmail?: string;
+    phone?: string;
+    timestamp?: string;
+    createdAt?: string;
+}
 
 // ==========================================
 // CHAT MESSAGE API
@@ -21,112 +47,25 @@ export interface SendMessageResponse {
 export async function sendChatMessage(
     chatbotId: string,
     message: string,
-    chatId?: string
+    chatId?: string,
 ): Promise<SendMessageResponse> {
-    const user = auth.currentUser;
-    if (!user) {
-        throw new Error('User not authenticated');
-    }
-
-    const payload = {
-        chatbotId,
-        message,
-        userId: user.uid,
-        chatId,
-    };
-
-    const response = await api.post('/chatbots/chat/message', payload);
-    return response;
+    const payload: Record<string, string> = { chatbotId, message };
+    if (chatId) payload.chatId = chatId;
+    return api.post<SendMessageResponse>('/chatbots/chat/message', payload);
 }
 
 // ==========================================
-// SAMPLE DATA
-// ==========================================
-
-const sampleSessions: ChatSession[] = [
-    {
-        id: 'session_1',
-        chatbotId: 'VUyBtr3F23QcD2fF',
-        messages: [
-            { id: 'm1', role: 'user', content: 'hi', timestamp: '2025-07-31T10:00:00Z' },
-            { id: 'm2', role: 'assistant', content: 'Hi, How can I assist you today?', timestamp: '2025-07-31T10:00:01Z' },
-        ],
-        source: 'embed',
-        confidenceScore: 0.92,
-        createdAt: '2025-07-31T10:00:00Z',
-    },
-    {
-        id: 'session_2',
-        chatbotId: 'VUyBtr3F23QcD2fF',
-        messages: [
-            { id: 'm3', role: 'user', content: 'What is AslasChat?', timestamp: '2025-08-03T14:30:00Z' },
-            { id: 'm4', role: 'assistant', content: 'AslasChat is an AI-powered chatbot platform that helps businesses automate customer support.', timestamp: '2025-08-03T14:30:02Z' },
-        ],
-        source: 'embed',
-        confidenceScore: 0.88,
-        createdAt: '2025-08-03T14:30:00Z',
-    },
-    {
-        id: 'session_3',
-        chatbotId: 'VUyBtr3F23QcD2fF',
-        messages: [
-            { id: 'm5', role: 'user', content: 'lkj', timestamp: '2025-08-08T09:15:00Z' },
-            { id: 'm6', role: 'assistant', content: 'Hi, How can I assist you today?', timestamp: '2025-08-08T09:15:01Z' },
-        ],
-        source: 'api',
-        confidenceScore: 0.45,
-        createdAt: '2025-08-08T09:15:00Z',
-    },
-];
-
-const sampleLeads: Lead[] = [
-    {
-        id: 'lead_1',
-        chatbotId: 'VUyBtr3F23QcD2fF',
-        name: 'John Doe',
-        email: 'johndoe@example.com',
-        phone: '0313-2022231',
-        message: 'Let us know how to contact you',
-        createdAt: '2024-08-20T19:04:00Z',
-    },
-    {
-        id: 'lead_2',
-        chatbotId: 'VUyBtr3F23QcD2fF',
-        name: 'Jane Smith',
-        email: 'janesmith@example.com',
-        phone: '0313-2022232',
-        message: 'Let us know how to contact you',
-        createdAt: '2024-08-20T19:04:00Z',
-    },
-    {
-        id: 'lead_3',
-        chatbotId: 'VUyBtr3F23QcD2fF',
-        name: 'Mike Johnson',
-        email: 'mikejohnson@example.com',
-        phone: '0313-2022233',
-        message: 'Let us know how to contact you',
-        createdAt: '2024-08-20T19:04:00Z',
-    },
-];
-
-// ==========================================
-// SIMULATED DELAY
-// ==========================================
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// ==========================================
-// CHAT LOGS API SERVICE
+// CHAT SESSIONS
 // ==========================================
 
 export async function getChatSessions(
     chatbotId: string,
-    filters?: {
+    _filters?: {
         source?: string;
         startDate?: string;
         endDate?: string;
         minConfidence?: number;
-    }
+    },
 ): Promise<ApiResponse<PaginatedResponse<ChatSession>>> {
     try {
         const user = auth.currentUser;
@@ -134,79 +73,79 @@ export async function getChatSessions(
             return {
                 success: false,
                 error: 'User not authenticated',
-                data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false }
+                data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false },
             };
         }
 
-        // Get all chats for this chatbot
-        const chats = await api.get(`/chatbots/chat/user/all?chatbotId=${chatbotId}`);
-        
-        // Convert backend chats to frontend ChatSession format
-        const sessions: ChatSession[] = chats.map((chat: any) => ({
+        const chats = await api.get<BackendChat[]>(`/chatbots/chat/user/all?chatbotId=${chatbotId}`);
+
+        const sessions: ChatSession[] = chats.map((chat) => ({
             id: chat._id,
             chatbotId: chat.chatbotId,
-            messages: chat.messages.map((msg: any, index: number) => ({
+            messages: chat.messages.map((msg, index) => ({
                 id: `${chat._id}-${index}`,
                 role: msg.role,
                 content: msg.content,
-                timestamp: msg.timestamp
+                timestamp: msg.timestamp,
             })),
-            source: 'embed', // Default source
-            confidenceScore: 0.85, // Default confidence
-            createdAt: chat.createdAt
+            source: 'embed' as const,
+            confidenceScore: 0,
+            createdAt: chat.createdAt,
         }));
 
         return {
             success: true,
-            data: {
-                items: sessions,
-                total: sessions.length,
-                page: 1,
-                pageSize: 20,
-                hasMore: false,
-            },
+            data: { items: sessions, total: sessions.length, page: 1, pageSize: 20, hasMore: false },
         };
     } catch (error) {
-        console.error('Error fetching chat sessions:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to fetch chat sessions',
-            data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false }
+            data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false },
         };
     }
 }
 
 export async function getChatSessionById(id: string): Promise<ApiResponse<ChatSession | null>> {
-    await delay(200);
-    const session = sampleSessions.find(s => s.id === id) || null;
-    return {
-        success: !!session,
-        data: session,
-    };
+    try {
+        const chat = await api.get<BackendChat>(`/chatbots/chat/${id}`);
+        const session: ChatSession = {
+            id: chat._id,
+            chatbotId: chat.chatbotId,
+            messages: chat.messages.map((msg, index) => ({
+                id: `${chat._id}-${index}`,
+                role: msg.role,
+                content: msg.content,
+                timestamp: msg.timestamp,
+            })),
+            source: 'embed' as const,
+            confidenceScore: 0,
+            createdAt: chat.createdAt,
+        };
+        return { success: true, data: session };
+    } catch (error) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Chat session not found',
+            data: null,
+        };
+    }
 }
 
 export async function exportChatSessions(
-    chatbotId: string,
-    format: 'csv' | 'json' = 'csv'
+    _chatbotId: string,
+    _format: 'csv' | 'json' = 'csv',
 ): Promise<ApiResponse<string>> {
-    await delay(1000);
-    // In real implementation, this would return a download URL
-    return {
-        success: true,
-        data: `https://api.aslaschat.ai/exports/${chatbotId}/chat-logs.${format}`,
-    };
+    return { success: false, error: 'Export not yet implemented', data: '' };
 }
 
 // ==========================================
-// LEADS API SERVICE
+// LEADS
 // ==========================================
 
 export async function getLeads(
     chatbotId: string,
-    filters?: {
-        startDate?: string;
-        endDate?: string;
-    }
+    _filters?: { startDate?: string; endDate?: string },
 ): Promise<ApiResponse<PaginatedResponse<Lead>>> {
     try {
         const user = auth.currentUser;
@@ -214,40 +153,31 @@ export async function getLeads(
             return {
                 success: false,
                 error: 'User not authenticated',
-                data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false }
+                data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false },
             };
         }
 
-        // Fetch leads from backend for this chatbot
-        const backendLeads = await api.get(`/leads/chatbot/${chatbotId}`);
-        
-        // Convert backend leads to frontend format
-        const leads: Lead[] = backendLeads.map((lead: any) => ({
+        const backendLeads = await api.get<BackendLead[]>(`/leads/chatbot/${chatbotId}`);
+
+        const leads: Lead[] = backendLeads.map((lead) => ({
             id: lead._id,
             chatbotId: lead.chatbot_id,
-            name: lead.userName ,
+            name: lead.userName,
             email: lead.userEmail || '',
             phone: lead.phone || '',
-            message: `Contact information captured`, 
-            createdAt: lead.timestamp || lead.createdAt
+            message: 'Contact information captured',
+            createdAt: lead.timestamp || lead.createdAt || '',
         }));
 
         return {
             success: true,
-            data: {
-                items: leads,
-                total: leads.length,
-                page: 1,
-                pageSize: 20,
-                hasMore: false,
-            },
+            data: { items: leads, total: leads.length, page: 1, pageSize: 20, hasMore: false },
         };
     } catch (error) {
-        console.error('Error fetching leads:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to fetch leads',
-            data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false }
+            data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false },
         };
     }
 }
@@ -255,27 +185,19 @@ export async function getLeads(
 export async function deleteLead(id: string): Promise<ApiResponse<boolean>> {
     try {
         await api.delete(`/leads/${id}`);
-        return {
-            success: true,
-            data: true,
-        };
+        return { success: true, data: true };
     } catch (error) {
-        console.error('Error deleting lead:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to delete lead',
-            data: false
+            data: false,
         };
     }
 }
 
 export async function exportLeads(
-    chatbotId: string,
-    format: 'csv' | 'json' = 'csv'
+    _chatbotId: string,
+    _format: 'csv' | 'json' = 'csv',
 ): Promise<ApiResponse<string>> {
-    await delay(1000);
-    return {
-        success: true,
-        data: `https://api.aslaschat.ai/exports/${chatbotId}/leads.${format}`,
-    };
+    return { success: false, error: 'Export not yet implemented', data: '' };
 }

@@ -78,8 +78,8 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
             } else {
                 throw new Error(response.error || 'Failed to create chatbot');
             }
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An unexpected error occurred');
             throw err;
         } finally {
             setIsMutating(false);
@@ -107,11 +107,11 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
                 setSelectedChatbot(previousSelected);
                 throw new Error(response.error || 'Failed to update chatbot');
             }
-        } catch (err: any) {
+        } catch (err) {
             // Rollback on error
             setChatbots(previousChatbots);
             setSelectedChatbot(previousSelected);
-            setError(err.message);
+            setError(err instanceof Error ? err.message : 'An unexpected error occurred');
             throw err;
         } finally {
             setIsMutating(false);
@@ -136,9 +136,9 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
             } else {
                 throw new Error(response.error || 'Failed to delete chatbot');
             }
-        } catch (err: any) {
+        } catch (err) {
             setChatbots(previousChatbots);
-            setError(err.message);
+            setError(err instanceof Error ? err.message : 'An unexpected error occurred');
             throw err;
         } finally {
             setIsMutating(false);

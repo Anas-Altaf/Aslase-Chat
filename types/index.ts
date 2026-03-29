@@ -45,7 +45,7 @@ export interface ChatbotSettings {
     // General
     name: string;
     // Model
-    model: string;
+    model: Chatbot['model'];
     temperature: number;
     maxTokens: number;
     // Chat Interface
