@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Mail, Phone, User, Trash2, Tag, Info, Filter } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
-import { getLeads, deleteLead, updateLead } from '@/lib/services';
+import { exportLeads, getLeads, deleteLead, updateLead } from '@/lib/services';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -55,6 +55,7 @@ export default function Leads() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const loadLeads = useCallback(async () => {
     if (!selectedChatbot) return;
@@ -81,6 +82,40 @@ export default function Leads() {
     if (!selectedChatbot) { setLeads([]); return; }
     loadLeads();
   }, [selectedChatbot?.id, statusFilter, appliedFrom, appliedTo]);
+
+  const downloadTextFile = (filename: string, text: string, mime: string) => {
+    const blob = new Blob([text], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExport = async (format: 'csv' | 'json') => {
+    if (!selectedChatbot) return;
+    setIsExporting(true);
+    try {
+      const res = await exportLeads(selectedChatbot.id, format);
+      if (!res.success) {
+        toast.error(res.error ?? 'Failed to export leads');
+        return;
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      const ext = format === 'json' ? 'json' : 'csv';
+      const mime = format === 'json' ? 'application/json;charset=utf-8' : 'text/csv;charset=utf-8';
+      const filename = `leads-${selectedChatbot.id}-${today}.${ext}`;
+      downloadTextFile(filename, res.data, mime);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to export leads');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleApplyDateFilter = () => {
     setAppliedFrom(fromDate);
@@ -155,8 +190,28 @@ export default function Leads() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="flex justify-between items-center mb-4 shrink-0">
-        <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
-        <span className="text-sm text-gray-500">{leads.length} total</span>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
+          <span className="text-sm text-gray-500">{leads.length} total</span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => handleExport('csv')}
+            disabled={isExporting}
+          >
+            Export CSV
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => handleExport('json')}
+            disabled={isExporting}
+          >
+            Export JSON
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

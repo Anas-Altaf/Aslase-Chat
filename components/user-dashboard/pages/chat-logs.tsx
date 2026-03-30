@@ -13,7 +13,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
-import { getChatSessions, getChatHistory, sendChatMessage } from '@/lib/services';
+import { exportChatSessions, getChatHistory, getChatSessions, sendChatMessage } from '@/lib/services';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,7 @@ import type { ChatSession, ChatMessage } from '@/types';
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type RightPanelMode = 'playground' | 'history';
+type UserTypeFilter = 'all' | 'anonymous' | 'identified';
 
 // ── Session Card ─────────────────────────────────────────────────────────────
 
@@ -39,7 +40,7 @@ function SessionCard({
 }) {
   const firstUserMsg = session.messages.find((m) => m.role === 'user');
   const msgCount = session.messageCount ?? session.messages.length;
-  const preview = firstUserMsg?.content ?? 'Session started';
+  const preview = session.previewMessage ?? firstUserMsg?.content ?? 'Session started';
 
   return (
     <Card
@@ -143,6 +144,8 @@ export default function ChatLogs() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const LIMIT = 20;
+  const [userTypeFilter, setUserTypeFilter] = useState<UserTypeFilter>('all');
+  const [isExporting, setIsExporting] = useState(false);
 
   // Right panel state
   const [mode, setMode] = useState<RightPanelMode>('playground');
@@ -162,12 +165,60 @@ export default function ChatLogs() {
 
   // ── Load sessions ────────────────────────────────────────────────────────
 
+  const downloadTextFile = (filename: string, text: string, mime: string) => {
+    const blob = new Blob([text], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExport = async (format: 'csv' | 'json') => {
+    if (!selectedChatbot) return;
+    setIsExporting(true);
+    try {
+      const isAnonymous =
+        userTypeFilter === 'all' ? undefined : userTypeFilter === 'anonymous';
+
+      const res = await exportChatSessions(
+        selectedChatbot.id,
+        format,
+        isAnonymous !== undefined ? isAnonymous : undefined,
+      );
+
+      if (!res.success) {
+        toast.error(res.error ?? 'Failed to export chat sessions');
+        return;
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      const ext = format === 'json' ? 'json' : 'csv';
+      const mime = format === 'json' ? 'application/json;charset=utf-8' : 'text/csv;charset=utf-8';
+      const filename = `chat-sessions-${selectedChatbot.id}-${today}.${ext}`;
+      downloadTextFile(filename, res.data, mime);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to export chat sessions');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const loadSessions = useCallback(
     async (p = page) => {
       if (!selectedChatbot) return;
       setIsLoading(true);
       try {
-        const res = await getChatSessions(selectedChatbot.id, { page: p, limit: LIMIT });
+        const isAnonymous =
+          userTypeFilter === 'all' ? undefined : userTypeFilter === 'anonymous';
+        const res = await getChatSessions(selectedChatbot.id, {
+          page: p,
+          limit: LIMIT,
+          isAnonymous,
+        });
         if (res.success) {
           setSessions(res.data.items);
           setTotal(res.data.total);
@@ -181,7 +232,7 @@ export default function ChatLogs() {
         setIsLoading(false);
       }
     },
-    [selectedChatbot, page],
+    [selectedChatbot, page, userTypeFilter],
   );
 
   useEffect(() => {
@@ -194,9 +245,11 @@ export default function ChatLogs() {
       setSelectedSession(null);
       return;
     }
-    loadSessions(1);
+    setMode('playground');
+    setSelectedSession(null);
     setPage(1);
-  }, [selectedChatbot?.id]);
+    loadSessions(1);
+  }, [selectedChatbot?.id, userTypeFilter]);
 
   // ── Pagination ────────────────────────────────────────────────────────────
 
@@ -302,6 +355,50 @@ export default function ChatLogs() {
               {total} conversation{total !== 1 ? 's' : ''} total
             </p>
           </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => handleExport('csv')}
+              disabled={isExporting}
+            >
+              Export CSV
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => handleExport('json')}
+              disabled={isExporting}
+            >
+              Export JSON
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 mb-3 shrink-0">
+          <span className="text-xs text-gray-500">Show:</span>
+          <Button
+            size="sm"
+            variant={userTypeFilter === 'all' ? 'default' : 'outline'}
+            onClick={() => setUserTypeFilter('all')}
+          >
+            All
+          </Button>
+          <Button
+            size="sm"
+            variant={userTypeFilter === 'anonymous' ? 'default' : 'outline'}
+            onClick={() => setUserTypeFilter('anonymous')}
+          >
+            Anonymous
+          </Button>
+          <Button
+            size="sm"
+            variant={userTypeFilter === 'identified' ? 'default' : 'outline'}
+            onClick={() => setUserTypeFilter('identified')}
+          >
+            Identified
+          </Button>
         </div>
 
         {/* Sessions list */}

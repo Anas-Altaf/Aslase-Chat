@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { MessageCircle, Bot, Trash2, Search, LinkIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
-import { getQueries, deleteQuery, deleteAllQueries } from '@/lib/services';
+import { getQueries, deleteQuery, deleteAllQueries, exportQueries } from '@/lib/services';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,6 +41,7 @@ export default function Queries() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Filters
   const [sentimentFilter, setSentimentFilter] = useState<string>('all');
@@ -59,6 +60,55 @@ export default function Queries() {
   const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  const downloadTextFile = (filename: string, text: string, mime: string) => {
+    const blob = new Blob([text], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExport = async (format: 'csv' | 'json') => {
+    if (!selectedChatbot) return;
+    setIsExporting(true);
+    try {
+      const res = await exportQueries(
+        selectedChatbot.id,
+        {
+          sentiment: sentimentFilter !== 'all' ? (sentimentFilter as SentimentType) : undefined,
+          isAnonymous: anonFilter !== 'all' ? anonFilter === 'true' : undefined,
+          search: search || undefined,
+          from: appliedFrom || undefined,
+          to: appliedTo || undefined,
+          limit: 10000,
+        },
+        format,
+      );
+
+      if (!res.success) {
+        toast.error(res.error ?? 'Failed to export queries');
+        return;
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      const ext = format === 'json' ? 'json' : 'csv';
+      const mime =
+        format === 'json'
+          ? 'application/json;charset=utf-8'
+          : 'text/csv;charset=utf-8';
+      const filename = `queries-${selectedChatbot.id}-${today}.${ext}`;
+      downloadTextFile(filename, res.data, mime);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to export queries');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const loadQueries = useCallback(async () => {
     if (!selectedChatbot) return;
@@ -178,16 +228,34 @@ export default function Queries() {
       {/* Header */}
       <div className="flex justify-between items-center mb-4 shrink-0">
         <h1 className="text-2xl font-bold text-gray-900">Queries</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-700"
-          onClick={() => setDeleteAllOpen(true)}
-          disabled={total === 0}
-        >
-          <Trash2 className="w-3.5 h-3.5 mr-1" />
-          Delete All
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => handleExport('csv')}
+            disabled={isExporting || total === 0}
+          >
+            Export CSV
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => handleExport('json')}
+            disabled={isExporting || total === 0}
+          >
+            Export JSON
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-700"
+            onClick={() => setDeleteAllOpen(true)}
+            disabled={total === 0}
+          >
+            <Trash2 className="w-3.5 h-3.5 mr-1" />
+            Delete All
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

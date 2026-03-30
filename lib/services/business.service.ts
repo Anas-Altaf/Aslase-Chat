@@ -14,6 +14,7 @@ interface BackendBusiness {
     address?: string;
     isActive: boolean;
     documents?: Array<{
+        _id?: string;
         fileName: string;
         extractedText: string;
         uploadedAt: string;
@@ -32,7 +33,9 @@ function convertBackendToFrontend(backendBiz: BackendBusiness): Business {
         contactEmail: backendBiz.email || '',
         contactPhone: backendBiz.phone || '',
         documents: backendBiz.documents?.map((doc, index) => ({
-            id: `${backendBiz._id}-doc-${index}`,
+            // Use the real Mongo subdocument `_id` when available so deletions can target it.
+            // Fallback keeps the UI stable if older documents don't include `_id`.
+            id: doc._id ? String(doc._id) : `${backendBiz._id}-doc-${index}`,
             name: doc.fileName,
             url: '', // We don't store file URLs since we only store extracted text
             type: doc.fileName.endsWith('.pdf') ? 'pdf' as const : 'doc' as const,
@@ -189,13 +192,34 @@ export async function uploadBusinessDocument(
     businessId: string,
     document: { name: string; file: File }
 ): Promise<ApiResponse<Business>> {
-    // TODO: Implement document upload API
-    // not yet implemented
-    return {
-        success: false,
-        error: 'Document upload not yet implemented',
-        data: null as unknown as Business
-    };
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            return {
+                success: false,
+                error: 'User not authenticated',
+                data: null as unknown as Business
+            };
+        }
+
+        const formData = new FormData();
+        // Backend expects `documents` field containing one or more files.
+        formData.append('documents', document.file);
+
+        const backendBiz: BackendBusiness = await api.postFormData<BackendBusiness>(
+            `/businesses/${businessId}/upload-documents`,
+            formData
+        );
+
+        const business = convertBackendToFrontend(backendBiz);
+        return { success: true, data: business };
+    } catch (error) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to upload document',
+            data: null as unknown as Business
+        };
+    }
 }
 
 // Delete document from business (placeholder - will be implemented later)
@@ -203,13 +227,29 @@ export async function deleteBusinessDocument(
     businessId: string,
     documentId: string
 ): Promise<ApiResponse<Business>> {
-    // TODO: Implement document delete API
-    // not yet implemented
-    return {
-        success: false,
-        error: 'Document delete not yet implemented',
-        data: null as unknown as Business
-    };
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            return {
+                success: false,
+                error: 'User not authenticated',
+                data: null as unknown as Business
+            };
+        }
+
+        const backendBiz: BackendBusiness = await api.delete<BackendBusiness>(
+            `/businesses/${businessId}/documents/${documentId}`
+        );
+
+        const business = convertBackendToFrontend(backendBiz);
+        return { success: true, data: business };
+    } catch (error) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to delete document',
+            data: null as unknown as Business
+        };
+    }
 }
 
 

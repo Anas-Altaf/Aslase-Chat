@@ -78,6 +78,8 @@ export interface ChatSession {
     id: string;
     chatbotId: string;
     messages: ChatMessage[];
+    // Lightweight preview for the session list (doesn't require loading full chat history).
+    previewMessage?: string;
     source: 'embed' | 'api' | 'playground';
     confidenceScore: number;
     isAnonymous?: boolean;

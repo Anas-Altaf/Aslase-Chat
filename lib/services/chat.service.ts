@@ -22,11 +22,13 @@ interface BackendMessage {
 interface BackendChat {
   _id: string;
   chatbotId: string;
-  messages: BackendMessage[];
+  messages?: BackendMessage[];
   isAnonymous?: boolean;
   messageCount?: number;
   createdAt: string;
   updatedAt?: string;
+  previewMessage?: string | null;
+  previewTimestamp?: string | null;
 }
 
 interface BackendLead {
@@ -56,6 +58,7 @@ function convertChat(chat: BackendChat): ChatSession {
       content: msg.content,
       timestamp: msg.timestamp,
     })),
+    previewMessage: chat.previewMessage ?? undefined,
     source: "embed" as const,
     confidenceScore: 0,
     isAnonymous: chat.isAnonymous ?? true,
@@ -175,8 +178,23 @@ export async function getChatSessionById(
 export async function exportChatSessions(
   _chatbotId: string,
   _format: "csv" | "json" = "csv",
+  isAnonymous?: boolean,
 ): Promise<ApiResponse<string>> {
-  return { success: false, error: "Export not yet implemented", data: "" };
+  try {
+    const qs = new URLSearchParams({ format: _format });
+    if (isAnonymous !== undefined) qs.set("isAnonymous", String(isAnonymous));
+
+    const res = await api.get<{ export: string }>(
+      `/chatbots/${_chatbotId}/chats/export?${qs.toString()}`,
+    );
+    return { success: true, data: res.export };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to export chat sessions",
+      data: "",
+    };
+  }
 }
 
 // ==========================================
@@ -257,5 +275,16 @@ export async function exportLeads(
   _chatbotId: string,
   _format: "csv" | "json" = "csv",
 ): Promise<ApiResponse<string>> {
-  return { success: false, error: "Export not yet implemented", data: "" };
+  try {
+    const res = await api.get<{ export: string }>(
+      `/leads/chatbot/${_chatbotId}/export?format=${encodeURIComponent(_format)}`,
+    );
+    return { success: true, data: res.export };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to export leads",
+      data: "",
+    };
+  }
 }

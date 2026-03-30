@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useChatbot } from '@/contexts/ChatbotContext';
-import { getChatbotAnalytics } from '@/lib/services';
+import { getChatbotAnalytics, exportAnalytics } from '@/lib/services';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -219,6 +220,7 @@ export default function Analytics() {
   const [analytics, setAnalytics] = useState<ChatbotAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [isExporting, setIsExporting] = useState(false);
 
   const loadAnalytics = useCallback(async () => {
     if (!selectedChatbot) return;
@@ -242,6 +244,40 @@ export default function Analytics() {
     loadAnalytics();
   }, [selectedChatbot?.id]);
 
+  const downloadTextFile = (filename: string, text: string, mime: string) => {
+    const blob = new Blob([text], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExport = async (format: 'csv' | 'json') => {
+    if (!selectedChatbot) return;
+    setIsExporting(true);
+    try {
+      const res = await exportAnalytics(selectedChatbot.id, format);
+      if (!res.success) {
+        toast.error(res.error ?? 'Failed to export analytics');
+        return;
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      const ext = format === 'json' ? 'json' : 'csv';
+      const mime = format === 'json' ? 'application/json;charset=utf-8' : 'text/csv;charset=utf-8';
+      const filename = `analytics-${selectedChatbot.id}-${today}.${ext}`;
+      downloadTextFile(filename, res.data, mime);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to export analytics');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (isInitialLoading) {
     return (
       <div className="space-y-4">
@@ -264,7 +300,27 @@ export default function Analytics() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4 shrink-0">Analytics</h1>
+      <div className="flex items-center justify-between mb-4 shrink-0">
+        <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => handleExport('csv')}
+            disabled={isExporting}
+          >
+            Export CSV
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => handleExport('json')}
+            disabled={isExporting}
+          >
+            Export JSON
+          </Button>
+        </div>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4 shrink-0 border-b border-gray-200">

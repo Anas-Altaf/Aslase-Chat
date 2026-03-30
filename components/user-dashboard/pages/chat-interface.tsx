@@ -32,9 +32,9 @@ export default function ChatInterface() {
     try {
       const response = await getChatbotSettings(selectedChatbot.id);
       if (response.success && response.data) {
-        setWelcomeMessage(response.data.welcomeMessage);
-        setPlaceholder(response.data.placeholder);
-        setPrimaryColor(response.data.primaryColor);
+        setWelcomeMessage(response.data.welcomeMessage ?? '');
+        setPlaceholder(response.data.placeholder ?? '');
+        setPrimaryColor(response.data.primaryColor ?? '#22c55e');
       }
     } catch (error) {
       toast.error('Failed to load settings');

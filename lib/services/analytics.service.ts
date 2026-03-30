@@ -114,7 +114,19 @@ export function generateEmbedCode(chatbotId: string): {
 
 export async function exportAnalytics(
   _chatbotId: string,
-  _format: "csv" | "pdf" = "csv",
+  _format: "csv" | "json" | "pdf" = "csv",
 ): Promise<ApiResponse<string>> {
-  return { success: false, error: "Export not yet implemented", data: "" };
+  try {
+    const backendFormat = _format === "pdf" ? "csv" : _format;
+    const res = await api.get<{ export: string }>(
+      `/analytics/chatbot/${_chatbotId}/export?format=${encodeURIComponent(backendFormat)}`,
+    );
+    return { success: true, data: res.export };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to export analytics",
+      data: "",
+    };
+  }
 }

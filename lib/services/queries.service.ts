@@ -128,3 +128,40 @@ export async function deleteAllQueries(
     };
   }
 }
+
+export async function exportQueries(
+  chatbotId: string,
+  params: {
+    sentiment?: SentimentType;
+    isAnonymous?: boolean;
+    search?: string;
+    from?: string;
+    to?: string;
+    limit?: number;
+  },
+  format: "csv" | "json" = "csv",
+): Promise<ApiResponse<string>> {
+  try {
+    const qs = new URLSearchParams();
+    qs.set("format", format);
+    if (params.sentiment) qs.set("sentiment", params.sentiment);
+    if (params.isAnonymous !== undefined)
+      qs.set("isAnonymous", String(params.isAnonymous));
+    if (params.search) qs.set("search", params.search);
+    if (params.from) qs.set("from", params.from);
+    if (params.to) qs.set("to", params.to);
+    if (params.limit) qs.set("limit", String(params.limit));
+
+    const res = await api.get<{ export: string }>(
+      `/queries/chatbot/${chatbotId}/export?${qs.toString()}`,
+    );
+    return { success: true, data: res.export };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to export queries",
+      data: "",
+    };
+  }
+}
