@@ -38,10 +38,12 @@ export async function getSources(
   chatbotId: string,
 ): Promise<ApiResponse<Source[]>> {
   try {
-    const backendSources = await api.get<BackendSource[]>(
-      `/sources/chatbot/${chatbotId}`,
-    );
-    return { success: true, data: backendSources.map(convertSource) };
+    const raw = await api.get<unknown>(`/sources/chatbot/${chatbotId}`);
+    // Handle both flat array and paginated { data: [] } responses defensively
+    const list: BackendSource[] = Array.isArray(raw)
+      ? (raw as BackendSource[])
+      : ((raw as any)?.data ?? []);
+    return { success: true, data: list.map(convertSource) };
   } catch (error) {
     return {
       success: false,

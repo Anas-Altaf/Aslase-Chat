@@ -65,7 +65,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     {/* Desktop Layout */}
                     <div className="hidden lg:flex flex-1 h-screen">
                         {/* Chatbot Sidebar Panel - Fixed Width */}
-                        <div className={`${sidebarCollapsed ? 'w-16' : 'w-80'} transition-all duration-200 flex-shrink-0`}>
+                        <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 flex-shrink-0 overflow-hidden`}>
                             <ChatbotBar
                                 collapsed={sidebarCollapsed}
                                 onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -78,19 +78,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                             <ResizablePanel defaultSize={100} minSize={60} className="min-w-0">
                                 <div className="flex flex-col h-full">
                                     <Header />
-                                    <div className="flex-1 p-4 xl:p-6 overflow-hidden">
+                                    <div className="flex-1 p-3 xl:p-4 overflow-hidden">
                                         {hideMenubar ? (
                                             /* Full-width content for list pages */
-                                            <Card className="h-full p-4 xl:p-6 overflow-auto bg-white/80 backdrop-blur-sm shadow-xl border-green-100/50">
+                                            <Card className="h-full p-4 xl:p-5 overflow-auto bg-white/80 backdrop-blur-sm shadow-xl border-green-100/50">
                                                 {children}
                                             </Card>
                                         ) : (
                                             /* Menubar + Content for chatbot pages */
                                             <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg">
                                                 <ResizablePanel
-                                                    defaultSize={28}
-                                                    minSize={18}
-                                                    maxSize={45}
+                                                    defaultSize={20}
+                                                    minSize={15}
+                                                    maxSize={35}
                                                     collapsible
                                                     collapsedSize={0}
                                                     className="min-w-0"
@@ -102,8 +102,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
                                                 <ResizableHandle withHandle />
 
-                                                <ResizablePanel defaultSize={72} minSize={40} className="min-w-0">
-                                                    <Card className="h-full p-4 xl:p-6 overflow-auto rounded-l-none bg-white backdrop-blur-sm shadow-xl border-green-100/50">
+                                                <ResizablePanel defaultSize={80} minSize={50} className="min-w-0">
+                                                    <Card className="h-full p-4 xl:p-5 overflow-auto rounded-l-none bg-white backdrop-blur-sm shadow-xl border-green-100/50">
                                                         {children}
                                                     </Card>
                                                 </ResizablePanel>

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { MessageCircle, Bot, Trash2, Search, LinkIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { MessageCircle, Bot, Trash2, Search, LinkIcon, ChevronLeft, ChevronRight, HelpCircle, ExternalLink } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { getQueries, deleteQuery, deleteAllQueries, exportQueries } from '@/lib/services';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ const PAGE_SIZE = 20;
 
 export default function Queries() {
   const { selectedChatbot, isInitialLoading } = useChatbot();
+  const router = useRouter();
   const [queries, setQueries] = useState<ChatQuery[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -52,6 +54,8 @@ export default function Queries() {
   const [toDate, setToDate] = useState('');
   const [appliedFrom, setAppliedFrom] = useState('');
   const [appliedTo, setAppliedTo] = useState('');
+  // Client-side "questions only" toggle — filters to messages containing "?"
+  const [questionsOnly, setQuestionsOnly] = useState(false);
 
   // Delete state
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -60,6 +64,12 @@ export default function Queries() {
   const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  // Client-side filter applied on top of server-filtered data
+  const displayedQueries = useMemo(
+    () => questionsOnly ? queries.filter((q) => q.userMessage.includes('?')) : queries,
+    [queries, questionsOnly],
+  );
 
   const downloadTextFile = (filename: string, text: string, mime: string) => {
     const blob = new Blob([text], { type: mime });
@@ -226,8 +236,11 @@ export default function Queries() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center mb-4 shrink-0">
-        <h1 className="text-2xl font-bold text-gray-900">Queries</h1>
+      <div className="flex justify-between items-center mb-1 shrink-0">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">User Messages</h1>
+          <p className="text-xs text-gray-500 mt-0.5">All messages sent to your chatbot — {total} total</p>
+        </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button
             variant="secondary"
@@ -256,6 +269,27 @@ export default function Queries() {
             Delete All
           </Button>
         </div>
+      </div>
+
+      {/* Questions-only toggle */}
+      <div className="flex items-center gap-2 mb-3 shrink-0">
+        <button
+          onClick={() => setQuestionsOnly(!questionsOnly)}
+          className={cn(
+            'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors',
+            questionsOnly
+              ? 'bg-green-500 text-white border-green-500'
+              : 'bg-white text-gray-600 border-gray-300 hover:border-green-400',
+          )}
+        >
+          <HelpCircle className="w-3 h-3" />
+          Questions only
+        </button>
+        {questionsOnly && (
+          <span className="text-xs text-gray-400">
+            Showing {displayedQueries.length} of {queries.length} messages that contain "?"
+          </span>
+        )}
       </div>
 
       {/* Filters */}
@@ -338,12 +372,12 @@ export default function Queries() {
               <Skeleton className="h-28" />
               <Skeleton className="h-28" />
             </>
-          ) : queries.length === 0 ? (
+          ) : displayedQueries.length === 0 ? (
             <p className="text-gray-500 text-sm text-center py-8">
-              No queries found
+              {questionsOnly ? 'No questions (messages with "?") found on this page' : 'No messages found'}
             </p>
           ) : (
-            queries.map((q) => (
+            displayedQueries.map((q) => (
               <Card key={q.id} className="p-4">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-start gap-2 flex-1 min-w-0">
@@ -389,9 +423,19 @@ export default function Queries() {
                       Anonymous
                     </span>
                   )}
-                  <span className="ml-auto text-xs text-gray-400">
+                  <span className="text-xs text-gray-400">
                     {new Date(q.createdAt).toLocaleString()}
                   </span>
+                  {q.sessionId && (
+                    <button
+                      onClick={() => router.push('/user-dashboard/chat-logs')}
+                      className="ml-auto flex items-center gap-1 text-[10px] text-green-600 hover:text-green-700 font-medium shrink-0"
+                      title="View chat session"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      View Session
+                    </button>
+                  )}
                 </div>
               </Card>
             ))

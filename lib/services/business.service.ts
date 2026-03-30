@@ -59,8 +59,9 @@ export async function getBusinesses(): Promise<ApiResponse<PaginatedResponse<Bus
         }
 
         // Get businesses for current user using query parameter
-        const backendBusinesses: BackendBusiness[] = await api.get(`/businesses?ownerUid=${user.uid}`);
-        const businesses = backendBusinesses.map(convertBackendToFrontend);
+        const raw = await api.get<unknown>(`/businesses?ownerUid=${user.uid}`);
+        const list: BackendBusiness[] = Array.isArray(raw) ? (raw as BackendBusiness[]) : ((raw as any)?.data ?? []);
+        const businesses = list.map(convertBackendToFrontend);
 
         return {
             success: true,

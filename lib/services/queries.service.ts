@@ -67,20 +67,24 @@ export async function getQueries(
     if (params?.limit) qs.set("limit", String(params.limit ?? 20));
 
     const query = qs.toString();
-    const result = await api.get<BackendPaginatedResult<BackendQuery>>(
+    const raw = await api.get<unknown>(
       `/queries/chatbot/${chatbotId}${query ? `?${query}` : ""}`,
     );
 
-    const queries = (result.data ?? []).map(convertQuery);
+    const isArr = Array.isArray(raw);
+    const list: BackendQuery[] = isArr ? (raw as BackendQuery[]) : ((raw as any)?.data ?? []);
+    const queries = list.map(convertQuery);
+    const totalPages = isArr ? 1 : ((raw as any)?.totalPages ?? 1);
+    const currentPage = isArr ? 1 : ((raw as any)?.page ?? 1);
 
     return {
       success: true,
       data: {
         items: queries,
-        total: result.total ?? queries.length,
-        page: result.page ?? 1,
-        pageSize: result.limit ?? 20,
-        hasMore: (result.page ?? 1) < (result.totalPages ?? 1),
+        total: isArr ? queries.length : ((raw as any)?.total ?? queries.length),
+        page: currentPage,
+        pageSize: isArr ? queries.length : ((raw as any)?.limit ?? 20),
+        hasMore: currentPage < totalPages,
       },
     };
   } catch (error) {

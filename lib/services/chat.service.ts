@@ -124,21 +124,23 @@ export async function getChatSessions(
     }
 
     // Owner endpoint — returns ALL conversations for this chatbot (not just own chats)
-    const result = await api.get<BackendPaginatedResult<BackendChat>>(
+    const raw = await api.get<unknown>(
       `/chatbots/${chatbotId}/chats?${params.toString()}`,
     );
 
-    const sessions = (result.data ?? []).map(convertChat);
-    const totalPages = result.totalPages ?? (result as any).pages ?? 1;
+    const isArr = Array.isArray(raw);
+    const chats: BackendChat[] = isArr ? (raw as BackendChat[]) : ((raw as any)?.data ?? []);
+    const sessions = chats.map(convertChat);
+    const totalPages = isArr ? 1 : ((raw as any)?.totalPages ?? (raw as any)?.pages ?? 1);
 
     return {
       success: true,
       data: {
         items: sessions,
-        total: result.total ?? sessions.length,
-        page: result.page ?? page,
-        pageSize: result.limit ?? limit,
-        hasMore: (result.page ?? page) < totalPages,
+        total: isArr ? sessions.length : ((raw as any)?.total ?? sessions.length),
+        page: isArr ? page : ((raw as any)?.page ?? page),
+        pageSize: isArr ? limit : ((raw as any)?.limit ?? limit),
+        hasMore: (isArr ? page : ((raw as any)?.page ?? page)) < totalPages,
       },
     };
   } catch (error) {
@@ -214,20 +216,33 @@ export async function getLeads(
     if (filters?.limit) params.set("limit", String(filters.limit));
 
     const qs = params.toString();
-    const result = await api.get<BackendPaginatedResult<BackendLead>>(
+    const raw = await api.get<unknown>(
       `/leads/chatbot/${chatbotId}${qs ? `?${qs}` : ""}`,
     );
 
-    const leads = (result.data ?? []).map(convertLead);
+    // Handle both flat array and paginated { data: [] } responses defensively
+    const isArr = Array.isArray(raw);
+    const list: BackendLead[] = isArr
+      ? (raw as BackendLead[])
+      : ((raw as any)?.data ?? []);
+    const leads = list.map(convertLead);
+    const total: number = isArr
+      ? list.length
+      : ((raw as any)?.total ?? leads.length);
+    const currentPage: number = isArr ? 1 : ((raw as any)?.page ?? 1);
+    const limitVal: number = isArr ? list.length : ((raw as any)?.limit ?? 20);
+    const totalPages: number = isArr
+      ? 1
+      : ((raw as any)?.totalPages ?? (raw as any)?.pages ?? 1);
 
     return {
       success: true,
       data: {
         items: leads,
-        total: result.total ?? leads.length,
-        page: result.page ?? 1,
-        pageSize: result.limit ?? 20,
-        hasMore: (result.page ?? 1) < (result.totalPages ?? 1),
+        total,
+        page: currentPage,
+        pageSize: limitVal,
+        hasMore: currentPage < totalPages,
       },
     };
   } catch (error) {

@@ -48,12 +48,11 @@ export async function getChatbots(): Promise<ApiResponse<Chatbot[]>> {
     if (!user) {
       return { success: false, error: "User not authenticated", data: [] };
     }
-    const backendChatbots = await api.get<BackendChatbot[]>(
-      `/chatbots/owner/${user.uid}`,
-    );
+    const raw = await api.get<unknown>(`/chatbots/owner/${user.uid}`);
+    const list: BackendChatbot[] = Array.isArray(raw) ? (raw as BackendChatbot[]) : ((raw as any)?.data ?? []);
     return {
       success: true,
-      data: backendChatbots.map(convertBackendToFrontend),
+      data: list.map(convertBackendToFrontend),
     };
   } catch (error) {
     return {

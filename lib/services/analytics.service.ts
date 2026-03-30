@@ -96,19 +96,26 @@ export async function disconnectIntegration(
 // EMBED CODE (no backend needed)
 // ==========================================
 
-export function generateEmbedCode(chatbotId: string): {
+export function generateEmbedCode(
+  chatbotId: string,
+  baseUrl: string = process.env.NEXT_PUBLIC_APP_URL ?? "",
+): {
   iframe: string;
   script: string;
+  shareUrl: string;
 } {
+  // Fall back to relative paths if baseUrl not yet known (SSR)
+  const base = baseUrl || "";
   return {
-    iframe: `<iframe src="https://app.aslaschat.ai/chatbot/iframe/${chatbotId}" width="100%" style="height: 100%; min-height: 700px" frameborder="0"></iframe>`,
+    shareUrl: `${base}/chatbot/${chatbotId}`,
+    iframe: `<iframe\n  src="${base}/chatbot/iframe/${chatbotId}"\n  width="100%"\n  style="height: 100%; min-height: 700px"\n  frameborder="0"\n  allow="microphone"\n></iframe>`,
     script: `<script>
   window.embeddedChatbotConfig = {
     chatbotId: "${chatbotId}",
-    domain: "www.aslaschat.ai"
+    baseUrl: "${base}"
   }
 </script>
-<script src="https://app.aslaschat.ai/embed.min.js" defer></script>`,
+<script src="${base}/embed.min.js" defer></script>`,
   };
 }
 

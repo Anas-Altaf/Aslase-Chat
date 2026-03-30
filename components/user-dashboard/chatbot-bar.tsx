@@ -182,7 +182,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
   if (collapsed) {
     return (
       <TooltipProvider delayDuration={100}>
-        <Card className="h-full rounded-none border-r border-gray-200/60 border-l-0 border-t-0 border-b-0 flex flex-col bg-white w-16 shadow-lg">
+        <Card className="h-full rounded-none border-r border-gray-200/60 border-l-0 border-t-0 border-b-0 flex flex-col bg-white w-full shadow-lg overflow-hidden">
           {/* Logo */}
           <div className="p-2 flex items-center justify-center">
             <Link href="/user-dashboard" className="block">

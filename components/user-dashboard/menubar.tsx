@@ -117,7 +117,8 @@ export default function Menubar() {
 
   const handleShare = () => {
     if (selectedChatbot) {
-      navigator.clipboard.writeText(`https://app.aslaschat.ai/chatbot/${selectedChatbot.id}`);
+      const url = `${window.location.origin}/chatbot/${selectedChatbot.id}`;
+      navigator.clipboard.writeText(url);
       toast.success('Share link copied to clipboard!');
     }
   };

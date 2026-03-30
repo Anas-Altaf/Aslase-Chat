@@ -35,8 +35,9 @@ function convertUser(u: BackendUser): User {
 
 export async function getUsers(): Promise<ApiResponse<User[]>> {
   try {
-    const data = await api.get<BackendUser[]>("/users");
-    return { success: true, data: data.map(convertUser) };
+    const raw = await api.get<unknown>("/users");
+    const list: BackendUser[] = Array.isArray(raw) ? (raw as BackendUser[]) : ((raw as any)?.data ?? []);
+    return { success: true, data: list.map(convertUser) };
   } catch (error) {
     return {
       success: false,
