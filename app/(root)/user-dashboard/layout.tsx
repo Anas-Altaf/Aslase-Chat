@@ -22,7 +22,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const pathname = usePathname();
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [sidebarHovered, setSidebarHovered] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     // Hide menubar for businesses/chatbots list pages
@@ -64,12 +64,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
                     {/* Desktop Layout */}
                     <div className="hidden lg:flex flex-1 h-screen">
-                        {/* Chatbot Sidebar Panel - Fixed Width */}
-                        <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 flex-shrink-0 overflow-hidden`}>
-                            <ChatbotBar
-                                collapsed={sidebarCollapsed}
-                                onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-                            />
+                        {/* Chatbot Sidebar — compact by default, expand on hover */}
+                        <div
+                            className={`${sidebarHovered ? 'w-72' : 'w-16'} transition-all duration-300 flex-shrink-0 overflow-hidden z-30`}
+                            onMouseEnter={() => setSidebarHovered(true)}
+                            onMouseLeave={() => setSidebarHovered(false)}
+                        >
+                            <ChatbotBar collapsed={!sidebarHovered} onToggleCollapse={() => {}} />
                         </div>
 
                         <ResizablePanelGroup direction="horizontal" className="h-full flex-1">

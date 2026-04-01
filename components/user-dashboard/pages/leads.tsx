@@ -56,10 +56,12 @@ export default function Leads() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadLeads = useCallback(async () => {
     if (!selectedChatbot) return;
     setIsLoading(true);
+    setLoadError(null);
     try {
       const res = await getLeads(selectedChatbot.id, {
         status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -69,14 +71,17 @@ export default function Leads() {
       if (res.success) {
         setLeads(res.data.items);
       } else {
+        setLoadError(res.error ?? 'Failed to load leads');
         toast.error(res.error ?? 'Failed to load leads');
       }
-    } catch {
-      toast.error('Failed to load leads');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load leads';
+      setLoadError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
-  }, [selectedChatbot, statusFilter]);
+  }, [selectedChatbot, statusFilter, appliedFrom, appliedTo]);
 
   useEffect(() => {
     if (!selectedChatbot) { setLeads([]); return; }
@@ -264,6 +269,12 @@ export default function Leads() {
               <Skeleton className="h-28" />
               <Skeleton className="h-28" />
             </>
+          ) : loadError ? (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-center">
+              <p className="text-red-600 text-sm font-semibold mb-1">Failed to load leads</p>
+              <p className="text-red-500 text-xs mb-3">{loadError}</p>
+              <button onClick={loadLeads} className="text-xs text-red-600 underline">Retry</button>
+            </div>
           ) : leads.length === 0 ? (
             <p className="text-gray-500 text-sm text-center py-8">
               No leads captured yet
