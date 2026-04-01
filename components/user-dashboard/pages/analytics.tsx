@@ -10,16 +10,31 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ChatbotAnalytics } from '@/types';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  BarChart,
+  Bar,
+} from 'recharts';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'sentiment' | 'queries';
+type Tab = 'overview' | 'sentiment' | 'queries' | 'leads';
 
-const SENTIMENT_CONFIG = {
-  positive: { label: 'Positive', bar: 'bg-green-500', text: 'text-green-700', bg: 'bg-green-50' },
-  negative: { label: 'Negative', bar: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-50' },
-  neutral: { label: 'Neutral', bar: 'bg-gray-400', text: 'text-gray-600', bg: 'bg-gray-50' },
-} as const;
+const SENTIMENT_COLORS = {
+  positive: '#22c55e',
+  negative: '#ef4444',
+  neutral: '#9ca3af',
+};
 
 // ── Subcomponents ─────────────────────────────────────────────────────────────
 
@@ -34,118 +49,68 @@ function StatCard({ label, value, sub }: { label: string; value: number; sub?: s
 }
 
 function VolumeChart({ volume }: { volume: Array<{ date: string; count: number }> }) {
-  const [tooltip, setTooltip] = useState<{ index: number; x: number; y: number } | null>(null);
-  const maxCount = volume.length ? Math.max(...volume.map((d) => d.count), 1) : 1;
-  const CHART_HEIGHT = 160;
-
   if (volume.length === 0) {
-    return (
-      <p className="text-gray-400 text-sm text-center py-10">No volume data yet</p>
-    );
+    return <p className="text-gray-400 text-sm text-center py-10">No volume data yet</p>;
   }
 
+  const data = volume.map((d) => ({ ...d, date: d.date.slice(5) }));
+
   return (
-    <div className="relative">
-      {/* Y-axis labels */}
-      <div className="flex">
-        <div className="flex flex-col justify-between text-right pr-2 text-[10px] text-gray-400 shrink-0" style={{ height: CHART_HEIGHT }}>
-          <span>{maxCount}</span>
-          <span>{Math.round(maxCount / 2)}</span>
-          <span>0</span>
-        </div>
-
-        {/* Bars */}
-        <div
-          className="flex-1 flex items-end gap-0.5 relative"
-          style={{ height: CHART_HEIGHT }}
-        >
-          {/* Grid lines */}
-          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="w-full border-t border-gray-100" />
-            ))}
-          </div>
-
-          {volume.map((item, i) => {
-            const barH = Math.max((item.count / maxCount) * (CHART_HEIGHT - 4), item.count > 0 ? 2 : 0);
-            const showLabel = volume.length <= 10 || i % Math.ceil(volume.length / 10) === 0;
-            return (
-              <div
-                key={i}
-                className="flex-1 flex flex-col items-center justify-end group cursor-pointer"
-                style={{ height: CHART_HEIGHT }}
-                onMouseEnter={(e) => setTooltip({ index: i, x: e.currentTarget.getBoundingClientRect().left, y: 0 })}
-                onMouseLeave={() => setTooltip(null)}
-              >
-                <div
-                  className="w-full rounded-t bg-green-500 group-hover:bg-green-600 transition-colors"
-                  style={{ height: barH }}
-                />
-                {showLabel && (
-                  <span className="text-[8px] text-gray-400 mt-0.5 truncate w-full text-center">
-                    {item.date.slice(5)}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Tooltip */}
-          {tooltip !== null && (
-            <div
-              className="absolute -top-8 pointer-events-none bg-gray-900 text-white text-xs px-2 py-1 rounded-md whitespace-nowrap z-10 transform -translate-x-1/2"
-              style={{ left: `${((tooltip.index + 0.5) / volume.length) * 100}%` }}
-            >
-              {volume[tooltip.index].date}: {volume[tooltip.index].count}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    <ResponsiveContainer width="100%" height={200}>
+      <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+        <defs>
+          <linearGradient id="colorMsg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.25} />
+            <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} interval="preserveStartEnd" />
+        <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} allowDecimals={false} />
+        <RechartsTooltip
+          contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
+          labelStyle={{ color: '#374151', fontWeight: 600 }}
+        />
+        <Area
+          type="monotone"
+          dataKey="count"
+          stroke="#22c55e"
+          strokeWidth={2}
+          fill="url(#colorMsg)"
+          dot={false}
+          activeDot={{ r: 4, strokeWidth: 0, fill: '#16a34a' }}
+          isAnimationActive
+          animationDuration={800}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
 
 function SentimentTab({ analytics }: { analytics: ChatbotAnalytics }) {
   const sb = analytics.sentimentBreakdown;
   const total = (sb.positive + sb.negative + sb.neutral) || 1;
-  const pctOf = (n: number) => Math.round((n / total) * 100);
 
-  const dominant = sb.positive >= sb.negative && sb.positive >= sb.neutral
-    ? 'Positive'
-    : sb.negative >= sb.neutral
-    ? 'Negative'
-    : 'Neutral';
+  const pieData = [
+    { name: 'Positive', value: sb.positive, color: SENTIMENT_COLORS.positive },
+    { name: 'Negative', value: sb.negative, color: SENTIMENT_COLORS.negative },
+    { name: 'Neutral', value: sb.neutral, color: SENTIMENT_COLORS.neutral },
+  ].filter((d) => d.value > 0);
+
+  const dominant =
+    sb.positive >= sb.negative && sb.positive >= sb.neutral
+      ? 'Positive'
+      : sb.negative >= sb.neutral
+      ? 'Negative'
+      : 'Neutral';
+
+  const pctOf = (n: number) => Math.round((n / total) * 100);
 
   return (
     <div className="space-y-4">
-      {/* Bars */}
-      <Card className="p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-gray-900">Overall Sentiment Breakdown</h3>
-        {(Object.keys(SENTIMENT_CONFIG) as Array<keyof typeof SENTIMENT_CONFIG>).map((key) => {
-          const count = sb[key];
-          const pct = pctOf(count);
-          const cfg = SENTIMENT_CONFIG[key];
-          return (
-            <div key={key} className="space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className={cn('font-medium', cfg.text)}>{cfg.label}</span>
-                <span className="text-gray-500">{count.toLocaleString()} queries ({pct}%)</span>
-              </div>
-              <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className={cn('h-full rounded-full transition-all duration-700', cfg.bar)}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </Card>
-
-      {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3">
         <Card className="p-3 text-center bg-green-50">
-          <p className="text-xs text-gray-500 mb-1">Most Common</p>
+          <p className="text-xs text-gray-500 mb-1">Dominant</p>
           <p className="text-lg font-bold text-green-700">{dominant}</p>
         </Card>
         <Card className="p-3 text-center bg-red-50">
@@ -155,9 +120,43 @@ function SentimentTab({ analytics }: { analytics: ChatbotAnalytics }) {
         </Card>
         <Card className="p-3 text-center bg-gray-50">
           <p className="text-xs text-gray-500 mb-1">Total Analyzed</p>
-          <p className="text-lg font-bold text-gray-900">{(sb.positive + sb.negative + sb.neutral).toLocaleString()}</p>
+          <p className="text-lg font-bold text-gray-900">{total.toLocaleString()}</p>
         </Card>
       </div>
+
+      <Card className="p-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-3">Sentiment Distribution</h3>
+        {pieData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie
+                data={pieData}
+                cx="50%"
+                cy="50%"
+                innerRadius={55}
+                outerRadius={85}
+                paddingAngle={3}
+                dataKey="value"
+                isAnimationActive
+                animationDuration={800}
+                label={({ name, percent }: any) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                labelLine={false}
+              >
+                {pieData.map((entry, index) => (
+                  <Cell key={index} fill={entry.color} />
+                ))}
+              </Pie>
+              <Legend iconType="circle" iconSize={8} formatter={(value) => <span style={{ fontSize: 12 }}>{value}</span>} />
+              <RechartsTooltip
+                formatter={(value: any) => `${value} queries (${pctOf(value as number)}%)`}
+                contentStyle={{ borderRadius: 8, fontSize: 12 }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-gray-400 text-sm text-center py-8">No sentiment data yet</p>
+        )}
+      </Card>
     </div>
   );
 }
@@ -165,11 +164,15 @@ function SentimentTab({ analytics }: { analytics: ChatbotAnalytics }) {
 function QueriesTab({ analytics }: { analytics: ChatbotAnalytics }) {
   const [search, setSearch] = useState('');
   const queries = analytics.topQueries;
-  const maxCount = queries.length ? Math.max(...queries.map((q) => q.count), 1) : 1;
 
   const filtered = queries.filter((q) =>
     q.query.toLowerCase().includes(search.toLowerCase()),
   );
+
+  const chartData = filtered.slice(0, 10).map((q) => ({
+    query: q.query.length > 30 ? q.query.slice(0, 30) + '…' : q.query,
+    count: q.count,
+  }));
 
   return (
     <div className="space-y-3">
@@ -179,35 +182,114 @@ function QueriesTab({ analytics }: { analytics: ChatbotAnalytics }) {
         onChange={(e) => setSearch(e.target.value)}
         className="text-sm"
       />
+
+      {chartData.length > 0 && (
+        <Card className="p-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">Top Queries by Frequency</h3>
+          <ResponsiveContainer width="100%" height={Math.max(chartData.length * 38, 120)}>
+            <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+              <XAxis type="number" tick={{ fontSize: 10, fill: '#9ca3af' }} allowDecimals={false} />
+              <YAxis type="category" dataKey="query" tick={{ fontSize: 10, fill: '#6b7280' }} width={140} />
+              <RechartsTooltip
+                contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
+              />
+              <Bar
+                dataKey="count"
+                fill="#22c55e"
+                radius={[0, 4, 4, 0]}
+                isAnimationActive
+                animationDuration={700}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      )}
+
       <Card className="p-0 overflow-hidden">
         {filtered.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-8">No queries found</p>
         ) : (
           <div className="divide-y divide-gray-50">
-            {filtered.map((item, i) => {
-              const barW = Math.round((item.count / maxCount) * 100);
-              return (
-                <div key={i} className="flex items-center gap-3 px-4 py-3">
-                  <span className="text-xs text-gray-400 font-mono w-5 shrink-0 text-right">
-                    {i + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900 mb-1">{item.query}</p>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-green-400 rounded-full"
-                        style={{ width: `${barW}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full shrink-0">
-                    ×{item.count}
-                  </span>
-                </div>
-              );
-            })}
+            {filtered.map((item, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-2.5">
+                <span className="text-xs text-gray-400 font-mono w-5 shrink-0 text-right">{i + 1}</span>
+                <p className="text-sm text-gray-900 flex-1 min-w-0 truncate">{item.query}</p>
+                <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full shrink-0">
+                  ×{item.count}
+                </span>
+              </div>
+            ))}
           </div>
         )}
+      </Card>
+    </div>
+  );
+}
+
+function LeadsTab({ analytics }: { analytics: ChatbotAnalytics }) {
+  const timeline = analytics.leadTimeline ?? [];
+
+  if (timeline.length === 0) {
+    return (
+      <Card className="p-8 text-center">
+        <p className="text-gray-400 text-sm">No leads captured yet</p>
+        <p className="text-xs text-gray-300 mt-1">Lead capture events will appear here once visitors share their contact info</p>
+      </Card>
+    );
+  }
+
+  const data = timeline.map((d) => ({ ...d, date: d.date.slice(5) }));
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="p-4">
+          <p className="text-xs text-gray-500 mb-1">Total Leads (30d)</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {timeline.reduce((s, d) => s + d.count, 0).toLocaleString()}
+          </p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs text-gray-500 mb-1">Peak Day</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {Math.max(...timeline.map((d) => d.count)).toLocaleString()}
+          </p>
+          <p className="text-xs text-gray-400 mt-0.5">leads in one day</p>
+        </Card>
+      </div>
+
+      <Card className="p-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">Lead Capture Timeline (Last 30 Days)</h3>
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} interval="preserveStartEnd" />
+            <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} allowDecimals={false} />
+            <RechartsTooltip
+              contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
+              labelStyle={{ color: '#374151', fontWeight: 600 }}
+              formatter={(value: any) => [`${value} lead${value !== 1 ? 's' : ''}`, 'Leads captured']}
+            />
+            <Area
+              type="monotone"
+              dataKey="count"
+              stroke="#22c55e"
+              strokeWidth={2}
+              fill="url(#colorLeads)"
+              dot={{ r: 4, fill: '#22c55e', strokeWidth: 0 }}
+              activeDot={{ r: 6, strokeWidth: 0, fill: '#16a34a' }}
+              isAnimationActive
+              animationDuration={800}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </Card>
     </div>
   );
@@ -232,8 +314,8 @@ export default function Analytics() {
       } else {
         toast.error(res.error ?? 'Failed to load analytics');
       }
-    } catch {
-      toast.error('Failed to load analytics');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load analytics');
     } finally {
       setIsLoading(false);
     }
@@ -265,12 +347,10 @@ export default function Analytics() {
         toast.error(res.error ?? 'Failed to export analytics');
         return;
       }
-
       const today = new Date().toISOString().slice(0, 10);
       const ext = format === 'json' ? 'json' : 'csv';
       const mime = format === 'json' ? 'application/json;charset=utf-8' : 'text/csv;charset=utf-8';
-      const filename = `analytics-${selectedChatbot.id}-${today}.${ext}`;
-      downloadTextFile(filename, res.data, mime);
+      downloadTextFile(`analytics-${selectedChatbot.id}-${today}.${ext}`, res.data, mime);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to export analytics');
     } finally {
@@ -303,20 +383,10 @@ export default function Analytics() {
       <div className="flex items-center justify-between mb-4 shrink-0">
         <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
         <div className="flex items-center gap-2 shrink-0">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => handleExport('csv')}
-            disabled={isExporting}
-          >
+          <Button size="sm" variant="secondary" onClick={() => handleExport('csv')} disabled={isExporting}>
             Export CSV
           </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => handleExport('json')}
-            disabled={isExporting}
-          >
+          <Button size="sm" variant="secondary" onClick={() => handleExport('json')} disabled={isExporting}>
             Export JSON
           </Button>
         </div>
@@ -324,7 +394,7 @@ export default function Analytics() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4 shrink-0 border-b border-gray-200">
-        {(['overview', 'sentiment', 'queries'] as Tab[]).map((tab) => (
+        {(['overview', 'sentiment', 'queries', 'leads'] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -335,7 +405,7 @@ export default function Analytics() {
                 : 'text-gray-500 hover:text-gray-700',
             )}
           >
-            {tab === 'overview' ? 'Overview' : tab === 'sentiment' ? 'Sentiment' : 'Top Queries'}
+            {tab === 'overview' ? 'Overview' : tab === 'sentiment' ? 'Sentiment' : tab === 'queries' ? 'Top Queries' : 'Leads'}
           </button>
         ))}
       </div>
@@ -353,7 +423,6 @@ export default function Analytics() {
           <p className="text-gray-500 text-sm text-center py-16">No analytics data available yet</p>
         ) : (
           <>
-            {/* ── OVERVIEW TAB ── */}
             {activeTab === 'overview' && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -362,21 +431,15 @@ export default function Analytics() {
                   <StatCard label="Leads Captured" value={analytics.totalLeads} />
                   <StatCard label="Queries Logged" value={analytics.totalQueries} />
                 </div>
-
                 <Card className="p-4">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-4">
-                    Daily Message Volume
-                  </h3>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-4">Daily Message Volume</h3>
                   <VolumeChart volume={analytics.dailyMessageVolume} />
                 </Card>
               </div>
             )}
-
-            {/* ── SENTIMENT TAB ── */}
             {activeTab === 'sentiment' && <SentimentTab analytics={analytics} />}
-
-            {/* ── QUERIES TAB ── */}
             {activeTab === 'queries' && <QueriesTab analytics={analytics} />}
+            {activeTab === 'leads' && <LeadsTab analytics={analytics} />}
           </>
         )}
       </div>

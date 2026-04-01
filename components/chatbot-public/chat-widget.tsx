@@ -10,6 +10,8 @@ interface ChatbotInfo {
   name: string;
   description?: string;
   welcomeMessage?: string;
+  primaryColor?: string;
+  placeholder?: string;
 }
 
 interface Message {
@@ -47,7 +49,13 @@ export default function ChatWidget({
         return r.json();
       })
       .then((data) => {
-        setInfo(data);
+        setInfo({
+          name: data.name,
+          description: data.description,
+          welcomeMessage: data.welcomeMessage ?? data.settings?.welcomeMessage,
+          primaryColor: data.primaryColor ?? data.settings?.primaryColor ?? '#22c55e',
+          placeholder: data.placeholder ?? data.settings?.placeholder,
+        });
         const welcome = data.welcomeMessage || data.settings?.welcomeMessage || `Hi! I'm ${data.name}. How can I help you today?`;
         setMessages([{ role: 'assistant', content: welcome, timestamp: new Date() }]);
       })
@@ -140,7 +148,7 @@ export default function ChatWidget({
       )}
     >
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-3 shrink-0">
+      <div className="px-4 py-3 shrink-0" style={{ backgroundColor: info?.primaryColor ?? '#22c55e' }}>
         <div className="flex items-center gap-2">
           <div className="rounded-full bg-white/20 p-1.5">
             <Bot className="w-4 h-4 text-white" />
@@ -148,8 +156,8 @@ export default function ChatWidget({
           <div>
             <p className="text-white font-semibold text-sm">{info?.name ?? 'AI Assistant'}</p>
             <div className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-300 animate-pulse" />
-              <span className="text-green-100 text-[11px]">Online</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-white/60 animate-pulse" />
+              <span className="text-white/80 text-[11px]">Online</span>
             </div>
           </div>
         </div>
@@ -163,17 +171,18 @@ export default function ChatWidget({
             className={cn('flex items-end gap-2', msg.role === 'user' ? 'justify-end' : 'justify-start')}
           >
             {msg.role === 'assistant' && (
-              <div className="rounded-full bg-green-100 p-1 shrink-0">
-                <Bot className="w-3 h-3 text-green-600" />
+              <div className="rounded-full p-1 shrink-0" style={{ backgroundColor: `${info?.primaryColor ?? '#22c55e'}22` }}>
+                <Bot className="w-3 h-3" style={{ color: info?.primaryColor ?? '#22c55e' }} />
               </div>
             )}
             <div
               className={cn(
                 'px-3 py-2 rounded-2xl text-sm max-w-[80%] leading-relaxed',
                 msg.role === 'user'
-                  ? 'bg-green-500 text-white rounded-br-sm'
+                  ? 'text-white rounded-br-sm'
                   : 'bg-white text-gray-900 shadow-sm border border-gray-100 rounded-bl-sm',
               )}
+              style={msg.role === 'user' ? { backgroundColor: info?.primaryColor ?? '#22c55e' } : undefined}
             >
               {msg.content}
               <p className={cn('text-[10px] mt-1', msg.role === 'user' ? 'text-green-100' : 'text-gray-400')}>
@@ -189,8 +198,8 @@ export default function ChatWidget({
         ))}
         {isSending && (
           <div className="flex items-end gap-2 justify-start">
-            <div className="rounded-full bg-green-100 p-1 shrink-0">
-              <Bot className="w-3 h-3 text-green-600" />
+            <div className="rounded-full p-1 shrink-0" style={{ backgroundColor: `${info?.primaryColor ?? '#22c55e'}22` }}>
+              <Bot className="w-3 h-3" style={{ color: info?.primaryColor ?? '#22c55e' }} />
             </div>
             <div className="bg-white border border-gray-100 shadow-sm px-4 py-2.5 rounded-2xl rounded-bl-sm">
               <div className="flex gap-1 items-center">
@@ -212,14 +221,15 @@ export default function ChatWidget({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && !isSending && handleSend()}
-            placeholder="Type a message..."
+            placeholder={info?.placeholder ?? 'Type a message...'}
             disabled={isSending}
-            className="flex-1 text-sm rounded-xl border border-gray-200 px-3 py-2 outline-none focus:border-green-400 focus:ring-1 focus:ring-green-100 disabled:bg-gray-50 transition"
+            className="flex-1 text-sm rounded-xl border border-gray-200 px-3 py-2 outline-none focus:ring-1 disabled:bg-gray-50 transition"
           />
           <button
             onClick={handleSend}
             disabled={isSending || !input.trim()}
-            className="rounded-xl bg-green-500 hover:bg-green-600 disabled:bg-gray-200 disabled:cursor-not-allowed text-white px-3 py-2 transition shrink-0"
+            className="rounded-xl disabled:bg-gray-200 disabled:cursor-not-allowed text-white px-3 py-2 transition shrink-0"
+            style={{ backgroundColor: isSending || !input.trim() ? undefined : (info?.primaryColor ?? '#22c55e') }}
           >
             <Send className="w-4 h-4" />
           </button>

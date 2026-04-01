@@ -1,9 +1,10 @@
 import ChatWidget from '@/components/chatbot-public/chat-widget';
 
-export default function IframeChatbotPage({
+export default async function IframeChatbotPage({
   params,
 }: {
-  params: { chatbotId: string };
+  params: Promise<{ chatbotId: string }>;
 }) {
-  return <ChatWidget chatbotId={params.chatbotId} iframe />;
+  const { chatbotId } = await params;
+  return <ChatWidget chatbotId={chatbotId} iframe />;
 }

@@ -112,11 +112,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const token = await userCredential.user.getIdToken();
     await verifyTokenWithBackend(token);
+    // Upsert user in MongoDB — safe to ignore 409 (already exists)
+    try {
+      await saveUserToMongoDB(
+        userCredential.user.uid,
+        userCredential.user.email ?? email,
+        userCredential.user.displayName ?? '',
+        userCredential.user.phoneNumber ?? '',
+      );
+    } catch {
+      // Non-fatal
+    }
   };
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, provider);
+    // Upsert user in MongoDB — Google users may not have been synced yet
+    try {
+      await saveUserToMongoDB(
+        result.user.uid,
+        result.user.email ?? '',
+        result.user.displayName ?? '',
+        result.user.phoneNumber ?? '',
+      );
+    } catch {
+      // Non-fatal
+    }
   };
 
   const logout = async () => {

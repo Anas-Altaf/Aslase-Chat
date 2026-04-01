@@ -166,9 +166,7 @@ export async function trainChatbot(
 // CHATBOT SETTINGS
 // ==========================================
 
-const localKey = (id: string) => `chatbot_ui_settings_${id}`;
-
-const UI_DEFAULTS = {
+const SETTINGS_DEFAULTS = {
   placeholder: "Type your message...",
   primaryColor: "#22c55e",
   rateLimitPerMinute: 20,
@@ -186,22 +184,24 @@ export async function getChatbotSettings(
       `/chatbots/${chatbotId}/settings`,
     );
 
-    const stored: Partial<ChatbotSettings> =
-      typeof window !== "undefined"
-        ? JSON.parse(localStorage.getItem(localKey(chatbotId)) ?? "{}")
-        : {};
-
     const merged: ChatbotSettings = {
       chatbotId,
-      name: stored.name ?? "",
-      model: backendSettings.model ?? "gpt-4o-mini",
+      name: "",
+      model: backendSettings.model
+        ? backendSettings.model.includes('/') ? backendSettings.model : `openai/${backendSettings.model}`
+        : "openai/gpt-4o-mini",
       temperature: backendSettings.temperature ?? 0.7,
       maxTokens: backendSettings.maxTokens ?? 1024,
       systemPromptOverride: backendSettings.systemPromptOverride,
       welcomeMessage:
         backendSettings.welcomeMessage ?? "Hi! How can I help you today?",
-      ...UI_DEFAULTS,
-      ...stored,
+      placeholder: backendSettings.placeholder ?? SETTINGS_DEFAULTS.placeholder,
+      primaryColor: backendSettings.primaryColor ?? SETTINGS_DEFAULTS.primaryColor,
+      rateLimitPerMinute: backendSettings.rateLimitPerMinute ?? SETTINGS_DEFAULTS.rateLimitPerMinute,
+      requireEmailCapture: backendSettings.requireEmailCapture ?? SETTINGS_DEFAULTS.requireEmailCapture,
+      emailNotifications: backendSettings.emailNotifications ?? SETTINGS_DEFAULTS.emailNotifications,
+      notificationEmail: backendSettings.notificationEmail ?? SETTINGS_DEFAULTS.notificationEmail,
+      webhookUrl: backendSettings.webhookUrl ?? SETTINGS_DEFAULTS.webhookUrl,
     };
 
     return { success: true, data: merged };
@@ -220,7 +220,7 @@ export async function updateChatbotSettings(
   data: Partial<ChatbotSettings>,
 ): Promise<ApiResponse<ChatbotSettings>> {
   try {
-    // Extract backend-relevant fields only
+    // Build backend fields object from all changed fields
     const backendFields: BackendChatbotSettings = {};
     if (data.model !== undefined) backendFields.model = data.model;
     if (data.temperature !== undefined) backendFields.temperature = data.temperature;
@@ -229,21 +229,23 @@ export async function updateChatbotSettings(
       backendFields.systemPromptOverride = data.systemPromptOverride;
     if (data.welcomeMessage !== undefined)
       backendFields.welcomeMessage = data.welcomeMessage;
+    if (data.rateLimitPerMinute !== undefined)
+      backendFields.rateLimitPerMinute = data.rateLimitPerMinute;
+    if (data.requireEmailCapture !== undefined)
+      backendFields.requireEmailCapture = data.requireEmailCapture;
+    if (data.emailNotifications !== undefined)
+      backendFields.emailNotifications = data.emailNotifications;
+    if (data.notificationEmail !== undefined)
+      backendFields.notificationEmail = data.notificationEmail;
+    if (data.webhookUrl !== undefined)
+      backendFields.webhookUrl = data.webhookUrl;
+    if (data.primaryColor !== undefined)
+      backendFields.primaryColor = data.primaryColor;
+    if (data.placeholder !== undefined)
+      backendFields.placeholder = data.placeholder;
 
     if (Object.keys(backendFields).length > 0) {
       await api.patch(`/chatbots/${chatbotId}/settings`, backendFields);
-    }
-
-    // Persist all fields (including UI-only) to localStorage
-    const current: Partial<ChatbotSettings> =
-      typeof window !== "undefined"
-        ? JSON.parse(localStorage.getItem(localKey(chatbotId)) ?? "{}")
-        : {};
-    if (typeof window !== "undefined") {
-      localStorage.setItem(
-        localKey(chatbotId),
-        JSON.stringify({ ...current, ...data }),
-      );
     }
 
     const result = await getChatbotSettings(chatbotId);

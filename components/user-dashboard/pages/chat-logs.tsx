@@ -66,7 +66,7 @@ function SessionCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <span className="text-sm font-medium text-gray-900 truncate">
-              {session.isAnonymous ? 'Anonymous visitor' : 'Identified user'}
+              {session.leadName ?? (session.isAnonymous ? 'Anonymous visitor' : 'Identified user')}
             </span>
             {session.isAnonymous && (
               <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-medium shrink-0">

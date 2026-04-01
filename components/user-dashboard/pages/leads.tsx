@@ -146,8 +146,8 @@ export default function Leads() {
       } else {
         toast.error(res.error ?? 'Failed to update status');
       }
-    } catch {
-      toast.error('Failed to update status');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update status');
     } finally {
       setUpdatingId(null);
     }
@@ -165,8 +165,8 @@ export default function Leads() {
       } else {
         toast.error(res.error ?? 'Failed to delete lead');
       }
-    } catch {
-      toast.error('Failed to delete lead');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete lead');
     } finally {
       setIsDeleting(false);
     }

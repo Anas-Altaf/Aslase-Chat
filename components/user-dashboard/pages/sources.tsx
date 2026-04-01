@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Upload, Trash2, FileText, Globe, AlignLeft, Loader2, Plus, X } from 'lucide-react';
+import { Upload, Trash2, FileText, Globe, AlignLeft, Loader2, Plus, Eye, RefreshCw } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import {
   getSources,
   uploadDocuments,
   addTextSource,
   scrapeUrls,
+  scrapeFromSitemap,
   deleteSource,
   computeSourceStats,
+  syncSources,
 } from '@/lib/services';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -57,6 +59,8 @@ export default function Sources() {
   const [isLoading, setIsLoading] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [viewSource, setViewSource] = useState<Source | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Files tab state
   const [isUploading, setIsUploading] = useState(false);
@@ -70,6 +74,9 @@ export default function Sources() {
   // Websites tab state
   const [urlsInput, setUrlsInput] = useState('');
   const [isScraping, setIsScraping] = useState(false);
+  const [websiteMode, setWebsiteMode] = useState<'urls' | 'sitemap'>('urls');
+  const [sitemapUrl, setSitemapUrl] = useState('');
+  const [isSitemapScraping, setIsSitemapScraping] = useState(false);
 
   const loadSources = useCallback(async () => {
     if (!selectedChatbot) return;
@@ -109,8 +116,8 @@ export default function Sources() {
       } else {
         toast.error(res.error ?? 'Upload failed');
       }
-    } catch {
-      toast.error('Upload failed');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Upload failed');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -132,8 +139,8 @@ export default function Sources() {
       } else {
         toast.error(res.error ?? 'Failed to add text source');
       }
-    } catch {
-      toast.error('Failed to add text source');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to add text source');
     } finally {
       setIsSavingText(false);
     }
@@ -159,10 +166,31 @@ export default function Sources() {
       } else {
         toast.error(res.error ?? 'Scraping failed');
       }
-    } catch {
-      toast.error('Scraping failed');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Scraping failed');
     } finally {
       setIsScraping(false);
+    }
+  };
+
+  // ── Sitemap scraping ────────────────────────────────────────────────────────
+
+  const handleSitemapScrape = async () => {
+    if (!sitemapUrl.trim() || !selectedChatbot) return;
+    setIsSitemapScraping(true);
+    try {
+      const res = await scrapeFromSitemap(selectedChatbot.id, sitemapUrl.trim());
+      if (res.success) {
+        toast.success(`${res.data.length} page(s) scraped from sitemap`);
+        setSitemapUrl('');
+        await loadSources();
+      } else {
+        toast.error(res.error ?? 'Sitemap scraping failed');
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Sitemap scraping failed');
+    } finally {
+      setIsSitemapScraping(false);
     }
   };
 
@@ -180,10 +208,29 @@ export default function Sources() {
       } else {
         toast.error(res.error ?? 'Failed to delete source');
       }
-    } catch {
-      toast.error('Failed to delete source');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete source');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  // ── Sync ────────────────────────────────────────────────────────────────────
+
+  const handleSync = async () => {
+    if (!selectedChatbot) return;
+    setIsSyncing(true);
+    try {
+      const res = await syncSources(selectedChatbot.id);
+      if (res.success) {
+        toast.success(res.data.message);
+      } else {
+        toast.error(res.error ?? 'Sync failed');
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Sync failed');
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -217,7 +264,13 @@ export default function Sources() {
     <div className="flex gap-4 h-full overflow-hidden">
       {/* Left Section */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1 shrink-0">Data Sources</h1>
+        <div className="flex items-center justify-between mb-1 shrink-0">
+          <h1 className="text-2xl font-bold text-gray-900">Data Sources</h1>
+          <Button size="sm" variant="outline" onClick={handleSync} disabled={isSyncing} className="gap-1.5">
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? 'Syncing...' : 'Sync Sources'}
+          </Button>
+        </div>
         <p className="text-gray-600 text-sm mb-4 shrink-0">
           Add training data for your chatbot
         </p>
@@ -315,30 +368,68 @@ export default function Sources() {
           {/* ── WEBSITES TAB ── */}
           {activeTab === 'websites' && (
             <Card className="p-4 space-y-3">
-              <div className="space-y-2">
-                <Label htmlFor="urls-input">URLs to scrape</Label>
-                <Textarea
-                  id="urls-input"
-                  value={urlsInput}
-                  onChange={(e) => setUrlsInput(e.target.value)}
-                  placeholder={'https://example.com/about\nhttps://example.com/faq'}
-                  rows={5}
-                />
-                <p className="text-xs text-gray-500">
-                  One URL per line or comma-separated — up to 10 URLs
-                </p>
+              {/* Mode toggle */}
+              <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
+                <button
+                  onClick={() => setWebsiteMode('urls')}
+                  className={cn('flex-1 py-1.5 text-xs font-medium rounded-md transition-colors', websiteMode === 'urls' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700')}
+                >
+                  Enter URLs
+                </button>
+                <button
+                  onClick={() => setWebsiteMode('sitemap')}
+                  className={cn('flex-1 py-1.5 text-xs font-medium rounded-md transition-colors', websiteMode === 'sitemap' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700')}
+                >
+                  Crawl Sitemap
+                </button>
               </div>
-              <Button
-                onClick={handleScrape}
-                disabled={isScraping || !urlsInput.trim()}
-                className="w-full"
-              >
-                {isScraping ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Scraping...</>
-                ) : (
-                  <><Globe className="w-4 h-4 mr-2" /> Scrape URLs</>
-                )}
-              </Button>
+
+              {websiteMode === 'urls' ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="urls-input">URLs to scrape</Label>
+                    <Textarea
+                      id="urls-input"
+                      value={urlsInput}
+                      onChange={(e) => setUrlsInput(e.target.value)}
+                      placeholder={'https://example.com/about\nhttps://example.com/faq'}
+                      rows={5}
+                    />
+                    <p className="text-xs text-gray-500">
+                      One URL per line or comma-separated — up to 10 URLs
+                    </p>
+                  </div>
+                  <Button onClick={handleScrape} disabled={isScraping || !urlsInput.trim()} className="w-full">
+                    {isScraping ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Scraping...</>
+                    ) : (
+                      <><Globe className="w-4 h-4 mr-2" /> Scrape URLs</>
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="sitemap-url">Sitemap URL</Label>
+                    <Input
+                      id="sitemap-url"
+                      value={sitemapUrl}
+                      onChange={(e) => setSitemapUrl(e.target.value)}
+                      placeholder="https://example.com/sitemap.xml"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Up to 50 pages will be scraped from the sitemap automatically
+                    </p>
+                  </div>
+                  <Button onClick={handleSitemapScrape} disabled={isSitemapScraping || !sitemapUrl.trim()} className="w-full">
+                    {isSitemapScraping ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Crawling sitemap...</>
+                    ) : (
+                      <><Globe className="w-4 h-4 mr-2" /> Fetch from Sitemap</>
+                    )}
+                  </Button>
+                </>
+              )}
             </Card>
           )}
 
@@ -386,6 +477,14 @@ export default function Sources() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-8 w-8 text-gray-400 hover:text-gray-700 hover:bg-gray-100 shrink-0"
+                      onClick={() => setViewSource(src)}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0"
                       onClick={() => setDeleteId(src.id)}
                     >
@@ -421,6 +520,47 @@ export default function Sources() {
           <p className="text-gray-500 text-xs">No data yet</p>
         )}
       </Card>
+
+      {/* Source Detail Dialog */}
+      <Dialog open={!!viewSource} onOpenChange={() => setViewSource(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <div className="flex items-center gap-2 mb-1">
+              {viewSource && (
+                <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide', TYPE_COLORS[viewSource.type])}>
+                  {TYPE_LABELS[viewSource.type]}
+                </span>
+              )}
+              <DialogTitle className="text-base">{viewSource?.title}</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-gray-500">
+              {viewSource?.characterCount.toLocaleString()} chars ·{' '}
+              {viewSource ? new Date(viewSource.createdAt).toLocaleDateString() : ''}
+              {viewSource?.type === 'url' && viewSource.sourceUrl && (
+                <>
+                  {' · '}
+                  <a
+                    href={viewSource.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-green-600 hover:underline"
+                  >
+                    {viewSource.sourceUrl}
+                  </a>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto min-h-0 mt-2">
+            <pre className="text-xs bg-gray-50 text-gray-900 p-3 rounded border border-gray-200 overflow-auto whitespace-pre-wrap font-mono leading-relaxed">
+              {viewSource?.content ?? viewSource?.title ?? ''}
+            </pre>
+          </div>
+          <DialogFooter className="mt-3">
+            <Button variant="outline" onClick={() => setViewSource(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation */}
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

@@ -101,20 +101,37 @@ export default function ChatInterface() {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="primaryColor">Primary Color</Label>
+          <div className="space-y-3">
+            <Label>Primary Color</Label>
+            <div className="flex flex-wrap gap-2">
+              {['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#64748b'].map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setPrimaryColor(c)}
+                  className="w-7 h-7 rounded-full border-2 transition-transform hover:scale-110"
+                  style={{
+                    backgroundColor: c,
+                    borderColor: primaryColor === c ? '#111827' : 'transparent',
+                    outline: primaryColor === c ? '2px solid #111827' : 'none',
+                    outlineOffset: '2px',
+                  }}
+                />
+              ))}
+            </div>
             <div className="flex items-center gap-3">
               <input
                 type="color"
                 id="primaryColor"
                 value={primaryColor}
                 onChange={(e) => setPrimaryColor(e.target.value)}
-                className="w-12 h-12 rounded-lg border border-gray-200/50 cursor-pointer"
+                className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer p-0.5"
               />
               <Input
                 value={primaryColor}
                 onChange={(e) => setPrimaryColor(e.target.value)}
-                className="w-32 font-mono"
+                className="w-32 font-mono text-sm"
+                placeholder="#22c55e"
               />
             </div>
           </div>
@@ -122,18 +139,40 @@ export default function ChatInterface() {
 
         {/* Preview */}
         <Card className="p-4">
-          <h3 className="text-gray-900 font-semibold mb-3 text-sm">Preview</h3>
-          <div className="border rounded-lg p-4 bg-gray-50">
-            <div className="mb-3">
-              <div
-                className="inline-block px-3 py-2 rounded-lg text-white text-sm"
-                style={{ backgroundColor: primaryColor }}
-              >
-                {welcomeMessage || 'Hi! How can I help you today?'}
+          <h3 className="text-gray-900 font-semibold mb-3 text-sm">Live Preview</h3>
+          <div className="flex justify-center">
+            <div className="w-72 rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+              {/* Header */}
+              <div className="px-4 py-3 flex items-center gap-3" style={{ backgroundColor: primaryColor }}>
+                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3z" />
+                  </svg>
+                </div>
+                <span className="text-white text-sm font-semibold">{selectedChatbot?.name ?? 'Assistant'}</span>
               </div>
-            </div>
-            <div className="border rounded-lg p-2 bg-white text-gray-400 text-sm">
-              {placeholder || 'Type your message...'}
+              {/* Chat area */}
+              <div className="bg-gray-50 p-3 space-y-2 min-h-30">
+                <div className="flex justify-start">
+                  <div className="px-3 py-2 rounded-2xl rounded-tl-sm text-white text-xs max-w-[80%]" style={{ backgroundColor: primaryColor }}>
+                    {welcomeMessage || 'Hi! How can I help you today?'}
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <div className="px-3 py-2 rounded-2xl rounded-tr-sm bg-white border border-gray-200 text-gray-800 text-xs max-w-[80%] shadow-sm">
+                    Hello!
+                  </div>
+                </div>
+              </div>
+              {/* Input */}
+              <div className="bg-white px-3 py-2 border-t border-gray-100 flex items-center gap-2">
+                <span className="flex-1 text-xs text-gray-400 truncate">{placeholder || 'Type your message...'}</span>
+                <button className="w-7 h-7 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor: primaryColor }}>
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </Card>

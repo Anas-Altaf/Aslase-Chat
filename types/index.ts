@@ -47,13 +47,23 @@ export interface BackendChatbotSettings {
     maxTokens?: number;
     systemPromptOverride?: string;
     welcomeMessage?: string;
+    // Security (persisted to backend)
+    rateLimitPerMinute?: number;
+    requireEmailCapture?: boolean;
+    // Notifications (persisted to backend)
+    emailNotifications?: boolean;
+    notificationEmail?: string;
+    webhookUrl?: string;
+    // UI customization (persisted to backend)
+    primaryColor?: string;
+    placeholder?: string;
 }
 
-// Full settings used by components (backend fields + UI-only via localStorage)
+// Full settings used by components (all fields from backend)
 export interface ChatbotSettings extends BackendChatbotSettings {
     chatbotId: string;
     name: string;               // from chatbot doc; saved via PATCH /chatbots/:id
-    // UI-only (localStorage):
+    // Typed non-optional for form defaults
     placeholder: string;
     primaryColor: string;
     rateLimitPerMinute: number;
@@ -84,6 +94,7 @@ export interface ChatSession {
     confidenceScore: number;
     isAnonymous?: boolean;
     messageCount?: number;
+    leadName?: string | null;
     createdAt: string;
     updatedAt?: string;
 }
@@ -156,6 +167,7 @@ export interface ChatbotAnalytics {
     sentimentBreakdown: SentimentBreakdown;
     dailyMessageVolume: Array<{ date: string; count: number }>;
     topQueries: Array<{ query: string; count: number }>;
+    leadTimeline?: Array<{ date: string; count: number }>;
 }
 
 // Legacy alias (kept for compatibility)
@@ -177,6 +189,8 @@ export interface ChatQuery {
     userSentiment: SentimentType;
     replySentiment: SentimentType;
     leadCaptured: boolean;
+    isUnresolved?: boolean;
+    leadName?: string | null;
     createdAt: string;
 }
 

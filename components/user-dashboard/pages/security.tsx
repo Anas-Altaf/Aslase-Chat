@@ -34,7 +34,7 @@ export default function Security() {
         setRequireEmailCapture(response.data.requireEmailCapture);
       }
     } catch (error) {
-      toast.error('Failed to load settings');
+      toast.error(error instanceof Error ? error.message : 'Failed to load settings');
     } finally {
       setIsLoading(false);
     }
@@ -50,7 +50,7 @@ export default function Security() {
       });
       toast.success('Security settings saved');
     } catch (error) {
-      toast.error('Failed to save settings');
+      toast.error(error instanceof Error ? error.message : 'Failed to save settings');
     } finally {
       setIsSaving(false);
     }

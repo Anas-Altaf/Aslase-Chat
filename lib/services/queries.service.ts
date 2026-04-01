@@ -21,6 +21,8 @@ interface BackendQuery {
   userSentiment: SentimentType;
   replySentiment: SentimentType;
   leadCaptured: boolean;
+  isUnresolved?: boolean;
+  leadName?: string | null;
   createdAt: string;
 }
 
@@ -35,6 +37,8 @@ function convertQuery(q: BackendQuery): ChatQuery {
     userSentiment: q.userSentiment,
     replySentiment: q.replySentiment,
     leadCaptured: q.leadCaptured,
+    isUnresolved: q.isUnresolved ?? false,
+    leadName: q.leadName ?? null,
     createdAt: q.createdAt,
   };
 }
@@ -48,6 +52,7 @@ export async function getQueries(
   params?: {
     sentiment?: SentimentType;
     isAnonymous?: boolean;
+    isUnresolved?: boolean;
     search?: string;
     from?: string;
     to?: string;
@@ -60,6 +65,8 @@ export async function getQueries(
     if (params?.sentiment) qs.set("sentiment", params.sentiment);
     if (params?.isAnonymous !== undefined)
       qs.set("isAnonymous", String(params.isAnonymous));
+    if (params?.isUnresolved !== undefined)
+      qs.set("isUnresolved", String(params.isUnresolved));
     if (params?.search) qs.set("search", params.search);
     if (params?.from) qs.set("from", params.from);
     if (params?.to) qs.set("to", params.to);

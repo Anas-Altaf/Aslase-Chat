@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Search, UserCircle, CheckCircle2, XCircle, Mail, Phone, Key, Calendar } from 'lucide-react';
 import { getUsers } from '@/lib/services';
+import { auth } from '@/lib/firebase/config';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,13 +21,42 @@ export default function Users() {
       setIsLoading(true);
       try {
         const res = await getUsers();
-        if (res.success) {
+        if (res.success && res.data.length > 0) {
           setUsers(res.data);
         } else {
-          toast.error(res.error ?? 'Failed to load users');
+          if (!res.success) {
+            toast.error(res.error ?? 'Failed to load users');
+          }
+          // Fallback: show at least the currently authenticated Firebase user
+          const firebaseUser = auth.currentUser;
+          if (firebaseUser) {
+            setUsers([{
+              id: firebaseUser.uid,
+              uid: firebaseUser.uid,
+              email: firebaseUser.email ?? '',
+              displayName: firebaseUser.displayName ?? firebaseUser.email ?? 'Current User',
+              phoneNumber: firebaseUser.phoneNumber ?? undefined,
+              isActive: true,
+              createdAt: new Date(firebaseUser.metadata.creationTime ?? Date.now()).toISOString(),
+              updatedAt: new Date().toISOString(),
+            }]);
+          }
         }
-      } catch {
-        toast.error('Failed to load users');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to load users');
+        const firebaseUser = auth.currentUser;
+        if (firebaseUser) {
+          setUsers([{
+            id: firebaseUser.uid,
+            uid: firebaseUser.uid,
+            email: firebaseUser.email ?? '',
+            displayName: firebaseUser.displayName ?? firebaseUser.email ?? 'Current User',
+            phoneNumber: firebaseUser.phoneNumber ?? undefined,
+            isActive: true,
+            createdAt: new Date(firebaseUser.metadata.creationTime ?? Date.now()).toISOString(),
+            updatedAt: new Date().toISOString(),
+          }]);
+        }
       } finally {
         setIsLoading(false);
       }

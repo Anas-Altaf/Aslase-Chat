@@ -86,14 +86,7 @@ export const api = {
 
   async delete<T = unknown>(endpoint: string): Promise<T> {
     const response = await authenticatedFetch(endpoint, { method: 'DELETE' });
-    if (!response.ok) {
-      throw new ApiError(response.status, response.statusText || `HTTP ${response.status}`);
-    }
-    const contentType = response.headers.get('content-type');
-    if (contentType?.includes('application/json')) {
-      return response.json() as Promise<T>;
-    }
-    return response.text() as unknown as T;
+    return parseResponse<T>(response);
   },
 
   async postFormData<T = unknown>(endpoint: string, formData: FormData): Promise<T> {

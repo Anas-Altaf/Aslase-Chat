@@ -29,6 +29,8 @@ interface ModelOption {
   contextLength: number;
   isFree: boolean;
   description?: string;
+  pricing?: { prompt: string; completion: string };
+  modality?: string;
 }
 
 // ── Fallback models shown while fetching ──────────────────────────────────────
@@ -172,11 +174,7 @@ export default function Model() {
 
             <Select value={model} onValueChange={setModel}>
               <SelectTrigger className="w-full">
-                {isModelsLoading ? (
-                  <span className="text-gray-400 text-sm">Loading models...</span>
-                ) : (
-                  <SelectValue />
-                )}
+                <SelectValue placeholder="Select a model..." />
               </SelectTrigger>
               <SelectContent className="max-h-72">
                 {filteredModels.length === 0 ? (
@@ -210,10 +208,25 @@ export default function Model() {
 
             {/* Selected model info row */}
             {selectedModelInfo && (
-              <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
-                <span className="font-mono truncate">{selectedModelInfo.id}</span>
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500 bg-gray-50 rounded px-2 py-1.5">
+                <span className="font-mono truncate max-w-50">{selectedModelInfo.id}</span>
                 <span className="text-gray-300">·</span>
                 <span>{formatCtx(selectedModelInfo.contextLength)}</span>
+                {selectedModelInfo.pricing && !selectedModelInfo.isFree && (
+                  <>
+                    <span className="text-gray-300">·</span>
+                    <span title="Input cost per 1M tokens">
+                      ${(parseFloat(selectedModelInfo.pricing.prompt) * 1_000_000).toFixed(2)}/M in
+                    </span>
+                    <span className="text-gray-300">·</span>
+                    <span title="Output cost per 1M tokens">
+                      ${(parseFloat(selectedModelInfo.pricing.completion) * 1_000_000).toFixed(2)}/M out
+                    </span>
+                  </>
+                )}
+                {selectedModelInfo.modality && selectedModelInfo.modality !== 'text->text' && (
+                  <span className="bg-blue-100 text-blue-700 px-1.5 rounded font-semibold">multimodal</span>
+                )}
                 {selectedModelInfo.isFree && (
                   <span className="bg-green-100 text-green-700 px-1.5 rounded font-semibold">FREE</span>
                 )}

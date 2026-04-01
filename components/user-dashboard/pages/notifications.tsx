@@ -36,7 +36,7 @@ export default function Notifications() {
         setWebhookUrl(response.data.webhookUrl);
       }
     } catch (error) {
-      toast.error('Failed to load settings');
+      toast.error(error instanceof Error ? error.message : 'Failed to load settings');
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +53,7 @@ export default function Notifications() {
       });
       toast.success('Notification settings saved');
     } catch (error) {
-      toast.error('Failed to save settings');
+      toast.error(error instanceof Error ? error.message : 'Failed to save settings');
     } finally {
       setIsSaving(false);
     }

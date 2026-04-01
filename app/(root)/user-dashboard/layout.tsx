@@ -87,28 +87,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                             </Card>
                                         ) : (
                                             /* Menubar + Content for chatbot pages */
-                                            <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg">
-                                                <ResizablePanel
-                                                    defaultSize={20}
-                                                    minSize={15}
-                                                    maxSize={35}
-                                                    collapsible
-                                                    collapsedSize={0}
-                                                    className="min-w-0"
-                                                >
-                                                    <Card className="h-full overflow-hidden rounded-r-none border-r-0 bg-white/80 backdrop-blur-sm shadow-lg border-green-100/50">
-                                                        <Menubar />
-                                                    </Card>
-                                                </ResizablePanel>
-
-                                                <ResizableHandle withHandle />
-
-                                                <ResizablePanel defaultSize={80} minSize={50} className="min-w-0">
-                                                    <Card className="h-full p-4 xl:p-5 overflow-auto rounded-l-none bg-white backdrop-blur-sm shadow-xl border-green-100/50">
-                                                        {children}
-                                                    </Card>
-                                                </ResizablePanel>
-                                            </ResizablePanelGroup>
+                                            <div className="flex h-full gap-0 rounded-lg overflow-hidden">
+                                                <Card className="h-full overflow-hidden rounded-r-none border-r-0 bg-white/80 backdrop-blur-sm shadow-lg border-green-100/50 shrink-0">
+                                                    <Menubar />
+                                                </Card>
+                                                <Card className="h-full p-4 xl:p-5 overflow-auto flex-1 min-w-0 rounded-l-none bg-white backdrop-blur-sm shadow-xl border-green-100/50">
+                                                    {children}
+                                                </Card>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

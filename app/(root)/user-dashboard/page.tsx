@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import { useChatbot } from '@/contexts/ChatbotContext';
@@ -160,15 +160,33 @@ export default function DashboardOverview() {
                 <div className="h-40 flex items-center justify-center text-gray-400 text-sm">No data yet</div>
               ) : (
                 <ResponsiveContainer width="100%" height={150}>
-                  <BarChart data={volumeData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                    <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <AreaChart data={volumeData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="dashColorMsg" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
                     <Tooltip
-                      contentStyle={{ fontSize: 11, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', borderRadius: 8 }}
-                      cursor={{ fill: '#f0fdf4' }}
+                      contentStyle={{ fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 8 }}
+                      labelStyle={{ color: '#374151', fontWeight: 600 }}
                     />
-                    <Bar dataKey="count" name="Messages" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                  </BarChart>
+                    <Area
+                      type="monotone"
+                      dataKey="count"
+                      name="Messages"
+                      stroke="#22c55e"
+                      strokeWidth={2}
+                      fill="url(#dashColorMsg)"
+                      dot={false}
+                      activeDot={{ r: 4, strokeWidth: 0, fill: '#16a34a' }}
+                      isAnimationActive
+                      animationDuration={800}
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               )}
             </CardContent>

@@ -142,6 +142,48 @@ export async function deleteSource(
   }
 }
 
+export async function scrapeFromSitemap(
+  chatbotId: string,
+  sitemapUrl: string,
+  maxUrls?: number,
+): Promise<ApiResponse<Source[]>> {
+  try {
+    const backendSources = await api.post<BackendSource[]>('/sources/sitemap', {
+      chatbotId,
+      sitemapUrl,
+      ...(maxUrls ? { maxUrls } : {}),
+    });
+    return {
+      success: true,
+      data: Array.isArray(backendSources) ? backendSources.map(convertSource) : [],
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to scrape sitemap',
+      data: [],
+    };
+  }
+}
+
+export async function syncSources(
+  chatbotId: string,
+): Promise<ApiResponse<{ sourceCount: number; message: string }>> {
+  try {
+    const data = await api.post<{ sourceCount: number; message: string }>(
+      `/chatbots/${chatbotId}/sync`,
+      {},
+    );
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to sync sources",
+      data: null as any,
+    };
+  }
+}
+
 // ==========================================
 // STATS HELPER (pure function — no API call)
 // ==========================================

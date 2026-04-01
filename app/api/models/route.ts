@@ -80,6 +80,11 @@ export async function GET() {
       contextLength: m.context_length,
       isFree: isFree(m),
       description: m.description?.slice(0, 120),
+      pricing: {
+        prompt: m.pricing.prompt,
+        completion: m.pricing.completion,
+      },
+      modality: m.architecture?.modality ?? 'text->text',
     }));
 
     return NextResponse.json({ models });

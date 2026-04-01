@@ -54,8 +54,8 @@ export default function Queries() {
   const [toDate, setToDate] = useState('');
   const [appliedFrom, setAppliedFrom] = useState('');
   const [appliedTo, setAppliedTo] = useState('');
-  // Client-side "questions only" toggle — filters to messages containing "?"
-  const [questionsOnly, setQuestionsOnly] = useState(false);
+  // Server-side "unresolved only" toggle
+  const [unresolvedOnly, setUnresolvedOnly] = useState(false);
 
   // Delete state
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -65,11 +65,7 @@ export default function Queries() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  // Client-side filter applied on top of server-filtered data
-  const displayedQueries = useMemo(
-    () => questionsOnly ? queries.filter((q) => q.userMessage.includes('?')) : queries,
-    [queries, questionsOnly],
-  );
+  const displayedQueries = queries;
 
   const downloadTextFile = (filename: string, text: string, mime: string) => {
     const blob = new Blob([text], { type: mime });
@@ -127,6 +123,7 @@ export default function Queries() {
       const res = await getQueries(selectedChatbot.id, {
         sentiment: sentimentFilter !== 'all' ? (sentimentFilter as SentimentType) : undefined,
         isAnonymous: anonFilter !== 'all' ? anonFilter === 'true' : undefined,
+        isUnresolved: unresolvedOnly ? true : undefined,
         search: search || undefined,
         from: appliedFrom || undefined,
         to: appliedTo || undefined,
@@ -139,8 +136,8 @@ export default function Queries() {
       } else {
         toast.error(res.error ?? 'Failed to load queries');
       }
-    } catch {
-      toast.error('Failed to load queries');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load queries');
     } finally {
       setIsLoading(false);
     }
@@ -149,7 +146,7 @@ export default function Queries() {
   useEffect(() => {
     if (!selectedChatbot) { setQueries([]); setTotal(0); return; }
     loadQueries();
-  }, [selectedChatbot?.id, sentimentFilter, anonFilter, search, appliedFrom, appliedTo, page]);
+  }, [selectedChatbot?.id, sentimentFilter, anonFilter, unresolvedOnly, search, appliedFrom, appliedTo, page]);
 
   const handleSearch = () => {
     setSearch(searchInput);
@@ -187,8 +184,8 @@ export default function Queries() {
       } else {
         toast.error(res.error ?? 'Failed to delete query');
       }
-    } catch {
-      toast.error('Failed to delete query');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete query');
     } finally {
       setIsDeleting(false);
     }
@@ -207,8 +204,8 @@ export default function Queries() {
       } else {
         toast.error(res.error ?? 'Failed to delete queries');
       }
-    } catch {
-      toast.error('Failed to delete queries');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete queries');
     } finally {
       setIsDeletingAll(false);
     }
@@ -271,23 +268,23 @@ export default function Queries() {
         </div>
       </div>
 
-      {/* Questions-only toggle */}
+      {/* Unresolved-only toggle */}
       <div className="flex items-center gap-2 mb-3 shrink-0">
         <button
-          onClick={() => setQuestionsOnly(!questionsOnly)}
+          onClick={() => { setUnresolvedOnly(!unresolvedOnly); setPage(1); }}
           className={cn(
             'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors',
-            questionsOnly
-              ? 'bg-green-500 text-white border-green-500'
-              : 'bg-white text-gray-600 border-gray-300 hover:border-green-400',
+            unresolvedOnly
+              ? 'bg-red-500 text-white border-red-500'
+              : 'bg-white text-gray-600 border-gray-300 hover:border-red-400',
           )}
         >
           <HelpCircle className="w-3 h-3" />
-          Questions only
+          Unresolved only
         </button>
-        {questionsOnly && (
+        {unresolvedOnly && (
           <span className="text-xs text-gray-400">
-            Showing {displayedQueries.length} of {queries.length} messages that contain "?"
+            Showing only queries the bot could not resolve
           </span>
         )}
       </div>
@@ -374,7 +371,7 @@ export default function Queries() {
             </>
           ) : displayedQueries.length === 0 ? (
             <p className="text-gray-500 text-sm text-center py-8">
-              {questionsOnly ? 'No questions (messages with "?") found on this page' : 'No messages found'}
+              {unresolvedOnly ? 'No unresolved queries found on this page' : 'No messages found'}
             </p>
           ) : (
             displayedQueries.map((q) => (
@@ -418,9 +415,14 @@ export default function Queries() {
                       Lead
                     </span>
                   )}
+                  {q.isUnresolved && (
+                    <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold">
+                      Unresolved
+                    </span>
+                  )}
                   {q.isAnonymous && (
                     <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">
-                      Anonymous
+                      {q.leadName ? q.leadName : 'Anonymous'}
                     </span>
                   )}
                   <span className="text-xs text-gray-400">

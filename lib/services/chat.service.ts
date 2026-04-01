@@ -1,11 +1,7 @@
 import type {
   ChatSession,
-  Lead,
-  LeadStatus,
-  LeadSource,
   ApiResponse,
   PaginatedResponse,
-  BackendPaginatedResult,
 } from "@/types";
 import { api } from "../api";
 
@@ -31,19 +27,6 @@ interface BackendChat {
   previewTimestamp?: string | null;
 }
 
-interface BackendLead {
-  _id: string;
-  chatbot_id: string;
-  userName: string;
-  userEmail?: string;
-  phone?: string;
-  status: LeadStatus;
-  source: LeadSource;
-  notes?: string;
-  additionalInfo: Record<string, any>;
-  capturedAt: string;
-}
-
 // ==========================================
 // CONVERTERS
 // ==========================================
@@ -63,23 +46,9 @@ function convertChat(chat: BackendChat): ChatSession {
     confidenceScore: 0,
     isAnonymous: chat.isAnonymous ?? true,
     messageCount: chat.messageCount ?? (chat.messages?.length ?? 0),
+    leadName: (chat as any).leadName ?? null,
     createdAt: chat.createdAt,
     updatedAt: chat.updatedAt,
-  };
-}
-
-function convertLead(lead: BackendLead): Lead {
-  return {
-    id: lead._id,
-    chatbotId: lead.chatbot_id,
-    name: lead.userName,
-    email: lead.userEmail ?? "",
-    phone: lead.phone ?? "",
-    status: lead.status ?? "new",
-    source: lead.source ?? "website",
-    notes: lead.notes,
-    additionalInfo: lead.additionalInfo ?? {},
-    capturedAt: lead.capturedAt,
   };
 }
 
@@ -199,107 +168,3 @@ export async function exportChatSessions(
   }
 }
 
-// ==========================================
-// LEADS
-// ==========================================
-
-export async function getLeads(
-  chatbotId: string,
-  filters?: { status?: string; from?: string; to?: string; page?: number; limit?: number },
-): Promise<ApiResponse<PaginatedResponse<Lead>>> {
-  try {
-    const params = new URLSearchParams();
-    if (filters?.status) params.set("status", filters.status);
-    if (filters?.from) params.set("from", filters.from);
-    if (filters?.to) params.set("to", filters.to);
-    if (filters?.page) params.set("page", String(filters.page));
-    if (filters?.limit) params.set("limit", String(filters.limit));
-
-    const qs = params.toString();
-    const raw = await api.get<unknown>(
-      `/leads/chatbot/${chatbotId}${qs ? `?${qs}` : ""}`,
-    );
-
-    // Handle both flat array and paginated { data: [] } responses defensively
-    const isArr = Array.isArray(raw);
-    const list: BackendLead[] = isArr
-      ? (raw as BackendLead[])
-      : ((raw as any)?.data ?? []);
-    const leads = list.map(convertLead);
-    const total: number = isArr
-      ? list.length
-      : ((raw as any)?.total ?? leads.length);
-    const currentPage: number = isArr ? 1 : ((raw as any)?.page ?? 1);
-    const limitVal: number = isArr ? list.length : ((raw as any)?.limit ?? 20);
-    const totalPages: number = isArr
-      ? 1
-      : ((raw as any)?.totalPages ?? (raw as any)?.pages ?? 1);
-
-    return {
-      success: true,
-      data: {
-        items: leads,
-        total,
-        page: currentPage,
-        pageSize: limitVal,
-        hasMore: currentPage < totalPages,
-      },
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to fetch leads",
-      data: { items: [], total: 0, page: 1, pageSize: 20, hasMore: false },
-    };
-  }
-}
-
-export async function updateLead(
-  id: string,
-  data: { status?: LeadStatus; notes?: string; additionalInfo?: Record<string, any> },
-): Promise<ApiResponse<Lead>> {
-  try {
-    const backendLead = await api.patch<BackendLead>(`/leads/${id}`, data);
-    return { success: true, data: convertLead(backendLead) };
-  } catch (error) {
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to update lead",
-      data: null as unknown as Lead,
-    };
-  }
-}
-
-export async function deleteLead(id: string): Promise<ApiResponse<boolean>> {
-  try {
-    await api.delete(`/leads/${id}`);
-    return { success: true, data: true };
-  } catch (error) {
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to delete lead",
-      data: false,
-    };
-  }
-}
-
-export async function exportLeads(
-  _chatbotId: string,
-  _format: "csv" | "json" = "csv",
-): Promise<ApiResponse<string>> {
-  try {
-    const res = await api.get<{ export: string }>(
-      `/leads/chatbot/${_chatbotId}/export?format=${encodeURIComponent(_format)}`,
-    );
-    return { success: true, data: res.export };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to export leads",
-      data: "",
-    };
-  }
-}
