@@ -41,17 +41,25 @@ export async function authenticatedFetch(
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {
+  const text = await response.text();
+
   if (!response.ok) {
     let message = response.statusText || `HTTP ${response.status}`;
     try {
-      const body = await response.json();
-      if (body?.message) message = body.message;
+      const body = JSON.parse(text);
+      if (body?.message) message = Array.isArray(body.message) ? body.message.join('; ') : body.message;
     } catch {
-      // ignore parse error, use default message
+      if (text) message = text;
     }
     throw new ApiError(response.status, message);
   }
-  return response.json() as Promise<T>;
+
+  if (!text) return undefined as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return text as unknown as T;
+  }
 }
 
 export const api = {
