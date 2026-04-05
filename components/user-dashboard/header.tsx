@@ -49,7 +49,7 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();
-  const { notifications, unreadCount, markAllRead } = useNotificationStore();
+  const { notifications, unreadCount, markAllRead, markRead } = useNotificationStore();
 
   const breadcrumbs = generateBreadcrumbs(pathname);
 
@@ -144,11 +144,12 @@ export default function Header() {
                     <button
                       key={n.id}
                       onClick={() => {
-                        router.push(
-                          n.type === 'new_lead'
-                            ? '/user-dashboard/leads'
-                            : '/user-dashboard/chat-logs',
-                        );
+                        markRead(n.id);
+                        if (n.type === 'new_lead') {
+                          router.push('/user-dashboard/leads');
+                        } else {
+                          router.push(`/user-dashboard/chat-logs${n.sessionId ? `?session=${n.sessionId}` : ''}`);
+                        }
                       }}
                       className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex gap-3 items-start"
                     >

@@ -47,16 +47,29 @@ export interface BackendChatbotSettings {
     maxTokens?: number;
     systemPromptOverride?: string;
     welcomeMessage?: string;
-    // Security (persisted to backend)
+    // Security / Tuning (persisted to backend)
     rateLimitPerMinute?: number;
     requireEmailCapture?: boolean;
+    maxMessageLength?: number;
+    blockedKeywords?: string[];
+    topicRestrictions?: string;
+    fallbackMessage?: string;
+    profanityFilter?: boolean;
+    contextWindowMessages?: number;
     // Notifications (persisted to backend)
     emailNotifications?: boolean;
     notificationEmail?: string;
     webhookUrl?: string;
-    // UI customization (persisted to backend)
+    // UI customization — basic
     primaryColor?: string;
     placeholder?: string;
+    // UI customization — extended theming
+    avatarEmoji?: string;
+    showTypingIndicator?: boolean;
+    showTimestamps?: boolean;
+    bubbleStyle?: 'rounded' | 'squared';
+    chatBgColor?: string;
+    fontSize?: 'sm' | 'base' | 'lg';
 }
 
 // Full settings used by components (all fields from backend)
@@ -168,6 +181,12 @@ export interface ChatbotAnalytics {
     dailyMessageVolume: Array<{ date: string; count: number }>;
     topQueries: Array<{ query: string; count: number }>;
     leadTimeline?: Array<{ date: string; count: number }>;
+    // Extended analytics
+    avgSessionLength?: number;
+    resolutionRate?: number;
+    unresolvedCount?: number;
+    peakHours?: Array<{ hour: number; count: number }>;
+    sentimentTrend?: Array<{ week: string; positive: number; negative: number; neutral: number }>;
 }
 
 // Legacy alias (kept for compatibility)

@@ -24,11 +24,13 @@ import {
   Legend,
   BarChart,
   Bar,
+  LineChart,
+  Line,
 } from 'recharts';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'sentiment' | 'queries' | 'leads';
+type Tab = 'overview' | 'sentiment' | 'queries' | 'leads' | 'conversations' | 'trends';
 
 const SENTIMENT_COLORS = {
   positive: '#22c55e',
@@ -295,6 +297,118 @@ function LeadsTab({ analytics }: { analytics: ChatbotAnalytics }) {
   );
 }
 
+function ConversationsTab({ analytics }: { analytics: ChatbotAnalytics }) {
+  const avg = analytics.avgSessionLength ?? 0;
+  const rate = analytics.resolutionRate ?? 0;
+  const unresolved = analytics.unresolvedCount ?? 0;
+  const peakHours = analytics.peakHours ?? [];
+
+  const peakHourLabel = (h: number) => {
+    const suffix = h >= 12 ? 'PM' : 'AM';
+    const hour = h % 12 || 12;
+    return `${hour}${suffix}`;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <Card className="p-4">
+          <p className="text-xs text-gray-500 mb-1">Avg Session Length</p>
+          <p className="text-2xl font-bold text-gray-900">{avg.toFixed(1)}</p>
+          <p className="text-xs text-gray-400 mt-0.5">messages per session</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs text-gray-500 mb-1">Resolution Rate</p>
+          <p className="text-2xl font-bold text-green-600">{rate}%</p>
+          <p className="text-xs text-gray-400 mt-0.5">queries resolved</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs text-gray-500 mb-1">Unresolved Queries</p>
+          <p className="text-2xl font-bold text-red-500">{unresolved.toLocaleString()}</p>
+          <p className="text-xs text-gray-400 mt-0.5">need attention</p>
+        </Card>
+      </div>
+
+      <Card className="p-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">Activity by Hour of Day</h3>
+        {peakHours.some((h) => h.count > 0) ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={peakHours.map((h) => ({ hour: peakHourLabel(h.hour), count: h.count }))} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="hour" tick={{ fontSize: 9, fill: '#9ca3af' }} interval={2} />
+              <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} allowDecimals={false} />
+              <RechartsTooltip
+                contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
+                formatter={(v: any) => [`${v} queries`, 'Activity']}
+              />
+              <Bar dataKey="count" fill="#22c55e" radius={[3, 3, 0, 0]} isAnimationActive animationDuration={700} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-gray-400 text-sm text-center py-8">No data yet</p>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function TrendsTab({ analytics }: { analytics: ChatbotAnalytics }) {
+  const trend = analytics.sentimentTrend ?? [];
+
+  if (trend.length === 0) {
+    return (
+      <Card className="p-8 text-center">
+        <p className="text-gray-400 text-sm">No trend data yet</p>
+        <p className="text-xs text-gray-300 mt-1">Sentiment trends will appear after 1+ weeks of conversations</p>
+      </Card>
+    );
+  }
+
+  const data = trend.map((t) => ({
+    week: t.week.replace(/^\d{4}-/, ''), // strip year: "2025-W12" → "W12"
+    positive: t.positive,
+    negative: t.negative,
+    neutral: t.neutral,
+  }));
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">Sentiment Trend (Weekly)</h3>
+        <ResponsiveContainer width="100%" height={260}>
+          <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="gradPos" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="gradNeg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="gradNeu" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#9ca3af" stopOpacity={0.2} />
+                <stop offset="95%" stopColor="#9ca3af" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="week" tick={{ fontSize: 10, fill: '#9ca3af' }} />
+            <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} allowDecimals={false} />
+            <RechartsTooltip
+              contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
+              labelStyle={{ color: '#374151', fontWeight: 600 }}
+            />
+            <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: 12, textTransform: 'capitalize' }}>{v}</span>} />
+            <Area type="monotone" dataKey="positive" stroke="#22c55e" strokeWidth={2} fill="url(#gradPos)" dot={false} />
+            <Area type="monotone" dataKey="negative" stroke="#ef4444" strokeWidth={2} fill="url(#gradNeg)" dot={false} />
+            <Area type="monotone" dataKey="neutral" stroke="#9ca3af" strokeWidth={2} fill="url(#gradNeu)" dot={false} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </Card>
+    </div>
+  );
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function Analytics() {
@@ -393,19 +507,26 @@ export default function Analytics() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 shrink-0 border-b border-gray-200">
-        {(['overview', 'sentiment', 'queries', 'leads'] as Tab[]).map((tab) => (
+      <div className="flex gap-1 mb-4 shrink-0 border-b border-gray-200 flex-wrap">
+        {([
+          ['overview', 'Overview'],
+          ['sentiment', 'Sentiment'],
+          ['queries', 'Top Queries'],
+          ['leads', 'Leads'],
+          ['conversations', 'Conversations'],
+          ['trends', 'Trends'],
+        ] as [Tab, string][]).map(([tab, label]) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={cn(
-              'px-4 py-2 text-sm font-medium capitalize rounded-t-lg transition-colors',
+              'px-4 py-2 text-sm font-medium rounded-t-lg transition-colors',
               activeTab === tab
                 ? 'bg-white border border-b-white border-gray-200 text-green-600 -mb-px'
                 : 'text-gray-500 hover:text-gray-700',
             )}
           >
-            {tab === 'overview' ? 'Overview' : tab === 'sentiment' ? 'Sentiment' : tab === 'queries' ? 'Top Queries' : 'Leads'}
+            {label}
           </button>
         ))}
       </div>
@@ -440,6 +561,8 @@ export default function Analytics() {
             {activeTab === 'sentiment' && <SentimentTab analytics={analytics} />}
             {activeTab === 'queries' && <QueriesTab analytics={analytics} />}
             {activeTab === 'leads' && <LeadsTab analytics={analytics} />}
+            {activeTab === 'conversations' && <ConversationsTab analytics={analytics} />}
+            {activeTab === 'trends' && <TrendsTab analytics={analytics} />}
           </>
         )}
       </div>

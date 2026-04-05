@@ -18,6 +18,8 @@ import { auth, db } from '@/lib/firebase/config';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  subscriptionStatus: string | null;
+  subscriptionLoading: boolean;
   signUp: (email: string, password: string, displayName: string, phoneNumber?: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -29,6 +31,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  subscriptionStatus: null,
+  subscriptionLoading: true,
   signUp: async () => {},
   signIn: async () => {},
   signInWithGoogle: async () => {},
@@ -68,6 +72,8 @@ async function saveUserToMongoDB(
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -76,6 +82,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      setSubscriptionStatus(null);
+      setSubscriptionLoading(false);
+      return;
+    }
+    setSubscriptionLoading(true);
+    user.getIdToken().then((token) =>
+      fetch(`${API_URL}/payments/subscription`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => r.json())
+        .then((data) => setSubscriptionStatus(data?.status ?? 'none'))
+        .catch(() => setSubscriptionStatus('none'))
+        .finally(() => setSubscriptionLoading(false)),
+    );
+  }, [user, loading]);
 
   const signUp = async (
     email: string,
@@ -160,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, signUp, signIn, signInWithGoogle, logout, updateUserProfile, resetPassword }}
+      value={{ user, loading, subscriptionStatus, subscriptionLoading, signUp, signIn, signInWithGoogle, logout, updateUserProfile, resetPassword }}
     >
       {children}
     </AuthContext.Provider>

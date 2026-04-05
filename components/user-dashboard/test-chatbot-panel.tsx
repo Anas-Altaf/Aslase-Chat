@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, RotateCcw, Loader2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import {
   Sheet,
   SheetContent,
@@ -110,7 +111,13 @@ export default function TestChatbotPanel({
                       : 'bg-gray-100 text-gray-800 rounded-tl-sm',
                   )}
                 >
-                  {msg.content}
+                  {msg.role === 'assistant' ? (
+                    <ReactMarkdown className="prose prose-sm max-w-none text-inherit [&>*:last-child]:mb-0 [&>p]:mb-1 [&>ul]:mb-1 [&>ol]:mb-1">
+                      {msg.content}
+                    </ReactMarkdown>
+                  ) : (
+                    msg.content
+                  )}
                 </div>
                 {msg.role === 'user' && (
                   <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-0.5">

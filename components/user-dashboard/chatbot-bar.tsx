@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -57,7 +56,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse, onDrop
   const router = useRouter();
   const { user, logout } = useAuth();
   const { chatbots, selectedChatbot, isInitialLoading: chatbotsLoading, addChatbot, selectChatbot, removeChatbot } = useChatbot();
-  const { businesses, selectedBusiness, isInitialLoading: businessesLoading, selectBusiness, addBusiness, removeBusiness } = useBusiness();
+  const { businesses, selectedBusiness, isInitialLoading: businessesLoading, selectBusiness, removeBusiness } = useBusiness();
 
   // Create chatbot dialog
   const [isCreateChatbotOpen, setIsCreateChatbotOpen] = useState(false);
@@ -69,17 +68,6 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse, onDrop
     visibility: 'public' as Chatbot['visibility'],
   });
 
-  // Create business dialog
-  const [isCreateBusinessOpen, setIsCreateBusinessOpen] = useState(false);
-  const [isCreatingBusiness, setIsCreatingBusiness] = useState(false);
-  const [newBusiness, setNewBusiness] = useState({
-    name: '',
-    description: '',
-    contactEmail: '',
-    contactPhone: '',
-    urls: [''],
-  });
-  const [businessDocuments, setBusinessDocuments] = useState<File[]>([]);
 
   const userName = user?.displayName || 'User';
   const userInitials = userName.split(' ').map((n: string) => n[0]).join('').toUpperCase();
@@ -97,22 +85,6 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse, onDrop
       toast.error('Failed to create chatbot');
     } finally {
       setIsCreatingChatbot(false);
-    }
-  };
-
-  const handleCreateBusiness = async () => {
-    if (!newBusiness.name.trim()) return;
-    setIsCreatingBusiness(true);
-    try {
-      await addBusiness({ ...newBusiness, urls: newBusiness.urls.filter((u) => u.trim()) }, businessDocuments);
-      toast.success('Business created successfully');
-      setIsCreateBusinessOpen(false);
-      setNewBusiness({ name: '', description: '', contactEmail: '', contactPhone: '', urls: [''] });
-      setBusinessDocuments([]);
-    } catch {
-      toast.error('Failed to create business');
-    } finally {
-      setIsCreatingBusiness(false);
     }
   };
 
@@ -381,7 +353,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse, onDrop
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => setIsCreateBusinessOpen(true)}
+                    onClick={() => router.push('/user-dashboard/businesses?create=true')}
                     className="w-full flex items-center gap-1.5 px-2 py-1.5 mt-0.5 rounded-lg text-violet-600 hover:bg-violet-50 transition-colors overflow-hidden"
                   >
                     <Plus className="w-4 h-4 shrink-0" />
@@ -489,76 +461,6 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse, onDrop
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isCreateBusinessOpen} onOpenChange={setIsCreateBusinessOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Create New Business</DialogTitle>
-              <DialogDescription>Add a new business to organize your chatbots.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-              <div className="space-y-2">
-                <Label htmlFor="biz-name">Business Name *</Label>
-                <Input
-                  id="biz-name"
-                  placeholder="My Company"
-                  value={newBusiness.name}
-                  onChange={(e) => setNewBusiness({ ...newBusiness, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="biz-desc">Description</Label>
-                <Textarea
-                  id="biz-desc"
-                  placeholder="Brief description of your business..."
-                  value={newBusiness.description}
-                  onChange={(e) => setNewBusiness({ ...newBusiness, description: e.target.value })}
-                  className="text-gray-900"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="biz-email">Contact Email</Label>
-                  <Input
-                    id="biz-email"
-                    type="email"
-                    placeholder="contact@company.com"
-                    value={newBusiness.contactEmail}
-                    onChange={(e) => setNewBusiness({ ...newBusiness, contactEmail: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="biz-phone">Contact Phone</Label>
-                  <Input
-                    id="biz-phone"
-                    placeholder="+1 (555) 123-4567"
-                    value={newBusiness.contactPhone}
-                    onChange={(e) => setNewBusiness({ ...newBusiness, contactPhone: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="biz-documents">Business Documents (PDF, DOCX)</Label>
-                <Input
-                  id="biz-documents"
-                  type="file"
-                  accept=".pdf,.docx,.txt"
-                  multiple
-                  onChange={(e) => setBusinessDocuments(Array.from(e.target.files || []))}
-                  className="cursor-pointer"
-                />
-                {businessDocuments.length > 0 && (
-                  <p className="text-xs text-gray-500">{businessDocuments.length} file(s) selected</p>
-                )}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateBusinessOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreateBusiness} disabled={isCreatingBusiness || !newBusiness.name.trim()}>
-                {isCreatingBusiness ? 'Creating...' : 'Create'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </aside>
     </TooltipProvider>
   );

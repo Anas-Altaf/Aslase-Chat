@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import { usePathname } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { ChatbotProvider } from '@/contexts/ChatbotContext';
 import { BusinessProvider } from '@/contexts/BusinessContext';
 import { SocketProvider } from '@/contexts/SocketContext';
+import { useAuth } from '@/contexts/AuthContext';
 import ChatbotBar from '@/components/user-dashboard/chatbot-bar';
 import Menubar from '@/components/user-dashboard/menubar';
 import Header from '@/components/user-dashboard/header';
@@ -23,9 +24,25 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const pathname = usePathname();
+    const router = useRouter();
+    const { subscriptionStatus, subscriptionLoading } = useAuth();
     const [sidebarHovered, setSidebarHovered] = useState(false);
     const [sidebarDropdownOpen, setSidebarDropdownOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    useEffect(() => {
+        if (!subscriptionLoading && (subscriptionStatus === 'none' || subscriptionStatus === 'canceled')) {
+            router.push('/pricing');
+        }
+    }, [subscriptionStatus, subscriptionLoading, router]);
+
+    if (subscriptionLoading) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-gray-50">
+                <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
 
     // Hide menubar for businesses/chatbots list pages
     const hideMenubar = pathname === '/user-dashboard/businesses' ||

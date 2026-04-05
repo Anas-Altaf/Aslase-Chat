@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Send,
   MessageCircle,
@@ -12,6 +13,7 @@ import {
   UserCircle,
   EyeOff,
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { exportChatSessions, getChatHistory, getChatSessions, sendChatMessage } from '@/lib/services';
 import { Button } from '@/components/ui/button';
@@ -107,7 +109,13 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
               : 'bg-gray-100 text-gray-900 rounded-bl-sm',
           )}
         >
-          {msg.content}
+          {!isUser ? (
+            <ReactMarkdown className="prose prose-sm max-w-none text-inherit [&>*:last-child]:mb-0 [&>p]:mb-1 [&>ul]:mb-1 [&>ol]:mb-1">
+              {msg.content}
+            </ReactMarkdown>
+          ) : (
+            msg.content
+          )}
           {msg.timestamp && (
             <p
               className={cn(
@@ -136,6 +144,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 
 export default function ChatLogs() {
   const { selectedChatbot, isInitialLoading } = useChatbot();
+  const searchParams = useSearchParams();
 
   // Session list state
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -257,6 +266,18 @@ export default function ChatLogs() {
     setPage(newPage);
     loadSessions(newPage);
   };
+
+  // ── Auto-select session from URL param ───────────────────────────────────
+
+  useEffect(() => {
+    const targetSession = searchParams.get('session');
+    if (!targetSession || sessions.length === 0) return;
+    const match = sessions.find(
+      (s) => s.id === targetSession || (s as any).sessionId === targetSession,
+    );
+    if (match) handleSelectSession(match);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessions, searchParams]);
 
   // ── History viewer ────────────────────────────────────────────────────────
 
@@ -527,7 +548,13 @@ export default function ChatLogs() {
                           : 'bg-gray-100 text-gray-900 rounded-bl-sm',
                       )}
                     >
-                      {msg.content}
+                      {msg.role === 'assistant' ? (
+                        <ReactMarkdown className="prose prose-sm max-w-none text-inherit [&>*:last-child]:mb-0 [&>p]:mb-1 [&>ul]:mb-1 [&>ol]:mb-1">
+                          {msg.content}
+                        </ReactMarkdown>
+                      ) : (
+                        msg.content
+                      )}
                     </div>
                   </div>
                 ))}

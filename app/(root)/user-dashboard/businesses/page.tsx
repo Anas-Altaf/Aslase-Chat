@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { uploadBusinessDocument } from '@/lib/services/business.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,10 +35,17 @@ import {
 
 export default function BusinessesPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { businesses, isInitialLoading, addBusiness, removeBusiness, refreshBusinesses } = useBusiness();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+    useEffect(() => {
+        if (searchParams.get('create') === 'true') {
+            setIsCreateOpen(true);
+        }
+    }, [searchParams]);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [businessToDelete, setBusinessToDelete] = useState<string | null>(null);
     const [isCreating, setIsCreating] = useState(false);

@@ -106,7 +106,7 @@ export default function Menubar() {
         { label: 'General', href: '/user-dashboard/settings/general', icon: Settings },
         { label: 'Model', href: '/user-dashboard/settings/model', icon: Bot },
         { label: 'Chat Interface', href: '/user-dashboard/settings/chat-interface', icon: Palette },
-        { label: 'Security', href: '/user-dashboard/settings/security', icon: Shield },
+        { label: 'Tuning', href: '/user-dashboard/settings/security', icon: Shield },
         { label: 'Notifications', href: '/user-dashboard/settings/notifications', icon: Bell },
       ],
     },

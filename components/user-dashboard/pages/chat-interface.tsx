@@ -8,35 +8,59 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import type { ChatbotSettings } from '@/types';
+
+const PRESET_COLORS = ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#64748b'];
+
+const AVATAR_EMOJIS = ['🤖', '🧠', '💬', '⚡', '🌟', '🎯', '🦾', '🤝', '💡', '🚀', '🛎️', '🧑‍💼', '👾', '🐉', '🦉', '🐬', '🌈', '🔮', '🎪', '🏆'];
 
 export default function ChatInterface() {
   const { selectedChatbot } = useChatbot();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Basic
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [placeholder, setPlaceholder] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#22c55e');
 
+  // Appearance
+  const [avatarEmoji, setAvatarEmoji] = useState('🤖');
+  const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg'>('sm');
+
+  // Behavior
+  const [showTypingIndicator, setShowTypingIndicator] = useState(true);
+  const [showTimestamps, setShowTimestamps] = useState(true);
+
+  // Visual style
+  const [bubbleStyle, setBubbleStyle] = useState<'rounded' | 'squared'>('rounded');
+  const [chatBgColor, setChatBgColor] = useState('#f9fafb');
+
   useEffect(() => {
-    if (selectedChatbot) {
-      loadSettings();
-    }
+    if (selectedChatbot) loadSettings();
   }, [selectedChatbot]);
 
   const loadSettings = async () => {
     if (!selectedChatbot) return;
     setIsLoading(true);
     try {
-      const response = await getChatbotSettings(selectedChatbot.id);
-      if (response.success && response.data) {
-        setWelcomeMessage(response.data.welcomeMessage ?? '');
-        setPlaceholder(response.data.placeholder ?? '');
-        setPrimaryColor(response.data.primaryColor ?? '#22c55e');
+      const res = await getChatbotSettings(selectedChatbot.id);
+      if (res.success && res.data) {
+        const s = res.data;
+        setWelcomeMessage(s.welcomeMessage ?? '');
+        setPlaceholder(s.placeholder ?? '');
+        setPrimaryColor(s.primaryColor ?? '#22c55e');
+        setAvatarEmoji(s.avatarEmoji ?? '🤖');
+        setFontSize(s.fontSize ?? 'sm');
+        setShowTypingIndicator(s.showTypingIndicator ?? true);
+        setShowTimestamps(s.showTimestamps ?? true);
+        setBubbleStyle(s.bubbleStyle ?? 'rounded');
+        setChatBgColor(s.chatBgColor ?? '#f9fafb');
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to load settings');
     } finally {
       setIsLoading(false);
@@ -51,9 +75,15 @@ export default function ChatInterface() {
         welcomeMessage,
         placeholder,
         primaryColor,
+        avatarEmoji,
+        fontSize,
+        showTypingIndicator,
+        showTimestamps,
+        bubbleStyle,
+        chatBgColor,
       });
       toast.success('Chat interface settings saved');
-    } catch (error) {
+    } catch {
       toast.error('Failed to save settings');
     } finally {
       setIsSaving(false);
@@ -65,9 +95,13 @@ export default function ChatInterface() {
       <div className="space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-40" />
+        <Skeleton className="h-32" />
       </div>
     );
   }
+
+  const bubbleRadius = bubbleStyle === 'rounded' ? 'rounded-2xl' : 'rounded-lg';
+  const fontClass = fontSize === 'base' ? 'text-base' : fontSize === 'lg' ? 'text-lg' : 'text-sm';
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -79,32 +113,37 @@ export default function ChatInterface() {
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-4">
+        {/* ── Messaging ── */}
         <Card className="p-4 space-y-4">
+          <h3 className="text-sm font-semibold text-gray-700">Messaging</h3>
           <div className="space-y-2">
             <Label htmlFor="welcomeMessage">Welcome Message</Label>
             <Textarea
               id="welcomeMessage"
               value={welcomeMessage}
               onChange={(e) => setWelcomeMessage(e.target.value)}
-              placeholder="Enter the first message your chatbot will show"
+              placeholder="Hi! How can I help you today?"
               rows={3}
             />
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="placeholder">Input Placeholder</Label>
             <Input
               id="placeholder"
               value={placeholder}
               onChange={(e) => setPlaceholder(e.target.value)}
-              placeholder="e.g., Type your message..."
+              placeholder="Type your message..."
             />
           </div>
+        </Card>
 
+        {/* ── Colors ── */}
+        <Card className="p-4 space-y-4">
+          <h3 className="text-sm font-semibold text-gray-700">Colors</h3>
           <div className="space-y-3">
             <Label>Primary Color</Label>
             <div className="flex flex-wrap gap-2">
-              {['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#64748b'].map((c) => (
+              {PRESET_COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
@@ -122,7 +161,6 @@ export default function ChatInterface() {
             <div className="flex items-center gap-3">
               <input
                 type="color"
-                id="primaryColor"
                 value={primaryColor}
                 onChange={(e) => setPrimaryColor(e.target.value)}
                 className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer p-0.5"
@@ -135,38 +173,154 @@ export default function ChatInterface() {
               />
             </div>
           </div>
+          <div className="space-y-3">
+            <Label>Chat Background Color</Label>
+            <div className="flex flex-wrap gap-2">
+              {['#f9fafb', '#f0fdf4', '#eff6ff', '#fdf4ff', '#fff7ed', '#fefce8', '#ffffff'].map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setChatBgColor(c)}
+                  className="w-7 h-7 rounded-full border-2 transition-transform hover:scale-110"
+                  style={{
+                    backgroundColor: c,
+                    borderColor: chatBgColor === c ? '#111827' : '#e5e7eb',
+                    outline: chatBgColor === c ? '2px solid #111827' : 'none',
+                    outlineOffset: '2px',
+                  }}
+                />
+              ))}
+              <input
+                type="color"
+                value={chatBgColor}
+                onChange={(e) => setChatBgColor(e.target.value)}
+                className="w-7 h-7 rounded-full border border-gray-200 cursor-pointer p-0"
+                title="Custom background color"
+              />
+            </div>
+          </div>
         </Card>
 
-        {/* Preview */}
+        {/* ── Bot Appearance ── */}
+        <Card className="p-4 space-y-4">
+          <h3 className="text-sm font-semibold text-gray-700">Bot Appearance</h3>
+          <div className="space-y-2">
+            <Label>Avatar Emoji</Label>
+            <div className="flex flex-wrap gap-2">
+              {AVATAR_EMOJIS.map((e) => (
+                <button
+                  key={e}
+                  type="button"
+                  onClick={() => setAvatarEmoji(e)}
+                  className={cn(
+                    'w-9 h-9 rounded-lg text-lg flex items-center justify-center border-2 transition-all',
+                    avatarEmoji === e
+                      ? 'border-green-500 bg-green-50 shadow-sm'
+                      : 'border-transparent hover:border-gray-200 hover:bg-gray-50',
+                  )}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Font Size</Label>
+            <div className="flex gap-2">
+              {(['sm', 'base', 'lg'] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setFontSize(s)}
+                  className={cn(
+                    'px-4 py-1.5 rounded-lg border text-sm font-medium transition-all',
+                    fontSize === s
+                      ? 'border-green-500 bg-green-50 text-green-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300',
+                  )}
+                >
+                  {s === 'sm' ? 'Small' : s === 'base' ? 'Medium' : 'Large'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Bubble Style</Label>
+            <div className="flex gap-2">
+              {(['rounded', 'squared'] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setBubbleStyle(s)}
+                  className={cn(
+                    'px-4 py-1.5 border text-sm font-medium transition-all',
+                    s === 'rounded' ? 'rounded-2xl' : 'rounded-lg',
+                    bubbleStyle === s
+                      ? 'border-green-500 bg-green-50 text-green-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300',
+                  )}
+                >
+                  {s === 'rounded' ? 'Rounded' : 'Squared'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        {/* ── Behavior ── */}
+        <Card className="p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-gray-700">Behavior</h3>
+          <div className="flex items-center justify-between py-1">
+            <div>
+              <Label>Show Typing Indicator</Label>
+              <p className="text-xs text-gray-500 mt-0.5">Display animated dots while bot is processing</p>
+            </div>
+            <Switch checked={showTypingIndicator} onCheckedChange={setShowTypingIndicator} />
+          </div>
+          <div className="flex items-center justify-between py-1">
+            <div>
+              <Label>Show Timestamps</Label>
+              <p className="text-xs text-gray-500 mt-0.5">Display time below each message</p>
+            </div>
+            <Switch checked={showTimestamps} onCheckedChange={setShowTimestamps} />
+          </div>
+        </Card>
+
+        {/* ── Preview ── */}
         <Card className="p-4">
-          <h3 className="text-gray-900 font-semibold mb-3 text-sm">Live Preview</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Live Preview</h3>
           <div className="flex justify-center">
             <div className="w-72 rounded-2xl shadow-lg overflow-hidden border border-gray-200">
-              {/* Header */}
               <div className="px-4 py-3 flex items-center gap-3" style={{ backgroundColor: primaryColor }}>
-                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3z" />
-                  </svg>
+                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center text-lg">
+                  {avatarEmoji}
                 </div>
                 <span className="text-white text-sm font-semibold">{selectedChatbot?.name ?? 'Assistant'}</span>
               </div>
-              {/* Chat area */}
-              <div className="bg-gray-50 p-3 space-y-2 min-h-30">
+              <div className="p-3 space-y-2 min-h-28" style={{ backgroundColor: chatBgColor }}>
                 <div className="flex justify-start">
-                  <div className="px-3 py-2 rounded-2xl rounded-tl-sm text-white text-xs max-w-[80%]" style={{ backgroundColor: primaryColor }}>
+                  <div
+                    className={cn('px-3 py-2 text-white max-w-[80%]', fontClass, bubbleRadius, 'rounded-tl-sm')}
+                    style={{ backgroundColor: primaryColor }}
+                  >
                     {welcomeMessage || 'Hi! How can I help you today?'}
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <div className="px-3 py-2 rounded-2xl rounded-tr-sm bg-white border border-gray-200 text-gray-800 text-xs max-w-[80%] shadow-sm">
+                  <div className={cn('px-3 py-2 bg-white border border-gray-200 text-gray-800 max-w-[80%] shadow-sm', fontClass, bubbleRadius, 'rounded-tr-sm')}>
                     Hello!
                   </div>
                 </div>
+                {showTypingIndicator && (
+                  <div className="flex gap-1 items-center py-1 pl-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                )}
               </div>
-              {/* Input */}
               <div className="bg-white px-3 py-2 border-t border-gray-100 flex items-center gap-2">
-                <span className="flex-1 text-xs text-gray-400 truncate">{placeholder || 'Type your message...'}</span>
+                <span className={cn('flex-1 text-gray-400 truncate', fontClass)}>{placeholder || 'Type your message...'}</span>
                 <button className="w-7 h-7 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor: primaryColor }}>
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

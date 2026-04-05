@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Bot, User, Loader2, RotateCcw } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -13,6 +14,12 @@ interface ChatbotInfo {
   welcomeMessage?: string;
   primaryColor?: string;
   placeholder?: string;
+  avatarEmoji?: string;
+  showTypingIndicator?: boolean;
+  showTimestamps?: boolean;
+  bubbleStyle?: 'rounded' | 'squared';
+  chatBgColor?: string;
+  fontSize?: 'sm' | 'base' | 'lg';
 }
 
 interface Message {
@@ -125,6 +132,12 @@ export default function ChatWidget({
           welcomeMessage: data.welcomeMessage ?? data.settings?.welcomeMessage,
           primaryColor: data.primaryColor ?? data.settings?.primaryColor ?? '#22c55e',
           placeholder: data.placeholder ?? data.settings?.placeholder,
+          avatarEmoji: data.settings?.avatarEmoji ?? '🤖',
+          showTypingIndicator: data.settings?.showTypingIndicator ?? true,
+          showTimestamps: data.settings?.showTimestamps ?? true,
+          bubbleStyle: data.settings?.bubbleStyle ?? 'rounded',
+          chatBgColor: data.settings?.chatBgColor ?? '#f9fafb',
+          fontSize: data.settings?.fontSize ?? 'sm',
         });
 
         const welcome = data.welcomeMessage || data.settings?.welcomeMessage || `Hi! I'm ${data.name}. How can I help you today?`;
@@ -264,6 +277,13 @@ export default function ChatWidget({
   }
 
   const primaryColor = info?.primaryColor ?? '#22c55e';
+  const avatarEmoji = info?.avatarEmoji ?? '🤖';
+  const showTypingIndicator = info?.showTypingIndicator ?? true;
+  const showTimestamps = info?.showTimestamps ?? true;
+  const bubbleStyle = info?.bubbleStyle ?? 'rounded';
+  const chatBgColor = info?.chatBgColor ?? '#f9fafb';
+  const fontClass = info?.fontSize === 'lg' ? 'text-lg' : info?.fontSize === 'base' ? 'text-base' : 'text-sm';
+  const bubbleRound = bubbleStyle === 'rounded' ? 'rounded-2xl' : 'rounded-lg';
 
   return (
     <div
@@ -276,8 +296,8 @@ export default function ChatWidget({
       <div className="px-4 py-3 shrink-0" style={{ backgroundColor: primaryColor }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="rounded-full bg-white/20 p-1.5">
-              <Bot className="w-4 h-4 text-white" />
+            <div className="rounded-full bg-white/20 p-1.5 text-lg leading-none">
+              {avatarEmoji}
             </div>
             <div>
               <p className="text-white font-semibold text-sm">{info?.name ?? 'AI Assistant'}</p>
@@ -298,38 +318,48 @@ export default function ChatWidget({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ backgroundColor: chatBgColor }}>
         {messages.map((msg) => (
           <div
             key={msg.id}
             className={cn('flex items-end gap-2', msg.role === 'user' ? 'justify-end' : 'justify-start')}
           >
             {msg.role === 'assistant' && (
-              <div className="rounded-full p-1 shrink-0" style={{ backgroundColor: `${primaryColor}22` }}>
-                <Bot className="w-3 h-3" style={{ color: primaryColor }} />
+              <div className="rounded-full p-1 shrink-0 text-base leading-none" style={{ backgroundColor: `${primaryColor}22` }}>
+                {avatarEmoji}
               </div>
             )}
             <div
               className={cn(
-                'px-3 py-2 rounded-2xl text-sm max-w-[80%] leading-relaxed',
+                'px-3 py-2 max-w-[80%] leading-relaxed',
+                fontClass,
                 msg.role === 'user'
-                  ? 'text-white rounded-br-sm'
-                  : 'bg-white text-gray-900 shadow-sm border border-gray-100 rounded-bl-sm',
+                  ? `${bubbleRound} rounded-br-sm text-white`
+                  : `${bubbleRound} rounded-bl-sm bg-white text-gray-900 shadow-sm border border-gray-100`,
               )}
               style={msg.role === 'user' ? { backgroundColor: primaryColor } : undefined}
             >
-              {msg.content || (
-                // Streaming placeholder — dots
-                <div className="flex gap-1 items-center py-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
+              {msg.content ? (
+                msg.role === 'assistant' ? (
+                  <ReactMarkdown className="prose prose-sm max-w-none text-inherit [&>*:last-child]:mb-0 [&>p]:mb-1 [&>ul]:mb-1 [&>ol]:mb-1">
+                    {msg.content}
+                  </ReactMarkdown>
+                ) : (
+                  msg.content
+                )
+              ) : (
+                showTypingIndicator ? (
+                  <div className="flex gap-1 items-center py-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                ) : null
               )}
               {msg.streaming && msg.content && (
                 <span className="inline-block w-0.5 h-3 bg-gray-400 animate-pulse ml-0.5 align-middle" />
               )}
-              {!msg.streaming && (
+              {!msg.streaming && showTimestamps && (
                 <p className={cn('text-[10px] mt-1', msg.role === 'user' ? 'text-white/70' : 'text-gray-400')}>
                   {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
@@ -355,7 +385,7 @@ export default function ChatWidget({
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && !isSending && !isStreaming && handleSend()}
             placeholder={info?.placeholder ?? 'Type a message...'}
             disabled={isSending || isStreaming}
-            className="flex-1 text-sm rounded-xl border border-gray-200 px-3 py-2 outline-none focus:ring-1 disabled:bg-gray-50 transition"
+            className="flex-1 text-sm text-gray-900 bg-white rounded-xl border border-gray-200 px-3 py-2 outline-none focus:ring-1 disabled:bg-gray-50 transition"
             style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
           />
           <button
