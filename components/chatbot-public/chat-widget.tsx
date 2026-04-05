@@ -341,9 +341,9 @@ export default function ChatWidget({
             >
               {msg.content ? (
                 msg.role === 'assistant' ? (
-                  <ReactMarkdown className="prose prose-sm max-w-none text-inherit [&>*:last-child]:mb-0 [&>p]:mb-1 [&>ul]:mb-1 [&>ol]:mb-1">
-                    {msg.content}
-                  </ReactMarkdown>
+                  <div className="prose prose-sm max-w-none text-inherit [&>*:last-child]:mb-0 [&>p]:mb-1 [&>ul]:mb-1 [&>ol]:mb-1">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
                 ) : (
                   msg.content
                 )
