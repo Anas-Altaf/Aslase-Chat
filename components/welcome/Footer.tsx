@@ -28,7 +28,7 @@ export default function Footer() {
   const quickLinks = [
     { href: '/privacy', label: 'Privacy Policy' },
     { href: '/terms', label: 'Terms of Service' },
-    { href: '/support', label: 'Contact Support' },
+    { href: '/contact', label: 'Contact Us' },
   ];
 
   const socialLinks = [

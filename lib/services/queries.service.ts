@@ -104,6 +104,51 @@ export async function getQueries(
   }
 }
 
+export async function replyToQuery(id: string, reply: string): Promise<ApiResponse<void>> {
+  try {
+    await api.patch(`/queries/${id}/reply`, { reply });
+    return { success: true, data: undefined };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to save reply', data: undefined };
+  }
+}
+
+export async function resolveQuery(id: string): Promise<ApiResponse<void>> {
+  try {
+    await api.patch(`/queries/${id}/resolve`, {});
+    return { success: true, data: undefined };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to resolve', data: undefined };
+  }
+}
+
+export async function saveQueryToContext(id: string): Promise<ApiResponse<{ sourceId: string }>> {
+  try {
+    const res = await api.post<{ sourceId: string }>(`/queries/${id}/save-to-context`, {});
+    return { success: true, data: res };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to save to context', data: { sourceId: '' } };
+  }
+}
+
+export async function bulkResolveQueries(ids: string[]): Promise<ApiResponse<{ updated: number }>> {
+  try {
+    const res = await api.patch<{ updated: number }>('/queries/bulk/resolve', { ids });
+    return { success: true, data: res };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to bulk resolve', data: { updated: 0 } };
+  }
+}
+
+export async function bulkDeleteQueries(ids: string[]): Promise<ApiResponse<{ deleted: number }>> {
+  try {
+    const res = await api.delete<{ deleted: number }>('/queries/bulk');
+    return { success: true, data: res };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to bulk delete', data: { deleted: 0 } };
+  }
+}
+
 export async function deleteQuery(id: string): Promise<ApiResponse<void>> {
   try {
     await api.delete(`/queries/${id}`);

@@ -22,7 +22,10 @@ import {
   User as UserIcon,
   ChevronLeft,
   ChevronRight,
+  FlaskConical,
 } from 'lucide-react';
+import { useState as useTestState } from 'react';
+import TestChatbotPanel from '@/components/user-dashboard/test-chatbot-panel';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -60,6 +63,7 @@ export default function Menubar() {
   });
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isTestOpen, setIsTestOpen] = useTestState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { selectedChatbot, removeChatbot } = useChatbot();
@@ -269,6 +273,18 @@ export default function Menubar() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
+                    onClick={() => setIsTestOpen(true)}
+                    disabled={!selectedChatbot}
+                    className="flex items-center justify-center w-10 h-10 rounded-xl text-emerald-600 hover:bg-emerald-50 disabled:opacity-30 transition-colors"
+                  >
+                    <FlaskConical className="w-4 h-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">Test Chatbot</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
                     onClick={handleShare}
                     className="flex items-center justify-center w-10 h-10 rounded-xl text-blue-600 hover:bg-blue-50 transition-colors"
                   >
@@ -292,6 +308,16 @@ export default function Menubar() {
             </>
           ) : (
             <>
+              <Button
+                variant="outline"
+                className="w-full justify-center gap-2 bg-linear-to-br from-emerald-50 to-teal-50 border-emerald-200 text-emerald-700 hover:from-emerald-500 hover:to-teal-500 hover:text-white hover:border-transparent transition-all duration-300 group"
+                size="sm"
+                onClick={() => setIsTestOpen(true)}
+                disabled={!selectedChatbot}
+              >
+                <FlaskConical className="w-4 h-4" />
+                Test Chatbot
+              </Button>
               <Button
                 variant="outline"
                 className="w-full justify-center gap-2 bg-linear-to-br from-blue-50 to-cyan-50 border-blue-200 text-blue-700 hover:from-blue-500 hover:to-cyan-500 hover:text-white hover:border-transparent transition-all duration-300 group"
@@ -334,6 +360,16 @@ export default function Menubar() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Test Chatbot Panel */}
+        {selectedChatbot && (
+          <TestChatbotPanel
+            open={isTestOpen}
+            onClose={() => setIsTestOpen(false)}
+            chatbotId={selectedChatbot.id}
+            chatbotName={selectedChatbot.name}
+          />
+        )}
       </div>
     </TooltipProvider>
   );

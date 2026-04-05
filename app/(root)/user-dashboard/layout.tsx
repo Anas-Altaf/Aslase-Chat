@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ChatbotProvider } from '@/contexts/ChatbotContext';
 import { BusinessProvider } from '@/contexts/BusinessContext';
+import { SocketProvider } from '@/contexts/SocketContext';
 import ChatbotBar from '@/components/user-dashboard/chatbot-bar';
 import Menubar from '@/components/user-dashboard/menubar';
 import Header from '@/components/user-dashboard/header';
@@ -23,6 +24,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const pathname = usePathname();
     const [sidebarHovered, setSidebarHovered] = useState(false);
+    const [sidebarDropdownOpen, setSidebarDropdownOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     // Hide menubar for businesses/chatbots list pages
@@ -34,6 +36,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return (
         <BusinessProvider>
             <ChatbotProvider>
+            <SocketProvider>
                 {/* Premium light theme gradient */}
                 <div className="flex h-screen bg-gray-100 overflow-hidden">
                     {/* Mobile Menu Button */}
@@ -63,17 +66,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     </div>
 
                     {/* Desktop Layout */}
-                    <div className="hidden lg:flex flex-1 h-screen">
-                        {/* Chatbot Sidebar — compact by default, expand on hover */}
+                    <div className="hidden lg:flex flex-1 h-screen relative">
+                        {/* Chatbot Sidebar — absolute overlay, icon strip at rest, expands on hover */}
                         <div
-                            className={`${sidebarHovered ? 'w-72' : 'w-16'} transition-all duration-300 flex-shrink-0 overflow-hidden z-30`}
+                            className="absolute left-0 top-0 h-full z-40"
                             onMouseEnter={() => setSidebarHovered(true)}
-                            onMouseLeave={() => setSidebarHovered(false)}
+                            onMouseLeave={() => { if (!sidebarDropdownOpen) setSidebarHovered(false); }}
                         >
-                            <ChatbotBar collapsed={!sidebarHovered} onToggleCollapse={() => {}} />
+                            <ChatbotBar
+                                collapsed={!sidebarHovered && !sidebarDropdownOpen}
+                                onToggleCollapse={() => {}}
+                                onDropdownOpenChange={setSidebarDropdownOpen}
+                            />
                         </div>
 
-                        <ResizablePanelGroup direction="horizontal" className="h-full flex-1">
+                        <ResizablePanelGroup direction="horizontal" className="h-full flex-1 pl-14">
 
                             {/* Menu + Content Area */}
                             <ResizablePanel defaultSize={100} minSize={60} className="min-w-0">
@@ -119,6 +126,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         </div>
                     </div>
                 </div>
+            </SocketProvider>
             </ChatbotProvider>
         </BusinessProvider>
     );

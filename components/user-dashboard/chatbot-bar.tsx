@@ -3,17 +3,14 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -45,30 +42,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import {
-  Plus,
-  Bot,
-  Building2,
-  MoreVertical,
-  PanelLeftClose,
-  PanelLeft,
-  Edit,
-  Trash2,
-  Eye,
-  User,
-} from 'lucide-react';
+import { Plus, Bot, Building2, MoreVertical, Trash2, Eye, Edit, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import type { Chatbot } from '@/types';
 
 interface ChatbotBarProps {
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  onDropdownOpenChange?: (open: boolean) => void;
 }
 
-export default function ChatbotBar({ collapsed = false, onToggleCollapse }: ChatbotBarProps) {
+export default function ChatbotBar({ collapsed = false, onToggleCollapse, onDropdownOpenChange }: ChatbotBarProps) {
   const router = useRouter();
-  const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { chatbots, selectedChatbot, isInitialLoading: chatbotsLoading, addChatbot, selectChatbot, removeChatbot } = useChatbot();
   const { businesses, selectedBusiness, isInitialLoading: businessesLoading, selectBusiness, addBusiness, removeBusiness } = useBusiness();
 
@@ -95,7 +82,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
   const [businessDocuments, setBusinessDocuments] = useState<File[]>([]);
 
   const userName = user?.displayName || 'User';
-  const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase();
+  const userInitials = userName.split(' ').map((n: string) => n[0]).join('').toUpperCase();
 
   const handleCreateChatbot = async () => {
     if (!newChatbot.name.trim() || !newChatbot.businessId) return;
@@ -106,7 +93,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
       setIsCreateChatbotOpen(false);
       setNewChatbot({ name: '', businessId: '', model: 'gpt-4o-mini', visibility: 'public' });
       router.push('/user-dashboard/chatbot');
-    } catch (error) {
+    } catch {
       toast.error('Failed to create chatbot');
     } finally {
       setIsCreatingChatbot(false);
@@ -117,20 +104,12 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
     if (!newBusiness.name.trim()) return;
     setIsCreatingBusiness(true);
     try {
-      console.log('Creating business with documents:', businessDocuments.length);
-      console.log('Files:', businessDocuments.map(f => ({ name: f.name, size: f.size, type: f.type })));
-      
-      await addBusiness({
-        ...newBusiness,
-        urls: newBusiness.urls.filter(u => u.trim()),
-      }, businessDocuments);
-      
+      await addBusiness({ ...newBusiness, urls: newBusiness.urls.filter((u) => u.trim()) }, businessDocuments);
       toast.success('Business created successfully');
       setIsCreateBusinessOpen(false);
       setNewBusiness({ name: '', description: '', contactEmail: '', contactPhone: '', urls: [''] });
       setBusinessDocuments([]);
-    } catch (error) {
-      console.error('Error creating business:', error);
+    } catch {
       toast.error('Failed to create business');
     } finally {
       setIsCreatingBusiness(false);
@@ -142,7 +121,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
     try {
       await removeChatbot(id);
       toast.success('Chatbot deleted');
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete chatbot');
     }
   };
@@ -152,7 +131,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
     try {
       await removeBusiness(id);
       toast.success('Business deleted');
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete business');
     }
   };
@@ -162,15 +141,6 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
     router.push('/user-dashboard/chatbot');
   };
 
-  const handleChatbotsTabClick = () => {
-    router.push('/user-dashboard/chatbots');
-  };
-
-  const handleBusinessesTabClick = () => {
-    console.log('🟢 Businesses tab clicked, navigating to /user-dashboard/businesses');
-    router.push('/user-dashboard/businesses');
-  };
-
   const handleSelectBusiness = (id: string) => {
     selectBusiness(id);
     router.push(`/user-dashboard/businesses/${id}`);
@@ -178,139 +148,293 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
 
   const isLoading = chatbotsLoading || businessesLoading;
 
-  // COLLAPSED VIEW - Icon only
-  if (collapsed) {
-    return (
-      <TooltipProvider delayDuration={100}>
-        <Card className="h-full rounded-none border-r border-gray-200/60 border-l-0 border-t-0 border-b-0 flex flex-col bg-white w-full shadow-lg overflow-hidden">
-          {/* Logo */}
-          <div className="p-2 flex items-center justify-center">
-            <Link href="/user-dashboard" className="block">
-              <Image
-                src="/AslasChat.jpg"
-                alt="AslasChat Logo"
-                width={40}
-                height={40}
-                className="max-w-[100px] rounded-lg"
-              />
-            </Link>
+  return (
+    <TooltipProvider delayDuration={150} disableHoverableContent>
+      <aside
+        className={cn(
+          'h-full flex flex-col bg-white border-r border-gray-200/70 shadow-2xl overflow-hidden',
+          'transition-[width] duration-200 ease-out',
+          collapsed ? 'w-14' : 'w-60',
+        )}
+      >
+        {/* Accent line */}
+        <div className="h-0.5 bg-linear-to-r from-emerald-400 via-teal-500 to-cyan-500 shrink-0" />
+
+        {/* Logo */}
+        <div className="flex items-center justify-center px-2 py-2 shrink-0 overflow-hidden">
+          <Link href="/user-dashboard" className="block shrink-0">
+            {collapsed ? (
+              <Image src="/AslasChat.jpg" alt="Aslas" width={32} height={32} className="rounded-lg" />
+            ) : (
+              <Image src="/AslasChat.jpg" alt="AslasChat Logo" width={90} height={50} className="rounded-lg max-w-22.5" />
+            )}
+          </Link>
+        </div>
+
+        <div className="h-px bg-gray-100 shrink-0" />
+
+        {/* Scrollable content */}
+        <ScrollArea className="flex-1 overflow-hidden">
+          <div className="py-2 px-1.5 space-y-0.5">
+
+            {/* ── Chatbots section ── */}
+            <div className="mb-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => router.push('/user-dashboard/chatbots')}
+                    className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors overflow-hidden"
+                  >
+                    <Bot className="w-4 h-4 text-gray-600 shrink-0" />
+                    <span className={cn('text-xs font-semibold text-gray-600 uppercase tracking-wider truncate', collapsed && 'hidden')}>
+                      Chatbots
+                    </span>
+                    {!collapsed && (
+                      <span className="ml-auto text-[10px] bg-gray-100 text-gray-500 rounded-full px-1.5 py-0.5 font-medium shrink-0">
+                        {chatbots.length}
+                      </span>
+                    )}
+                  </button>
+                </TooltipTrigger>
+                {collapsed && <TooltipContent side="right">Chatbots ({chatbots.length})</TooltipContent>}
+              </Tooltip>
+
+              {/* Chatbot items */}
+              <div className="space-y-0.5 mt-0.5">
+                {isLoading ? (
+                  <>
+                    <Skeleton className="h-8 rounded-lg mx-1" />
+                    <Skeleton className="h-8 rounded-lg mx-1" />
+                  </>
+                ) : (
+                  chatbots.map((chatbot, index) => (
+                    <Tooltip key={`chatbot-${chatbot.id}-${index}`}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            'flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer group transition-colors overflow-hidden',
+                            selectedChatbot?.id === chatbot.id
+                              ? 'bg-emerald-50 border border-emerald-200'
+                              : 'hover:bg-gray-50',
+                          )}
+                          onClick={() => handleSelectChatbot(chatbot.id)}
+                        >
+                          <Avatar className="w-7 h-7 shrink-0 rounded-lg">
+                            <AvatarImage src="/chatbot.png" alt={chatbot.name} />
+                            <AvatarFallback
+                              className={cn(
+                                'rounded-lg text-[10px] font-bold',
+                                selectedChatbot?.id === chatbot.id
+                                  ? 'bg-emerald-500 text-white'
+                                  : 'bg-emerald-100 text-emerald-700',
+                              )}
+                            >
+                              {chatbot.name.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className={cn('text-xs text-gray-700 font-medium truncate flex-1 min-w-0', collapsed && 'hidden')}>
+                            {chatbot.name}
+                          </span>
+                          {!collapsed && (
+                            <DropdownMenu onOpenChange={(open) => onDropdownOpenChange?.(open)}>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-emerald-600 shrink-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="w-3 h-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleSelectChatbot(chatbot.id)}>
+                                  <Eye className="w-3.5 h-3.5 mr-2" /> View
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-red-600 hover:bg-red-50"
+                                  onClick={(e) => handleDeleteChatbot(chatbot.id, e)}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      {collapsed && <TooltipContent side="right">{chatbot.name}</TooltipContent>}
+                    </Tooltip>
+                  ))
+                )}
+              </div>
+
+              {/* Add chatbot */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setIsCreateChatbotOpen(true)}
+                    className="w-full flex items-center gap-1.5 px-2 py-1.5 mt-0.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors overflow-hidden"
+                  >
+                    <Plus className="w-4 h-4 shrink-0" />
+                    <span className={cn('text-xs font-medium truncate', collapsed && 'hidden')}>Add Chatbot</span>
+                  </button>
+                </TooltipTrigger>
+                {collapsed && <TooltipContent side="right">Add Chatbot</TooltipContent>}
+              </Tooltip>
+            </div>
+
+            <div className="h-px bg-gray-100 my-1" />
+
+            {/* ── Businesses section ── */}
+            <div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => router.push('/user-dashboard/businesses')}
+                    className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors overflow-hidden"
+                  >
+                    <Building2 className="w-4 h-4 text-gray-600 shrink-0" />
+                    <span className={cn('text-xs font-semibold text-gray-600 uppercase tracking-wider truncate', collapsed && 'hidden')}>
+                      Businesses
+                    </span>
+                    {!collapsed && (
+                      <span className="ml-auto text-[10px] bg-gray-100 text-gray-500 rounded-full px-1.5 py-0.5 font-medium shrink-0">
+                        {businesses.length}
+                      </span>
+                    )}
+                  </button>
+                </TooltipTrigger>
+                {collapsed && <TooltipContent side="right">Businesses ({businesses.length})</TooltipContent>}
+              </Tooltip>
+
+              {/* Business items */}
+              <div className="space-y-0.5 mt-0.5">
+                {isLoading ? (
+                  <>
+                    <Skeleton className="h-8 rounded-lg mx-1" />
+                  </>
+                ) : (
+                  businesses.map((business, index) => (
+                    <Tooltip key={`business-${business.id}-${index}`}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            'flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer group transition-colors overflow-hidden',
+                            selectedBusiness?.id === business.id
+                              ? 'bg-violet-50 border border-violet-200'
+                              : 'hover:bg-gray-50',
+                          )}
+                          onClick={() => handleSelectBusiness(business.id)}
+                        >
+                          <Avatar className="w-7 h-7 shrink-0 rounded-lg">
+                            {business.logo && <AvatarImage src={business.logo} alt={business.name} />}
+                            <AvatarFallback
+                              className={cn(
+                                'rounded-lg text-[10px] font-bold',
+                                selectedBusiness?.id === business.id
+                                  ? 'bg-violet-500 text-white'
+                                  : 'bg-violet-100 text-violet-700',
+                              )}
+                            >
+                              {business.name.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className={cn('text-xs text-gray-700 font-medium truncate flex-1 min-w-0', collapsed && 'hidden')}>
+                            {business.name}
+                          </span>
+                          {!collapsed && (
+                            <DropdownMenu onOpenChange={(open) => onDropdownOpenChange?.(open)}>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-violet-600 shrink-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="w-3 h-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleSelectBusiness(business.id)}>
+                                  <Edit className="w-3.5 h-3.5 mr-2" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-red-600 hover:bg-red-50"
+                                  onClick={(e) => handleDeleteBusiness(business.id, e)}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      {collapsed && <TooltipContent side="right">{business.name}</TooltipContent>}
+                    </Tooltip>
+                  ))
+                )}
+              </div>
+
+              {/* Add business */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setIsCreateBusinessOpen(true)}
+                    className="w-full flex items-center gap-1.5 px-2 py-1.5 mt-0.5 rounded-lg text-violet-600 hover:bg-violet-50 transition-colors overflow-hidden"
+                  >
+                    <Plus className="w-4 h-4 shrink-0" />
+                    <span className={cn('text-xs font-medium truncate', collapsed && 'hidden')}>Add Business</span>
+                  </button>
+                </TooltipTrigger>
+                {collapsed && <TooltipContent side="right">Add Business</TooltipContent>}
+              </Tooltip>
+            </div>
+
           </div>
+        </ScrollArea>
 
-          <Separator className="bg-gray-100" />
+        <div className="h-px bg-gray-100 shrink-0" />
 
-          {/* Icons */}
-          <div className="flex-1 flex flex-col items-center py-4 gap-3">
-            {/* Expand button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50"
-                  onClick={onToggleCollapse}
-                >
-                  <PanelLeft className="w-5 h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Expand sidebar</TooltipContent>
-            </Tooltip>
+        {/* Profile */}
+        <div className="p-1.5 shrink-0">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="/user-dashboard/profile"
+                className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors overflow-hidden"
+              >
+                <Avatar className="w-7 h-7 shrink-0 ring-2 ring-emerald-200 hover:ring-emerald-400 transition-all">
+                  <AvatarImage src={user?.photoURL || ''} alt={userName} />
+                  <AvatarFallback className="bg-linear-to-br from-emerald-500 to-teal-500 text-white text-[10px] font-bold">
+                    {userInitials}
+                  </AvatarFallback>
+                </Avatar>
+                <span className={cn('text-xs text-gray-700 font-medium truncate flex-1', collapsed && 'hidden')}>
+                  {userName}
+                </span>
+              </Link>
+            </TooltipTrigger>
+            {collapsed && <TooltipContent side="right">{userName}</TooltipContent>}
+          </Tooltip>
+          {!collapsed && (
+            <button
+              onClick={() => logout()}
+              className="w-full flex items-center gap-1.5 px-2 py-1 mt-0.5 rounded-lg text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5 shrink-0" />
+              Sign out
+            </button>
+          )}
+        </div>
 
-            <Separator className="w-8 my-2 bg-gray-100" />
-
-            {/* Chatbots */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 cursor-pointer"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleChatbotsTabClick();
-                  }}
-                  type="button"
-                >
-                  <Bot className="w-5 h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Chatbots ({chatbots.length})</TooltipContent>
-            </Tooltip>
-
-            {/* Businesses */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 cursor-pointer"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleBusinessesTabClick();
-                  }}
-                  type="button"
-                >
-                  <Building2 className="w-5 h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Businesses ({businesses.length})</TooltipContent>
-            </Tooltip>
-
-            {/* Add buttons */}
-            <Separator className="w-8 my-2 bg-gray-100" />
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-11 w-11 rounded-xl bg-linear-to-br from-emerald-50 to-teal-50 text-emerald-600 border-2 border-emerald-200 hover:from-emerald-500 hover:to-teal-500 hover:text-white hover:border-transparent transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/30"
-                  onClick={() => setIsCreateChatbotOpen(true)}
-                >
-                  <Plus className="w-5 h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Add Chatbot</TooltipContent>
-            </Tooltip>
-          </div>
-
-          <Separator className="bg-gray-100" />
-
-          {/* Profile */}
-          <div className="p-2 flex justify-center">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link href="/user-dashboard/profile">
-                  <Avatar className="w-10 h-10 ring-2 ring-emerald-200 hover:ring-emerald-400 transition-all duration-300">
-                    <AvatarImage src="/chatbot.png" alt={userName} />
-                    <AvatarFallback className="bbg-linear-to-br from-emerald-500 to-teal-500 text-white text-sm font-bold">{userInitials}</AvatarFallback>
-                  </Avatar>
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent side="right">{userName}</TooltipContent>
-            </Tooltip>
-          </div>
-
-          {/* Dialogs still need to render */}
-          {renderDialogs()}
-        </Card>
-      </TooltipProvider>
-    );
-  }
-
-  // Helper function to render dialogs (shared between collapsed and expanded views)
-  function renderDialogs() {
-    return (
-      <>
-        {/* Create Chatbot Dialog */}
+        {/* Dialogs */}
         <Dialog open={isCreateChatbotOpen} onOpenChange={setIsCreateChatbotOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Create New Chatbot</DialogTitle>
-              <DialogDescription>
-                Add a new chatbot to your account.
-              </DialogDescription>
+              <DialogDescription>Add a new chatbot to your account.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -333,7 +457,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                   </SelectTrigger>
                   <SelectContent position="popper" sideOffset={4}>
                     {businesses.map((business, index) => (
-                      <SelectItem key={`select-biz-${business.id}-${index}`} value={business.id}>
+                      <SelectItem key={`sel-biz-${business.id}-${index}`} value={business.id}>
                         {business.name}
                       </SelectItem>
                     ))}
@@ -357,9 +481,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateChatbotOpen(false)}>
-                Cancel
-              </Button>
+              <Button variant="outline" onClick={() => setIsCreateChatbotOpen(false)}>Cancel</Button>
               <Button onClick={handleCreateChatbot} disabled={isCreatingChatbot || !newChatbot.name.trim() || !newChatbot.businessId}>
                 {isCreatingChatbot ? 'Creating...' : 'Create'}
               </Button>
@@ -367,14 +489,11 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
           </DialogContent>
         </Dialog>
 
-        {/* Create Business Dialog */}
         <Dialog open={isCreateBusinessOpen} onOpenChange={setIsCreateBusinessOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Create New Business</DialogTitle>
-              <DialogDescription>
-                Add a new business to organize your chatbots.
-              </DialogDescription>
+              <DialogDescription>Add a new business to organize your chatbots.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
               <div className="space-y-2">
@@ -424,265 +543,23 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse }: Chat
                   type="file"
                   accept=".pdf,.docx,.txt"
                   multiple
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    setBusinessDocuments(files);
-                  }}
+                  onChange={(e) => setBusinessDocuments(Array.from(e.target.files || []))}
                   className="cursor-pointer"
                 />
                 {businessDocuments.length > 0 && (
-                  <div className="text-sm text-gray-600">
-                    {businessDocuments.length} file(s) selected
-                  </div>
+                  <p className="text-xs text-gray-500">{businessDocuments.length} file(s) selected</p>
                 )}
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateBusinessOpen(false)}>
-                Cancel
-              </Button>
+              <Button variant="outline" onClick={() => setIsCreateBusinessOpen(false)}>Cancel</Button>
               <Button onClick={handleCreateBusiness} disabled={isCreatingBusiness || !newBusiness.name.trim()}>
                 {isCreatingBusiness ? 'Creating...' : 'Create'}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </>
-    );
-  }
-
-  // EXPANDED VIEW - Full sidebar with premium white theme
-  return (
-    <Card className="h-full rounded-none border-r border-gray-200/60 border-l-0 border-t-0 border-b-0 flex flex-col bg-white shadow-xl">
-      {/* Vibrant gradient accent line at top */}
-      <div className="h-1 bg-linear-to-r from-emerald-400 via-teal-500 to-cyan-500"></div>
-
-      {/* Logo - Centered */}
-      <div className="p-4 flex items-center justify-between">
-        <Link href="/user-dashboard" className=" flex-1 flex justify-center group">
-          <div className="relative">
-            <Image
-              src="/AslasChat.jpg"
-              alt="AslasChat Logo"
-              width={100}
-              height={60}
-              className="max-w-[100px] rounded-lg transition-transform duration-300 group-hover:scale-105"
-            />
-            <div className="absolute -inset-2 bg-linear-to-r from-emerald-400/20 to-teal-400/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          </div>
-        </Link>
-        {onToggleCollapse && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"
-            onClick={onToggleCollapse}
-            title="Collapse sidebar"
-          >
-            <PanelLeftClose className="w-4 h-4" />
-          </Button>
-        )}
-      </div>
-
-      <Separator className="bg-gray-100" />
-
-      {/* Expandable Sections */}
-      <ScrollArea className="flex-1 overflow-hidden">
-        <div className="p-3 space-y-1">
-
-          {/* Chatbots Section */}
-          <div>
-            <div className="flex items-center justify-between">
-              <button
-                onClick={handleChatbotsTabClick}
-                className="flex-1 flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                <Bot className="w-4 h-4 text-gray-700" />
-                <span className="font-medium text-sm text-gray-700">Chatbots</span>
-                <Badge variant="secondary" className="ml-auto text-xs">{chatbots.length}</Badge>
-              </button>
-             
-            </div>
-
-            {/* Chatbots List */}
-            <div className="ml-2 mt-2 space-y-2 pr-1">
-              {isLoading ? (
-                <>
-                  <Skeleton className="h-14 rounded-xl" />
-                  <Skeleton className="h-14 rounded-xl" />
-                </>
-              ) :
-                (
-                chatbots.map((chatbot, index) => (
-                  <div
-                    key={`chatbot-${chatbot.id}-${index}`}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl group transition-all duration-300 cursor-pointer ${selectedChatbot?.id === chatbot.id
-                      ? 'bg-linear-to-r from-emerald-100 to-teal-100 border-2 border-emerald-400 shadow-lg shadow-emerald-500/20'
-                      : 'bg-white border-2 border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/50 hover:shadow-md'
-                      }`}
-                    onClick={() => handleSelectChatbot(chatbot.id)}
-                  >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 ${selectedChatbot?.id === chatbot.id
-                      ? 'bg-linear-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/40'
-                      : 'bg-linear-to-br from-emerald-100 to-teal-100 group-hover:from-emerald-200 group-hover:to-teal-200'
-                      }`}>
-                      <Avatar className="w-6 h-6 rounded">
-                        <AvatarImage src="/chatbot.png" alt={chatbot.name} />
-                        <AvatarFallback className={`rounded text-[10px] font-bold ${selectedChatbot?.id === chatbot.id ? 'bg-transparent text-white' : 'bg-transparent text-emerald-600'
-                          }`}>
-                          {chatbot.name.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className={`text-sm font-semibold truncate block ${selectedChatbot?.id === chatbot.id ? 'text-emerald-800' : 'text-gray-800'
-                        }`}>{chatbot.name.substring(0, 14)}</span>
-                      <span className="text-[10px] text-gray-400 uppercase tracking-wide">{chatbot.model}</span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge
-                        className={`text-[10px] px-2 py-0.5 border font-medium ${chatbot.status === 'trained'
-                          ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
-                          : 'bg-amber-100 text-amber-700 border-amber-300'
-                          }`}
-                      >
-                        {chatbot.status}
-                      </Badge>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVertical className="w-3.5 h-3.5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleSelectChatbot(chatbot.id)}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            View
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={(e) => handleDeleteChatbot(chatbot.id, e)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Businesses Section */}
-          <div>
-            <div className="flex items-center justify-between">
-              <button
-                onClick={handleBusinessesTabClick}
-                className="flex-1 flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                <Building2 className="w-4 h-4 text-gray-700" />
-                <span className="font-medium text-sm text-gray-700">Businesses</span>
-                <Badge variant="secondary" className="ml-auto text-xs">{businesses.length}</Badge>
-              </button>
-              
-            </div>
-
-            {/* Businesses List */}
-            <div className="ml-2 mt-2 space-y-2 pr-1">
-              {isLoading ? (
-                <>
-                  <Skeleton className="h-14 rounded-xl" />
-                  <Skeleton className="h-14 rounded-xl" />
-                </>
-              ) : (
-                businesses.map((business, index) => (
-                  <div
-                    key={`business-${business.id}-${index}`}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl group transition-all duration-300 cursor-pointer ${selectedBusiness?.id === business.id
-                      ? 'bg-linear-to-r from-violet-100 to-purple-100 border-2 border-violet-400 shadow-lg shadow-violet-500/20'
-                      : 'bg-white border-2 border-gray-100 hover:border-violet-300 hover:bg-violet-50/50 hover:shadow-md'
-                      }`}
-                    onClick={() => handleSelectBusiness(business.id)}
-                  >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 ${selectedBusiness?.id === business.id
-                      ? 'bg-linear-to-br from-violet-500 to-purple-500 shadow-lg shadow-violet-500/40'
-                      : 'bg-linear-to-br from-violet-100 to-purple-100 group-hover:from-violet-200 group-hover:to-purple-200'
-                      }`}>
-                      <Avatar className="w-6 h-6 rounded">
-                        {business.logo ? (
-                          <AvatarImage src={business.logo} alt={business.name} />
-                        ) : null}
-                        <AvatarFallback className={`rounded text-[10px] font-bold ${selectedBusiness?.id === business.id ? 'bg-transparent text-white' : 'bg-transparent text-violet-600'
-                          }`}>
-                          {business.name.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className={`text-sm font-semibold truncate block ${selectedBusiness?.id === business.id ? 'text-violet-800' : 'text-gray-800'
-                        }`}>{business.name}</span>
-                      <span className="text-[10px] text-gray-400">Business</span>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg shrink-0"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreVertical className="w-3.5 h-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleSelectBusiness(business.id)}>
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={(e) => handleDeleteBusiness(business.id, e)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-        </div>
-      </ScrollArea>
-
-      <Separator className="bg-gray-100" />
-
-      {/* Profile Card */}
-      <div className="p-3">
-        <Link href="/user-dashboard/profile" className="flex items-center gap-3 p-3 rounded-xl bg-linear-to-r from-gray-50 to-emerald-50/50 border-2 border-gray-100 hover:border-emerald-300 hover:bg-emerald-50 cursor-pointer transition-all duration-300 group">
-          <Avatar className="w-10 h-10 ring-2 ring-emerald-200 group-hover:ring-emerald-400 transition-all duration-300">
-            <AvatarImage src={user?.photoURL || ''} alt={userName} />
-            <AvatarFallback className="bg-linear-to-br from-emerald-500 to-teal-500 text-white text-xs font-bold">{userInitials}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-gray-800 text-sm font-semibold truncate">{userName}</p>
-            <p className="text-emerald-600 text-[10px] font-medium">View Profile →</p>
-          </div>
-        </Link>
-      </div>
-
-      {renderDialogs()}
-    </Card>
+      </aside>
+    </TooltipProvider>
   );
 }

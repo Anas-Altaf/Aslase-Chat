@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { MessageCircle, Bot, Trash2, Search, LinkIcon, ChevronLeft, ChevronRight, HelpCircle, ExternalLink } from 'lucide-react';
+import { MessageCircle, Bot, Trash2, Search, LinkIcon, ChevronLeft, ChevronRight, HelpCircle, ExternalLink, CheckSquare, Brain, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { getQueries, deleteQuery, deleteAllQueries, exportQueries } from '@/lib/services';
+import { bulkResolveQueries, bulkDeleteQueries } from '@/lib/services/queries.service';
+import QueryDetailDrawer, { type QueryItem } from '@/components/user-dashboard/query-detail-drawer';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -62,6 +65,14 @@ export default function Queries() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+
+  // Drawer state
+  const [drawerQuery, setDrawerQuery] = useState<QueryItem | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkWorking, setBulkWorking] = useState(false);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -188,6 +199,66 @@ export default function Queries() {
       toast.error(error instanceof Error ? error.message : 'Failed to delete query');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  // ── Drawer helpers ────────────────────────���───────────────────────────────
+
+  const openDrawer = (q: ChatQuery) => {
+    setDrawerQuery(q as unknown as QueryItem);
+    setDrawerOpen(true);
+  };
+
+  const handleDrawerUpdated = (updated: QueryItem) => {
+    setQueries((prev) =>
+      prev.map((q) => (q.id === updated._id ? { ...q, ...(updated as any), id: updated._id } : q)),
+    );
+  };
+
+  const handleDrawerDeleted = (id: string) => {
+    setQueries((prev) => prev.filter((q) => q.id !== id));
+    setTotal((t) => t - 1);
+  };
+
+  // ── Bulk helpers ──────────────────────────────────────────────────────────
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkResolve = async () => {
+    setBulkWorking(true);
+    try {
+      const res = await bulkResolveQueries(Array.from(selectedIds));
+      if (res.success) {
+        toast.success(`${res.data.updated} queries resolved`);
+        setSelectedIds(new Set());
+        await loadQueries();
+      } else {
+        toast.error(res.error ?? 'Bulk resolve failed');
+      }
+    } finally {
+      setBulkWorking(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    setBulkWorking(true);
+    try {
+      const res = await bulkDeleteQueries(Array.from(selectedIds));
+      if (res.success) {
+        toast.success(`${res.data.deleted} queries deleted`);
+        setSelectedIds(new Set());
+        await loadQueries();
+      } else {
+        toast.error(res.error ?? 'Bulk delete failed');
+      }
+    } finally {
+      setBulkWorking(false);
     }
   };
 
@@ -360,6 +431,20 @@ export default function Queries() {
         </div>
       </Card>
 
+      {/* Bulk actions bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 mb-3 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl shrink-0">
+          <span className="text-sm font-medium text-blue-700">{selectedIds.size} selected</span>
+          <Button size="sm" variant="outline" onClick={handleBulkResolve} disabled={bulkWorking} className="h-7 border-green-200 text-green-700 hover:bg-green-50">
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Resolve All
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleBulkDelete} disabled={bulkWorking} className="h-7 border-red-200 text-red-600 hover:bg-red-50">
+            <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete All
+          </Button>
+          <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-gray-400 hover:text-gray-600">Clear</button>
+        </div>
+      )}
+
       {/* Query list */}
       <div className="flex-1 overflow-y-auto">
         <div className="space-y-3">
@@ -375,9 +460,19 @@ export default function Queries() {
             </p>
           ) : (
             displayedQueries.map((q) => (
-              <Card key={q.id} className="p-4">
+              <Card
+                key={q.id}
+                className={cn(
+                  'p-4 cursor-pointer hover:border-green-200 transition-colors',
+                  selectedIds.has(q.id) && 'border-blue-300 bg-blue-50/30',
+                )}
+                onClick={() => openDrawer(q)}
+              >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-start gap-2 flex-1 min-w-0">
+                    <div onClick={(e) => { e.stopPropagation(); toggleSelect(q.id); }} className="mt-0.5 shrink-0">
+                      <Checkbox checked={selectedIds.has(q.id)} />
+                    </div>
                     <MessageCircle className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                     <p className="text-gray-900 text-sm font-medium line-clamp-2">
                       {q.userMessage}
@@ -387,14 +482,14 @@ export default function Queries() {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50 shrink-0"
-                    onClick={() => setDeleteId(q.id)}
+                    onClick={(e) => { e.stopPropagation(); setDeleteId(q.id); }}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 </div>
 
                 {/* Bot response preview */}
-                <div className="flex items-start gap-2 mb-3 ml-1">
+                <div className="flex items-start gap-2 mb-3 ml-6">
                   <Bot className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
                   <p className="text-gray-600 text-sm line-clamp-2">
                     {q.botResponse}
@@ -402,7 +497,7 @@ export default function Queries() {
                 </div>
 
                 {/* Footer: sentiments + lead badge + date */}
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap ml-6">
                   <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full', SENTIMENT_BADGE[q.userSentiment])}>
                     User: {q.userSentiment}
                   </span>
@@ -415,9 +510,17 @@ export default function Queries() {
                       Lead
                     </span>
                   )}
-                  {q.isUnresolved && (
-                    <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold">
-                      Unresolved
+                  {q.isUnresolved ? (
+                    <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold">Unresolved</span>
+                  ) : (
+                    <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">Resolved</span>
+                  )}
+                  {(q as any).adminReply && (
+                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">Replied</span>
+                  )}
+                  {(q as any).savedToContext && (
+                    <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold flex items-center gap-0.5">
+                      <Brain className="w-2.5 h-2.5" />In Context
                     </span>
                   )}
                   {q.isAnonymous && (
@@ -430,7 +533,7 @@ export default function Queries() {
                   </span>
                   {q.sessionId && (
                     <button
-                      onClick={() => router.push('/user-dashboard/chat-logs')}
+                      onClick={(e) => { e.stopPropagation(); router.push('/user-dashboard/chat-logs'); }}
                       className="ml-auto flex items-center gap-1 text-[10px] text-green-600 hover:text-green-700 font-medium shrink-0"
                       title="View chat session"
                     >
@@ -505,6 +608,15 @@ export default function Queries() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Query detail drawer */}
+      <QueryDetailDrawer
+        query={drawerQuery}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onUpdated={handleDrawerUpdated}
+        onDeleted={handleDrawerDeleted}
+      />
     </div>
   );
 }

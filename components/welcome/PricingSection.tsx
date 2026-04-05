@@ -1,13 +1,41 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Check, Sparkles, Zap, Building2, ArrowRight, Crown } from 'lucide-react';
+import { Check, Sparkles, Zap, Building2, ArrowRight, Crown, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
+
+const PRICE_IDS: Record<string, string> = {
+  basic: process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID ?? '',
+  premium: process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID ?? '',
+  enterprise: process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID ?? '',
+};
 
 export default function PricingSection() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
+  const handleSelectPlan = async (planId: string) => {
+    if (!user) { router.push('/sign-up'); return; }
+    const priceId = PRICE_IDS[planId];
+    if (!priceId) { router.push('/sign-up'); return; }
+    setCheckoutLoading(planId);
+    try {
+      const res = await api.post<{ url: string }>('/payments/create-checkout-session', { priceId });
+      window.location.href = res.url;
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Failed to start checkout');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
 
   const plans = [
     {
@@ -168,15 +196,17 @@ export default function PricingSection() {
 
                   {/* CTA Button */}
                   <Button
-                    asChild
                     variant={plan.popular ? 'gradient' : 'outline'}
                     size="lg"
                     className="w-full mb-8 group"
+                    disabled={checkoutLoading === plan.id}
+                    onClick={() => handleSelectPlan(plan.id)}
                   >
-                    <Link href={`/sign-up?plan=${plan.id}`} className="flex items-center justify-center gap-2">
-                      Get Started
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
-                    </Link>
+                    {checkoutLoading === plan.id ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
+                    ) : (
+                      <>Get Started<ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" /></>
+                    )}
                   </Button>
 
                   {/* Features */}
