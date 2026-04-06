@@ -30,19 +30,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const [sidebarDropdownOpen, setSidebarDropdownOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    useEffect(() => {
-        if (!subscriptionLoading && (subscriptionStatus === 'none' || subscriptionStatus === 'canceled')) {
-            router.push('/pricing');
-        }
-    }, [subscriptionStatus, subscriptionLoading, router]);
+    // TODO: Stripe subscription check disabled for now
+    // useEffect(() => {
+    //     if (!subscriptionLoading && (subscriptionStatus === 'none' || subscriptionStatus === 'canceled')) {
+    //         router.push('/pricing');
+    //     }
+    // }, [subscriptionStatus, subscriptionLoading, router]);
 
-    if (subscriptionLoading) {
-        return (
-            <div className="flex h-screen items-center justify-center bg-gray-50">
-                <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-        );
-    }
+    // if (subscriptionLoading) {
+    //     return (
+    //         <div className="flex h-screen items-center justify-center bg-gray-50">
+    //             <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+    //         </div>
+    //     );
+    // }
 
     // Hide menubar for businesses/chatbots list pages
     const hideMenubar = pathname === '/user-dashboard/businesses' ||
