@@ -36,6 +36,18 @@ function generateId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+/** If the backend accidentally sends raw JSON as the message, extract just the reply. */
+function extractReply(raw: string | undefined): string {
+  if (!raw) return '';
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith('{')) return trimmed;
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (typeof parsed?.reply === 'string' && parsed.reply.trim()) return parsed.reply.trim();
+  } catch { /* not JSON */ }
+  return trimmed;
+}
+
 function getOrCreateSessionId(chatbotId: string): string {
   const key = `chat_session_${chatbotId}`;
   const stored = localStorage.getItem(key);
@@ -151,7 +163,7 @@ export default function ChatWidget({
             const historicalMsgs: Message[] = (hist.messages ?? []).map((m: any) => ({
               id: generateId(),
               role: m.role,
-              content: m.content,
+              content: m.role === 'assistant' ? extractReply(m.content) : (m.content ?? ''),
               timestamp: new Date(m.timestamp ?? Date.now()),
             }));
             if (historicalMsgs.length > 0) {
@@ -220,23 +232,14 @@ export default function ChatWidget({
       if (!res.ok) throw new Error('Failed to get response');
 
       const data = await res.json();
-      // If WS streaming didn't fill the message (non-streaming fallback), use REST response
-      setMessages((prev) => {
-        const botMsg = prev.find((m) => m.id === botMsgId);
-        if (botMsg && botMsg.content === '') {
-          // Streaming didn't arrive — use REST response content
-          return prev.map((m) =>
-            m.id === botMsgId
-              ? {
-                  ...m,
-                  content: data.message ?? data.response ?? data.reply ?? 'Sorry, could not process that.',
-                  streaming: false,
-                }
-              : m,
-          );
-        }
-        return prev;
-      });
+      const replyText = extractReply(data.message ?? data.response ?? data.reply);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botMsgId
+            ? { ...m, content: replyText || 'Sorry, could not process that.', streaming: false }
+            : m,
+        ),
+      );
     } catch {
       setMessages((prev) =>
         prev.map((m) =>
@@ -246,12 +249,9 @@ export default function ChatWidget({
         ),
       );
     } finally {
-      // isSending is cleared by 'chat:done' WS event; fallback clear here
-      setTimeout(() => {
-        setIsSending(false);
-        setIsStreaming(false);
-        currentBotMsgIdRef.current = null;
-      }, 8000); // max 8s before giving up on stream
+      currentBotMsgIdRef.current = null;
+      setIsSending(false);
+      setIsStreaming(false);
     }
   };
 
