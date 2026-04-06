@@ -97,11 +97,17 @@ export default function ChatWidget({
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     });
 
-    socket.on('chat:done', () => {
+    socket.on('chat:done', ({ reply }: { reply?: string }) => {
       const msgId = currentBotMsgIdRef.current;
       if (msgId) {
         setMessages((prev) =>
-          prev.map((m) => (m.id === msgId ? { ...m, streaming: false } : m)),
+          prev.map((m) => {
+            if (m.id !== msgId) return m;
+            // Backend sends the parsed reply in chat:done — replace any raw JSON
+            // that accumulated during streaming with the clean extracted text.
+            const cleanContent = reply ?? extractReply(m.content) ?? m.content;
+            return { ...m, content: cleanContent, streaming: false };
+          }),
         );
       }
       currentBotMsgIdRef.current = null;
