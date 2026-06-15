@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Upload, Trash2, FileText, Globe, AlignLeft, Loader2, Plus, Eye, RefreshCw } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
+import { useBusinessStore } from '@/store/business.store';
 import {
   getSources,
   uploadDocuments,
@@ -39,6 +40,13 @@ const TYPE_LABELS: Record<Source['type'], string> = {
   url: 'URL',
 };
 
+// Friendly section headers for the categorized source list
+const CATEGORY_LABELS: Record<Source['type'], string> = {
+  document: 'Files',
+  text: 'Text',
+  url: 'Websites',
+};
+
 const TYPE_COLORS: Record<Source['type'], string> = {
   document: 'bg-blue-100 text-blue-700',
   text: 'bg-purple-100 text-purple-700',
@@ -51,8 +59,20 @@ const TYPE_ICONS: Record<Source['type'], React.ReactNode> = {
   url: <Globe className="w-4 h-4 text-green-500" />,
 };
 
+/** Derive `https://host/sitemap.xml` from a business website URL, or '' if none. */
+function deriveSitemapUrl(website?: string): string {
+  if (!website) return '';
+  try {
+    const url = new URL(website.startsWith('http') ? website : `https://${website}`);
+    return `${url.protocol}//${url.host}/sitemap.xml`;
+  } catch {
+    return '';
+  }
+}
+
 export default function Sources() {
   const { selectedChatbot, isInitialLoading } = useChatbot();
+  const businesses = useBusinessStore((s) => s.businesses);
   const [activeTab, setActiveTab] = useState<Tab>('files');
   const [sources, setSources] = useState<Source[]>([]);
   const [stats, setStats] = useState<SourceStats | null>(null);
@@ -101,6 +121,15 @@ export default function Sources() {
     loadSources();
   }, [selectedChatbot?.id]);
 
+  // Default the sitemap field to the business website's /sitemap.xml (if known),
+  // so the user only has to confirm rather than type the whole URL.
+  useEffect(() => {
+    if (!selectedChatbot) return;
+    const business = businesses.find((b) => b.id === selectedChatbot.businessId);
+    const derived = deriveSitemapUrl(business?.urls?.[0]);
+    if (derived) setSitemapUrl((prev) => (prev ? prev : derived));
+  }, [selectedChatbot?.id, businesses]);
+
   // ── Files upload ────────────────────────────────────────────────────────────
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,7 +140,13 @@ export default function Sources() {
     try {
       const res = await uploadDocuments(selectedChatbot.id, files);
       if (res.success) {
-        toast.success(`${res.data.length} file(s) uploaded`);
+        const ok = res.data.length;
+        const failed = files.length - ok;
+        if (failed > 0) {
+          toast.warning(`${ok} of ${files.length} file(s) uploaded — ${failed} failed`);
+        } else {
+          toast.success(`${ok} file(s) uploaded`);
+        }
         await loadSources();
       } else {
         toast.error(res.error ?? 'Upload failed');
@@ -258,6 +293,11 @@ export default function Sources() {
     );
   }
 
+  // Business documents already feed the chatbot's training (via the backend
+  // context builder) — surface them read-only so users don't re-upload them.
+  const business = businesses.find((b) => b.id === selectedChatbot.businessId);
+  const businessDocs = business?.documents ?? [];
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
@@ -265,7 +305,7 @@ export default function Sources() {
       {/* Left Section */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex items-center justify-between mb-1 shrink-0">
-          <h1 className="text-2xl font-bold text-gray-900">Data Sources</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Training</h1>
           <Button size="sm" variant="outline" onClick={handleSync} disabled={isSyncing} className="gap-1.5">
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
             {isSyncing ? 'Syncing...' : 'Sync Sources'}
@@ -433,67 +473,108 @@ export default function Sources() {
             </Card>
           )}
 
-          {/* ── ALL SOURCES LIST ── */}
+          {/* ── BUSINESS DOCUMENTS (read-only, already in training) ── */}
+          {businessDocs.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <FileText className="w-4 h-4 text-violet-500 shrink-0" />
+                <h3 className="text-gray-900 font-semibold text-sm">
+                  Business Documents
+                </h3>
+                <span className="text-[10px] text-gray-400">
+                  ({businessDocs.length}) · already in training
+                </span>
+              </div>
+              <div className="space-y-2">
+                {businessDocs.map((doc) => (
+                  <Card key={doc.id} className="flex items-center gap-3 p-3 bg-violet-50/40 border-violet-100">
+                    <FileText className="w-4 h-4 text-violet-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-gray-900 text-sm font-medium truncate">{doc.name}</p>
+                      <p className="text-gray-400 text-[11px]">From business · {business?.name}</p>
+                    </div>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide bg-violet-100 text-violet-700 shrink-0">
+                      Business
+                    </span>
+                  </Card>
+                ))}
+              </div>
+              <p className="text-[11px] text-gray-400 mt-2">
+                These are managed in the business profile. No need to re-upload them here.
+              </p>
+            </div>
+          )}
+
+          {/* ── ALL SOURCES LIST (categorized) ── */}
           <div>
             <h3 className="text-gray-900 font-semibold mb-2 text-sm">
               All Sources ({sources.length})
             </h3>
-            <div className="space-y-2">
-              {isLoading && sources.length === 0 ? (
-                <>
-                  <Skeleton className="h-12" />
-                  <Skeleton className="h-12" />
-                </>
-              ) : sources.length === 0 ? (
-                <p className="text-gray-500 text-sm text-center py-4">
-                  No sources added yet
-                </p>
-              ) : (
-                sources.map((src) => (
-                  <Card
-                    key={src.id}
-                    className="flex items-center gap-3 p-3"
-                  >
-                    <span className="shrink-0">{TYPE_ICONS[src.type]}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span
-                          className={cn(
-                            'text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide',
-                            TYPE_COLORS[src.type],
-                          )}
-                        >
-                          {TYPE_LABELS[src.type]}
-                        </span>
-                        <p className="text-gray-900 text-sm font-medium truncate">
-                          {src.title}
-                        </p>
+            {isLoading && sources.length === 0 ? (
+              <div className="space-y-2">
+                <Skeleton className="h-12" />
+                <Skeleton className="h-12" />
+              </div>
+            ) : sources.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center py-4">
+                No sources added yet
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {(['document', 'url', 'text'] as Source['type'][]).map((type) => {
+                  const group = sources.filter((s) => s.type === type);
+                  if (group.length === 0) return null;
+                  return (
+                    <div key={type}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="shrink-0">{TYPE_ICONS[type]}</span>
+                        <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                          {CATEGORY_LABELS[type]}
+                        </h4>
+                        <span className="text-[10px] text-gray-400">({group.length})</span>
                       </div>
-                      <p className="text-gray-500 text-xs">
-                        {src.characterCount.toLocaleString()} chars ·{' '}
-                        {new Date(src.createdAt).toLocaleDateString()}
-                      </p>
+                      <div className="space-y-2">
+                        {group.map((src) => (
+                          <Card key={src.id} className="flex items-center gap-3 p-3">
+                            <span className="shrink-0">{TYPE_ICONS[src.type]}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-gray-900 text-sm font-medium truncate">
+                                {src.title}
+                              </p>
+                              {(src.sourceUrl || src.fileName) && (
+                                <p className="text-gray-400 text-[11px] truncate font-mono">
+                                  {src.sourceUrl ?? src.fileName}
+                                </p>
+                              )}
+                              <p className="text-gray-500 text-xs">
+                                {src.characterCount.toLocaleString()} chars ·{' '}
+                                {new Date(src.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-400 hover:text-gray-700 hover:bg-gray-100 shrink-0"
+                              onClick={() => setViewSource(src)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0"
+                              onClick={() => setDeleteId(src.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-gray-400 hover:text-gray-700 hover:bg-gray-100 shrink-0"
-                      onClick={() => setViewSource(src)}
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0"
-                      onClick={() => setDeleteId(src.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </Card>
-                ))
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

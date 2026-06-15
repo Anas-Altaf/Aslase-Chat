@@ -64,7 +64,7 @@ export default function Header() {
   };
 
   return (
-    <header className="relative bg-white/80 backdrop-blur-xl border-b border-gray-100/50 px-6 py-4 flex items-center justify-between shadow-sm">
+    <header className="relative bg-white/80 backdrop-blur-xl border-b border-gray-100/50 px-4 py-2 flex items-center justify-between shadow-sm">
       {/* Animated gradient line at top */}
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-br from-green-400 via-emerald-500 to-teal-500"></div>
 

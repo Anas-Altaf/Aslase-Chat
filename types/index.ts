@@ -65,6 +65,7 @@ export interface BackendChatbotSettings {
     placeholder?: string;
     // UI customization — extended theming
     avatarEmoji?: string;
+    avatarUrl?: string;   // uploaded logo (data URL); takes precedence over emoji
     showTypingIndicator?: boolean;
     showTimestamps?: boolean;
     bubbleStyle?: 'rounded' | 'squared';

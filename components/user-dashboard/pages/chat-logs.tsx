@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useChatbot } from '@/contexts/ChatbotContext';
+import { useSocket } from '@/contexts/SocketContext';
 import { exportChatSessions, getChatHistory, getChatSessions, sendChatMessage } from '@/lib/services';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -144,6 +145,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 
 export default function ChatLogs() {
   const { selectedChatbot, isInitialLoading } = useChatbot();
+  const { socket } = useSocket();
   const searchParams = useSearchParams();
 
   // Session list state
@@ -259,6 +261,31 @@ export default function ChatLogs() {
     setPage(1);
     loadSessions(1);
   }, [selectedChatbot?.id, userTypeFilter]);
+
+  // Live refresh — new visitor messages arrive over the socket. Only refresh the
+  // first page (newest sessions sort to the top) to avoid disrupting pagination.
+  useEffect(() => {
+    if (!socket || !selectedChatbot) return;
+    const refresh = () => { if (page === 1) loadSessions(1); };
+    socket.on('new_message', refresh);
+    return () => { socket.off('new_message', refresh); };
+  }, [socket, selectedChatbot?.id, page, loadSessions]);
+
+  // Live refresh of the OPEN conversation thread — when a new message arrives,
+  // re-fetch the session the owner is currently viewing so it appends live.
+  useEffect(() => {
+    if (!socket || mode !== 'history' || !selectedSession) return;
+    const sessionId = selectedSession.id;
+    const refreshThread = async () => {
+      const res = await getChatHistory(sessionId);
+      if (res.success && res.data) {
+        // Guard against a stale close: only apply if still viewing this session.
+        setSelectedSession((cur) => (cur && cur.id === sessionId ? res.data : cur));
+      }
+    };
+    socket.on('new_message', refreshThread);
+    return () => { socket.off('new_message', refreshThread); };
+  }, [socket, mode, selectedSession?.id]);
 
   // ── Pagination ────────────────────────────────────────────────────────────
 

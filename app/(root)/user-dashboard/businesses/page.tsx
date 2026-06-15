@@ -72,6 +72,9 @@ export default function BusinessesPage() {
     const [documentError, setDocumentError] = useState('');
 
     const handleCreate = async () => {
+        // Guard against duplicate submissions from rapid taps
+        if (isCreating) return;
+
         // Validate all fields
         const validationErrors = validateBusinessForm(newBusiness);
         setErrors(validationErrors);

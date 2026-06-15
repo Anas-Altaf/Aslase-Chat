@@ -29,6 +29,7 @@ export default function ChatInterface() {
 
   // Appearance
   const [avatarEmoji, setAvatarEmoji] = useState('🤖');
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg'>('sm');
 
   // Behavior
@@ -54,6 +55,7 @@ export default function ChatInterface() {
         setPlaceholder(s.placeholder ?? '');
         setPrimaryColor(s.primaryColor ?? '#22c55e');
         setAvatarEmoji(s.avatarEmoji ?? '🤖');
+        setAvatarUrl(s.avatarUrl ?? '');
         setFontSize(s.fontSize ?? 'sm');
         setShowTypingIndicator(s.showTypingIndicator ?? true);
         setShowTimestamps(s.showTimestamps ?? true);
@@ -76,6 +78,7 @@ export default function ChatInterface() {
         placeholder,
         primaryColor,
         avatarEmoji,
+        avatarUrl,
         fontSize,
         showTypingIndicator,
         showTimestamps,
@@ -88,6 +91,25 @@ export default function ChatInterface() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please choose an image file');
+      return;
+    }
+    // Keep logos small — they're stored inline as a data URL in settings.
+    if (file.size > 300 * 1024) {
+      toast.error('Logo must be under 300 KB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setAvatarUrl(typeof reader.result === 'string' ? reader.result : '');
+    reader.onerror = () => toast.error('Failed to read image');
+    reader.readAsDataURL(file);
   };
 
   if (isLoading) {
@@ -204,6 +226,34 @@ export default function ChatInterface() {
         {/* ── Bot Appearance ── */}
         <Card className="p-4 space-y-4">
           <h3 className="text-sm font-semibold text-gray-700">Bot Appearance</h3>
+
+          {/* Logo upload — overrides the emoji avatar when set */}
+          <div className="space-y-2">
+            <Label>Logo</Label>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-2xl">{avatarEmoji}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="inline-flex items-center px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer">
+                  {avatarUrl ? 'Change logo' : 'Upload logo'}
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                </label>
+                {avatarUrl && (
+                  <Button type="button" size="sm" variant="ghost" className="text-red-500 hover:text-red-600" onClick={() => setAvatarUrl('')}>
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">PNG/JPG/SVG up to 300 KB. Overrides the emoji avatar.</p>
+          </div>
+
           <div className="space-y-2">
             <Label>Avatar Emoji</Label>
             <div className="flex flex-wrap gap-2">
@@ -292,8 +342,13 @@ export default function ChatInterface() {
           <div className="flex justify-center">
             <div className="w-72 rounded-2xl shadow-lg overflow-hidden border border-gray-200">
               <div className="px-4 py-3 flex items-center gap-3" style={{ backgroundColor: primaryColor }}>
-                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center text-lg">
-                  {avatarEmoji}
+                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center text-lg overflow-hidden">
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatarUrl} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    avatarEmoji
+                  )}
                 </div>
                 <span className="text-white text-sm font-semibold">{selectedChatbot?.name ?? 'Assistant'}</span>
               </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { RefreshCw } from "lucide-react";
 import { useChatbot } from "@/contexts/ChatbotContext";
 import { getChatbotSettings, updateChatbotSettings } from "@/lib/services";
 import { Button } from "@/components/ui/button";
@@ -87,21 +88,24 @@ export default function Model() {
   }, [selectedChatbot?.id]);
 
   // ── Fetch OpenRouter models via proxy ─────────────────────────────────────
+  // Loaded once on mount (no auto-refresh on typing); the refresh button below
+  // lets the user reload the list on demand.
+
+  const fetchModels = useCallback(async () => {
+    setIsModelsLoading(true);
+    try {
+      const json = await fetch("/api/models").then((r) => r.json());
+      if (json?.models?.length) setModels(json.models);
+    } catch {
+      /* keep fallback list */
+    } finally {
+      setIsModelsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    setIsModelsLoading(true);
-    fetch("/api/models")
-      .then((r) => r.json())
-      .then((json) => {
-        if (!cancelled && json?.models?.length) {
-          setModels(json.models);
-        }
-      })
-      .catch(() => { /* keep fallback list */ })
-      .finally(() => { if (!cancelled) setIsModelsLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
+    fetchModels();
+  }, [fetchModels]);
 
   // ── Save ──────────────────────────────────────────────────────────────────
 
@@ -164,13 +168,27 @@ export default function Model() {
           <div className="space-y-2">
             <Label>AI Model</Label>
 
-            {/* Search box */}
-            <Input
-              placeholder="Search models by name or provider..."
-              value={modelSearch}
-              onChange={(e) => setModelSearch(e.target.value)}
-              className="h-8 text-sm"
-            />
+            {/* Search box (searches model + provider) with manual refresh */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Select model and provider"
+                value={modelSearch}
+                onChange={(e) => setModelSearch(e.target.value)}
+                className="h-8 text-sm flex-1"
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={fetchModels}
+                disabled={isModelsLoading}
+                className="h-8 shrink-0 gap-1.5"
+                title="Refresh model list"
+              >
+                <RefreshCw className={cn("w-3.5 h-3.5", isModelsLoading && "animate-spin")} />
+                Refresh
+              </Button>
+            </div>
 
             <Select value={model} onValueChange={setModel}>
               <SelectTrigger className="w-full">

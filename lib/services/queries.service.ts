@@ -53,6 +53,7 @@ export async function getQueries(
     sentiment?: SentimentType;
     isAnonymous?: boolean;
     isUnresolved?: boolean;
+    questionsOnly?: boolean;
     search?: string;
     from?: string;
     to?: string;
@@ -67,6 +68,8 @@ export async function getQueries(
       qs.set("isAnonymous", String(params.isAnonymous));
     if (params?.isUnresolved !== undefined)
       qs.set("isUnresolved", String(params.isUnresolved));
+    if (params?.questionsOnly !== undefined)
+      qs.set("questionsOnly", String(params.questionsOnly));
     if (params?.search) qs.set("search", params.search);
     if (params?.from) qs.set("from", params.from);
     if (params?.to) qs.set("to", params.to);

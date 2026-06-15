@@ -90,7 +90,7 @@ export default function Menubar() {
       ],
     },
     {
-      label: 'Sources',
+      label: 'Training',
       icon: <Database className="w-5 h-5 shrink-0" />,
       href: '/user-dashboard/sources',
     },

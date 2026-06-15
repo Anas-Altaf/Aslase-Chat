@@ -220,29 +220,11 @@ export async function updateChatbotSettings(
   data: Partial<ChatbotSettings>,
 ): Promise<ApiResponse<ChatbotSettings>> {
   try {
-    // Build backend fields object from all changed fields
-    const backendFields: BackendChatbotSettings = {};
-    if (data.model !== undefined) backendFields.model = data.model;
-    if (data.temperature !== undefined) backendFields.temperature = data.temperature;
-    if (data.maxTokens !== undefined) backendFields.maxTokens = data.maxTokens;
-    if (data.systemPromptOverride !== undefined)
-      backendFields.systemPromptOverride = data.systemPromptOverride;
-    if (data.welcomeMessage !== undefined)
-      backendFields.welcomeMessage = data.welcomeMessage;
-    if (data.rateLimitPerMinute !== undefined)
-      backendFields.rateLimitPerMinute = data.rateLimitPerMinute;
-    if (data.requireEmailCapture !== undefined)
-      backendFields.requireEmailCapture = data.requireEmailCapture;
-    if (data.emailNotifications !== undefined)
-      backendFields.emailNotifications = data.emailNotifications;
-    if (data.notificationEmail !== undefined)
-      backendFields.notificationEmail = data.notificationEmail;
-    if (data.webhookUrl !== undefined)
-      backendFields.webhookUrl = data.webhookUrl;
-    if (data.primaryColor !== undefined)
-      backendFields.primaryColor = data.primaryColor;
-    if (data.placeholder !== undefined)
-      backendFields.placeholder = data.placeholder;
+    // Forward every provided settings field. `chatbotId` and `name` are not
+    // chatbot *settings* (name is saved via PATCH /chatbots/:id), so strip them;
+    // everything else (appearance, behaviour, tuning, notifications) passes through.
+    const { chatbotId: _omitChatbotId, name: _omitName, ...rest } = data;
+    const backendFields: BackendChatbotSettings = rest;
 
     if (Object.keys(backendFields).length > 0) {
       await api.patch(`/chatbots/${chatbotId}/settings`, backendFields);

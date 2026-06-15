@@ -73,6 +73,7 @@ export default function ChatbotBar({ collapsed = false, onToggleCollapse, onDrop
   const userInitials = userName.split(' ').map((n: string) => n[0]).join('').toUpperCase();
 
   const handleCreateChatbot = async () => {
+    if (isCreatingChatbot) return;
     if (!newChatbot.name.trim() || !newChatbot.businessId) return;
     setIsCreatingChatbot(true);
     try {

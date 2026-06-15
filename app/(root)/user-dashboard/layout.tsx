@@ -104,10 +104,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                             <ResizablePanel defaultSize={100} minSize={60} className="min-w-0">
                                 <div className="flex flex-col h-full">
                                     <Header />
-                                    <div className="flex-1 p-3 xl:p-4 overflow-hidden">
+                                    <div className="flex-1 p-2 xl:p-2.5 overflow-hidden">
                                         {hideMenubar ? (
                                             /* Full-width content for list pages */
-                                            <Card className="h-full p-4 xl:p-5 overflow-auto bg-white/80 backdrop-blur-sm shadow-xl border-green-100/50">
+                                            <Card className="h-full p-3 xl:p-4 overflow-auto bg-white/80 backdrop-blur-sm shadow-xl border-green-100/50">
                                                 {children}
                                             </Card>
                                         ) : (
@@ -116,7 +116,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                                 <Card className="h-full overflow-hidden rounded-r-none border-r-0 bg-white/80 backdrop-blur-sm shadow-lg border-green-100/50 shrink-0">
                                                     <Menubar />
                                                 </Card>
-                                                <Card className="h-full p-4 xl:p-5 overflow-auto flex-1 min-w-0 rounded-l-none bg-white backdrop-blur-sm shadow-xl border-green-100/50">
+                                                <Card className="h-full p-3 xl:p-4 overflow-auto flex-1 min-w-0 rounded-l-none bg-white backdrop-blur-sm shadow-xl border-green-100/50">
                                                     {children}
                                                 </Card>
                                             </div>

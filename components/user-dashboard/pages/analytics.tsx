@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useChatbot } from '@/contexts/ChatbotContext';
+import { useSocket } from '@/contexts/SocketContext';
 import { getChatbotAnalytics, exportAnalytics } from '@/lib/services';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -413,6 +414,7 @@ function TrendsTab({ analytics }: { analytics: ChatbotAnalytics }) {
 
 export default function Analytics() {
   const { selectedChatbot, isInitialLoading } = useChatbot();
+  const { socket } = useSocket();
   const [analytics, setAnalytics] = useState<ChatbotAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -439,6 +441,24 @@ export default function Analytics() {
     if (!selectedChatbot) { setAnalytics(null); return; }
     loadAnalytics();
   }, [selectedChatbot?.id]);
+
+  // Live refresh — analytics is aggregate + heavier, so debounce bursts of
+  // activity into a single refetch (~3s after the last event).
+  useEffect(() => {
+    if (!socket || !selectedChatbot) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => loadAnalytics(), 3000);
+    };
+    socket.on('new_message', schedule);
+    socket.on('new_lead', schedule);
+    return () => {
+      socket.off('new_message', schedule);
+      socket.off('new_lead', schedule);
+      if (timer) clearTimeout(timer);
+    };
+  }, [socket, selectedChatbot?.id, loadAnalytics]);
 
   const downloadTextFile = (filename: string, text: string, mime: string) => {
     const blob = new Blob([text], { type: mime });

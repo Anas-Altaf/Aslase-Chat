@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Mail, Phone, User, Trash2, Tag, Info, Filter } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
+import { useSocket } from '@/contexts/SocketContext';
 import { exportLeads, getLeads, deleteLead, updateLead } from '@/lib/services';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -45,6 +46,7 @@ const SOURCE_LABELS: Record<string, string> = {
 
 export default function Leads() {
   const { selectedChatbot, isInitialLoading } = useChatbot();
+  const { socket } = useSocket();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -87,6 +89,14 @@ export default function Leads() {
     if (!selectedChatbot) { setLeads([]); return; }
     loadLeads();
   }, [selectedChatbot?.id, statusFilter, appliedFrom, appliedTo]);
+
+  // Live refresh — a new lead is captured server-side and pushed over the socket.
+  useEffect(() => {
+    if (!socket || !selectedChatbot) return;
+    const refresh = () => loadLeads();
+    socket.on('new_lead', refresh);
+    return () => { socket.off('new_lead', refresh); };
+  }, [socket, selectedChatbot?.id, loadLeads]);
 
   const downloadTextFile = (filename: string, text: string, mime: string) => {
     const blob = new Blob([text], { type: mime });

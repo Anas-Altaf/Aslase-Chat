@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { MessageCircle, Bot, Trash2, Search, LinkIcon, ChevronLeft, ChevronRight, HelpCircle, ExternalLink, CheckSquare, Brain, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useChatbot } from '@/contexts/ChatbotContext';
+import { useSocket } from '@/contexts/SocketContext';
 import { getQueries, deleteQuery, deleteAllQueries, exportQueries } from '@/lib/services';
 import { bulkResolveQueries, bulkDeleteQueries } from '@/lib/services/queries.service';
 import QueryDetailDrawer, { type QueryItem } from '@/components/user-dashboard/query-detail-drawer';
@@ -41,6 +42,7 @@ const PAGE_SIZE = 20;
 
 export default function Queries() {
   const { selectedChatbot, isInitialLoading } = useChatbot();
+  const { socket } = useSocket();
   const router = useRouter();
   const [queries, setQueries] = useState<ChatQuery[]>([]);
   const [total, setTotal] = useState(0);
@@ -59,6 +61,8 @@ export default function Queries() {
   const [appliedTo, setAppliedTo] = useState('');
   // Server-side "unresolved only" toggle
   const [unresolvedOnly, setUnresolvedOnly] = useState(false);
+  // Server-side "questions only" toggle — on by default so the view shows real questions
+  const [questionsOnly, setQuestionsOnly] = useState(true);
 
   // Delete state
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -135,6 +139,7 @@ export default function Queries() {
         sentiment: sentimentFilter !== 'all' ? (sentimentFilter as SentimentType) : undefined,
         isAnonymous: anonFilter !== 'all' ? anonFilter === 'true' : undefined,
         isUnresolved: unresolvedOnly ? true : undefined,
+        questionsOnly: questionsOnly ? true : undefined,
         search: search || undefined,
         from: appliedFrom || undefined,
         to: appliedTo || undefined,
@@ -152,12 +157,20 @@ export default function Queries() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedChatbot, sentimentFilter, anonFilter, search, page]);
+  }, [selectedChatbot, sentimentFilter, anonFilter, unresolvedOnly, questionsOnly, search, appliedFrom, appliedTo, page]);
 
   useEffect(() => {
     if (!selectedChatbot) { setQueries([]); setTotal(0); return; }
     loadQueries();
-  }, [selectedChatbot?.id, sentimentFilter, anonFilter, unresolvedOnly, search, appliedFrom, appliedTo, page]);
+  }, [selectedChatbot?.id, sentimentFilter, anonFilter, unresolvedOnly, questionsOnly, search, appliedFrom, appliedTo, page]);
+
+  // Live refresh — every new visitor message becomes a query server-side.
+  useEffect(() => {
+    if (!socket || !selectedChatbot) return;
+    const refresh = () => { if (page === 1) loadQueries(); };
+    socket.on('new_message', refresh);
+    return () => { socket.off('new_message', refresh); };
+  }, [socket, selectedChatbot?.id, page, loadQueries]);
 
   const handleSearch = () => {
     setSearch(searchInput);
@@ -306,8 +319,10 @@ export default function Queries() {
       {/* Header */}
       <div className="flex justify-between items-center mb-1 shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Messages</h1>
-          <p className="text-xs text-gray-500 mt-0.5">All messages sent to your chatbot — {total} total</p>
+          <h1 className="text-2xl font-bold text-gray-900">Queries</h1>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {questionsOnly ? 'Questions asked by your visitors' : 'All messages sent to your chatbot'} — {total} total
+          </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button
@@ -339,8 +354,20 @@ export default function Queries() {
         </div>
       </div>
 
-      {/* Unresolved-only toggle */}
+      {/* Toggles */}
       <div className="flex items-center gap-2 mb-3 shrink-0">
+        <button
+          onClick={() => { setQuestionsOnly(!questionsOnly); setPage(1); }}
+          className={cn(
+            'flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors',
+            questionsOnly
+              ? 'bg-green-600 text-white border-green-600'
+              : 'bg-white text-gray-600 border-gray-300 hover:border-green-400',
+          )}
+        >
+          <HelpCircle className="w-3 h-3" />
+          Questions only
+        </button>
         <button
           onClick={() => { setUnresolvedOnly(!unresolvedOnly); setPage(1); }}
           className={cn(
@@ -353,11 +380,6 @@ export default function Queries() {
           <HelpCircle className="w-3 h-3" />
           Unresolved only
         </button>
-        {unresolvedOnly && (
-          <span className="text-xs text-gray-400">
-            Showing only queries the bot could not resolve
-          </span>
-        )}
       </div>
 
       {/* Filters */}
