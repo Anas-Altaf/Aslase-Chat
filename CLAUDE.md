@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Working rules
+
+- **Research before implementing.** Before building any feature that touches an external API, SDK, provider, or unfamiliar library (e.g. Chatwoot, Stripe, Meta, OpenRouter, Firebase), first research the **current official docs** on the internet to verify endpoints, payload shapes, auth, and limits — then implement against verified facts, and audit the result against those docs. Do not implement third‑party integrations from memory.
+
 ## Commands
 
 ```bash

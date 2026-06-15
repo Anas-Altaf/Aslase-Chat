@@ -111,7 +111,9 @@ export default function Integrations() {
     }
   };
 
-  const webhookUrl = config?.webhookToken ? chatwootWebhookUrl(config.webhookToken) : '';
+  // Prefer the backend's absolute public URL (set via PUBLIC_BASE_URL); otherwise
+  // compose from the browser API base (fine when they're the same public host).
+  const webhookUrl = config?.webhookUrl || (config?.webhookToken ? chatwootWebhookUrl(config.webhookToken) : '');
 
   const copyWebhook = () => {
     if (!webhookUrl) return;
@@ -204,7 +206,7 @@ export default function Integrations() {
             <div className="mt-4 p-3 rounded-lg bg-gray-50 border border-gray-200">
               <div className="flex items-center gap-2 mb-1.5 text-xs font-semibold text-gray-700">
                 <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-                Paste this into your Chatwoot Agent Bot &ldquo;Outgoing URL&rdquo;
+                Add this in Chatwoot → Settings → Integrations → Webhooks (subscribe to <code className="font-mono">message_created</code>)
               </div>
               <div className="flex gap-2">
                 <code className="flex-1 text-xs bg-white border border-gray-200 rounded px-2 py-1.5 font-mono truncate text-gray-700">
@@ -223,8 +225,8 @@ export default function Integrations() {
           <h3 className="text-sm font-semibold text-gray-900 mb-3">How it works</h3>
           <ol className="space-y-2 text-sm text-gray-600 list-decimal list-inside">
             <li>In Chatwoot, connect your social inboxes (WhatsApp, Instagram, Messenger, Telegram…).</li>
-            <li>Create an <span className="font-medium">Agent Bot</span> and set its outgoing URL to the webhook above.</li>
-            <li>Enter your Chatwoot URL, Account ID and an access token here, then Connect.</li>
+            <li>Enter your Chatwoot URL, Account ID and a Profile access token here, then <span className="font-medium">Connect</span>.</li>
+            <li>In Chatwoot → <span className="font-medium">Settings → Integrations → Webhooks</span>, add the webhook URL above and subscribe to <code className="font-mono">message_created</code>.</li>
             <li>Incoming messages on any channel are answered by this chatbot automatically — replies, leads and queries flow into your dashboard.</li>
           </ol>
         </Card>

@@ -10,6 +10,7 @@ export interface ChatwootConfig {
   accountId?: string;
   hasToken?: boolean;
   webhookToken?: string;
+  webhookUrl?: string; // absolute public URL from the backend (preferred when present)
   isActive?: boolean;
 }
 
