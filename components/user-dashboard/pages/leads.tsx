@@ -45,6 +45,7 @@ const SOURCE_LABELS: Record<string, string> = {
   slack: 'Slack',
   messenger: 'Messenger',
   telegram: 'Telegram',
+  linkedin: 'LinkedIn',
 };
 
 export default function Leads() {

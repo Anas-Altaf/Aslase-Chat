@@ -64,3 +64,55 @@ export async function disconnectChatwoot(chatbotId: string): Promise<ApiResponse
     };
   }
 }
+
+// ── Unipile (self-serve hosted auth, multi-channel) ──────────────────────────
+
+export type UnipileProvider = 'WHATSAPP' | 'INSTAGRAM' | 'MESSENGER' | 'TELEGRAM' | 'LINKEDIN';
+
+export interface UnipileAccount {
+  id: string;
+  provider: string;
+  status: 'pending' | 'connected';
+  accountType: string | null;
+  connected: boolean;
+}
+
+export async function getUnipileAccounts(chatbotId: string): Promise<ApiResponse<UnipileAccount[]>> {
+  try {
+    const data = await api.get<UnipileAccount[]>(`/integrations/unipile/${chatbotId}`);
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to load channels',
+      data: [],
+    };
+  }
+}
+
+/** Start connecting a specific channel — returns the hosted-auth wizard URL. */
+export async function connectUnipile(chatbotId: string, provider: UnipileProvider): Promise<ApiResponse<{ url: string }>> {
+  try {
+    const data = await api.post<{ url: string }>(`/integrations/unipile/${chatbotId}/connect`, { provider });
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to start connection',
+      data: { url: '' },
+    };
+  }
+}
+
+export async function disconnectUnipile(chatbotId: string, accountId: string): Promise<ApiResponse<{ message: string }>> {
+  try {
+    const data = await api.delete<{ message: string }>(`/integrations/unipile/${chatbotId}/${accountId}`);
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to disconnect',
+      data: { message: '' },
+    };
+  }
+}
