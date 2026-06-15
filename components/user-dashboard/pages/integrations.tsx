@@ -33,6 +33,7 @@ export default function Integrations() {
   const [isLoading, setIsLoading] = useState(false);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [awaitingConnect, setAwaitingConnect] = useState(false);
 
   const load = useCallback(async () => {
     if (!selectedChatbot) return;
@@ -50,30 +51,44 @@ export default function Integrations() {
     load();
   }, [selectedChatbot?.id]);
 
-  // Returning from the Unipile hosted wizard (?connected=1|0). The notify_url
-  // callback can lag many seconds, so poll until the connection lands.
+  // Returning from the Unipile hosted wizard (?connected=1|0). Consume the param
+  // exactly once and clean the URL. Kept separate from the poll below so that
+  // router.replace() (which changes searchParams) does NOT cancel the poll.
   useEffect(() => {
     const c = searchParams.get('connected');
-    if (c === null || !selectedChatbot) return;
-    if (c === '1') toast.success('Finishing connection…');
+    if (c === null) return;
+    if (c === '1') { toast.success('Finishing connection…'); setAwaitingConnect(true); }
     else toast.error('Connection cancelled or failed');
     router.replace('/user-dashboard/integrations');
-    if (c !== '1') { load(); return; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
+  // After a successful connect, poll until the channel lands — the notify_url
+  // callback can lag several seconds. Independent of the URL, so it survives the
+  // router.replace above.
+  useEffect(() => {
+    if (!awaitingConnect || !selectedChatbot) return;
     const chatbotId = selectedChatbot.id;
+    let active = true;
     let tries = 0;
-    const poll = setInterval(async () => {
-      tries += 1;
+    const check = async (): Promise<boolean> => {
       const res = await getUnipileAccounts(chatbotId);
+      if (!active) return false;
       if (res.success) {
         setAccounts(res.data);
-        if (res.data.some((a) => a.connected)) { clearInterval(poll); toast.success('Channel connected!'); }
+        if (res.data.some((a) => a.connected)) { toast.success('Channel connected!'); return true; }
       }
-      if (tries >= 12) clearInterval(poll); // ~36s
+      return false;
+    };
+    void check().then((done) => { if (done && active) setAwaitingConnect(false); });
+    const poll = setInterval(async () => {
+      tries += 1;
+      const done = await check();
+      if (done || tries >= 12) { clearInterval(poll); if (active) setAwaitingConnect(false); } // ~36s
     }, 3000);
-    return () => clearInterval(poll);
+    return () => { active = false; clearInterval(poll); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, selectedChatbot?.id]);
+  }, [awaitingConnect, selectedChatbot?.id]);
 
   // Re-check when the tab regains focus (e.g. after connecting in another tab).
   useEffect(() => {
