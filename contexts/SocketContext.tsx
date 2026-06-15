@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
@@ -22,18 +22,17 @@ export const useSocket = () => useContext(SocketContext);
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const socketRef = useRef<Socket | null>(null);
+  const uid = user?.uid;
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const addNotification = useNotificationStore((s) => s.addNotification);
 
+  // Keyed on uid (not the whole user object, which gets new identities on token
+  // refresh / profile updates) so we don't needlessly tear down the connection.
   useEffect(() => {
-    if (!user) {
-      // Disconnect if user logs out
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-        setIsConnected(false);
-      }
+    if (!user || !uid) {
+      setSocket(null);
+      setIsConnected(false);
       return;
     }
 
@@ -45,10 +44,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     socket.on('connect', async () => {
+      // Mark connected regardless of token result so consumers get the socket;
+      // join:owner re-runs automatically on reconnect.
+      setIsConnected(true);
       try {
         const token = await user.getIdToken();
         socket.emit('join:owner', { token });
-        setIsConnected(true);
       } catch (err) {
         console.error('[Socket] Failed to get token:', err);
       }
@@ -108,18 +109,17 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       console.error('[Socket] Connection error:', err.message);
     });
 
-    socketRef.current = socket;
+    setSocket(socket);
 
     return () => {
       socket.disconnect();
-      socketRef.current = null;
+      setSocket(null);
       setIsConnected(false);
     };
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid]);
 
-  return (
-    <SocketContext.Provider value={{ socket: socketRef.current, isConnected }}>
-      {children}
-    </SocketContext.Provider>
-  );
+  const value = useMemo(() => ({ socket, isConnected }), [socket, isConnected]);
+
+  return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
 }

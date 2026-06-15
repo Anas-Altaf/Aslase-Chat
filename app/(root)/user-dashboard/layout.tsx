@@ -16,7 +16,7 @@ import {
     ResizablePanel,
     ResizableHandle,
 } from '@/components/ui/resizable';
-import { PanelLeft, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -147,25 +147,5 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </SocketProvider>
             </ChatbotProvider>
         </BusinessProvider>
-    );
-}
-
-// Collapsed sidebar view
-function CollapsedSidebar({ onExpand }: { onExpand: () => void }) {
-    return (
-        <div className="h-full bg-white border-r flex flex-col items-center py-4">
-            <Button
-                variant="ghost"
-                size="icon"
-                onClick={onExpand}
-                className="mb-4"
-                title="Expand sidebar"
-            >
-                <PanelLeft className="w-5 h-5" />
-            </Button>
-            <div className="flex-1 flex flex-col items-center gap-2 overflow-auto py-2">
-                {/* Could add collapsed chatbot icons here */}
-            </div>
-        </div>
     );
 }

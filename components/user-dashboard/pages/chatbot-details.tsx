@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Send, Copy, RotateCcw, RefreshCw, Check } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { trainChatbot } from '@/lib/services';
 import { sendChatMessage } from '@/lib/services/chat.service';
@@ -202,7 +203,13 @@ export default function ChatbotDetails() {
                       : 'bg-gray-200 text-gray-900'
                     }`}
                 >
-                  {msg.content}
+                  {msg.role === 'assistant' ? (
+                    <div className="prose prose-sm max-w-none text-inherit [&>*:last-child]:mb-0 [&>p]:mb-1 [&>ul]:mb-1 [&>ol]:mb-1">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    msg.content
+                  )}
                 </div>
               </div>
             ))}

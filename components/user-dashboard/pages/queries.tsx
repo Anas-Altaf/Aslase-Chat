@@ -7,6 +7,7 @@ import { useChatbot } from '@/contexts/ChatbotContext';
 import { useSocket } from '@/contexts/SocketContext';
 import { getQueries, deleteQuery, deleteAllQueries, exportQueries } from '@/lib/services';
 import { bulkResolveQueries, bulkDeleteQueries } from '@/lib/services/queries.service';
+import { downloadTextFile } from '@/lib/download';
 import QueryDetailDrawer, { type QueryItem } from '@/components/user-dashboard/query-detail-drawer';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -81,18 +82,6 @@ export default function Queries() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const displayedQueries = queries;
-
-  const downloadTextFile = (filename: string, text: string, mime: string) => {
-    const blob = new Blob([text], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
 
   const handleExport = async (format: 'csv' | 'json') => {
     if (!selectedChatbot) return;

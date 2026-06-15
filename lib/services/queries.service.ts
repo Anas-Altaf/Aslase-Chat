@@ -145,7 +145,8 @@ export async function bulkResolveQueries(ids: string[]): Promise<ApiResponse<{ u
 
 export async function bulkDeleteQueries(ids: string[]): Promise<ApiResponse<{ deleted: number }>> {
   try {
-    const res = await api.delete<{ deleted: number }>('/queries/bulk');
+    // Backend reads ids from the request body — must be sent with the DELETE.
+    const res = await api.delete<{ deleted: number }>('/queries/bulk', { ids });
     return { success: true, data: res };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Failed to bulk delete', data: { deleted: 0 } };

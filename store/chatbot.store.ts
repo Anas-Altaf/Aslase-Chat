@@ -112,6 +112,14 @@ export const useChatbotStore = create<ChatbotState & ChatbotActions>()(
             set({ chatbots: prev.chatbots, selectedChatbot: prev.selectedChatbot });
             throw new Error(response.error ?? 'Failed to update chatbot');
           }
+          // Reconcile with server truth so fields the backend ignored/derived
+          // (e.g. status/model) don't linger as phantom optimistic values.
+          if (response.data) {
+            set((s) => ({
+              chatbots: s.chatbots.map((c) => (c.id === id ? response.data : c)),
+              selectedChatbot: s.selectedChatbot?.id === id ? response.data : s.selectedChatbot,
+            }));
+          }
         } catch (err) {
           set({ chatbots: prev.chatbots, selectedChatbot: prev.selectedChatbot, error: err instanceof Error ? err.message : 'An unexpected error occurred' });
           throw err;

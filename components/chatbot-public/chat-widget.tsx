@@ -270,7 +270,11 @@ export default function ChatWidget({
       })
       .catch(() => { /* keep cache */ });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      // Remove the deferred join so fast conversation switches don't leak handlers.
+      socketRef.current?.off('connect', join);
+    };
   }, [activeId, chatbotId, buildWelcome]);
 
   // When the chatbot info loads, refresh a placeholder welcome with the real text.
@@ -600,33 +604,34 @@ export default function ChatWidget({
                 <p className="text-xs text-gray-400 text-center py-6">No conversations yet</p>
               ) : (
                 conversations.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => handleSwitch(c.id)}
-                    className={cn(
-                      'group w-full text-left px-2.5 py-2 rounded-lg flex items-start gap-2 transition-colors',
-                      c.id === activeId ? 'bg-gray-100' : 'hover:bg-gray-50',
-                    )}
-                  >
-                    <MessageCircle
-                      className="w-4 h-4 mt-0.5 shrink-0 text-gray-400"
-                      style={c.id === activeId ? { color: primaryColor } : undefined}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{c.title || 'New conversation'}</p>
-                      {c.preview && <p className="text-xs text-gray-400 truncate">{c.preview}</p>}
-                      <p className="text-[10px] text-gray-300 mt-0.5">{timeAgo(c.updatedAt)}</p>
-                    </div>
-                    <span
-                      role="button"
-                      tabIndex={0}
+                  // Sibling buttons (not nested) so both are valid, keyboard-accessible controls.
+                  <div key={c.id} className="group relative">
+                    <button
+                      onClick={() => handleSwitch(c.id)}
+                      className={cn(
+                        'w-full text-left pl-2.5 pr-8 py-2 rounded-lg flex items-start gap-2 transition-colors',
+                        c.id === activeId ? 'bg-gray-100' : 'hover:bg-gray-50',
+                      )}
+                    >
+                      <MessageCircle
+                        className="w-4 h-4 mt-0.5 shrink-0 text-gray-400"
+                        style={c.id === activeId ? { color: primaryColor } : undefined}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{c.title || 'New conversation'}</p>
+                        {c.preview && <p className="text-xs text-gray-400 truncate">{c.preview}</p>}
+                        <p className="text-[10px] text-gray-300 mt-0.5">{timeAgo(c.updatedAt)}</p>
+                      </div>
+                    </button>
+                    <button
                       onClick={(e) => handleDeleteConv(c.id, e)}
-                      className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all shrink-0 p-1 -mr-1"
+                      className="absolute right-1.5 top-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100 text-gray-300 hover:text-red-500 transition-all p-1"
                       title="Delete conversation"
+                      aria-label="Delete conversation"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                    </span>
-                  </button>
+                    </button>
+                  </div>
                 ))
               )}
             </div>

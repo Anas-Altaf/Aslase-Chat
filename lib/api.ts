@@ -12,11 +12,11 @@ export class ApiError extends Error {
   }
 }
 
-export async function getAuthToken(): Promise<string | null> {
+export async function getAuthToken(forceRefresh = false): Promise<string | null> {
   const user = auth.currentUser;
   if (!user) return null;
   try {
-    return await user.getIdToken();
+    return await user.getIdToken(forceRefresh);
   } catch {
     return null;
   }
@@ -31,13 +31,25 @@ export async function authenticatedFetch(
     throw new ApiError(401, 'No authentication token available');
   }
 
-  const headers = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-    ...options.headers,
-  };
+  const doFetch = (bearer: string) =>
+    fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${bearer}`,
+        ...options.headers,
+      },
+    });
 
-  return fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+  let response = await doFetch(token);
+
+  // On 401 the cached token may be stale/revoked — force-refresh once and retry.
+  if (response.status === 401) {
+    const fresh = await getAuthToken(true);
+    if (fresh && fresh !== token) response = await doFetch(fresh);
+  }
+
+  return response;
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -92,8 +104,11 @@ export const api = {
     return parseResponse<T>(response);
   },
 
-  async delete<T = unknown>(endpoint: string): Promise<T> {
-    const response = await authenticatedFetch(endpoint, { method: 'DELETE' });
+  async delete<T = unknown>(endpoint: string, data?: unknown): Promise<T> {
+    const response = await authenticatedFetch(endpoint, {
+      method: 'DELETE',
+      ...(data !== undefined ? { body: JSON.stringify(data) } : {}),
+    });
     return parseResponse<T>(response);
   },
 

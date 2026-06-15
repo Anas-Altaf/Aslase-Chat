@@ -5,6 +5,7 @@ import { Mail, Phone, User, Trash2, Tag, Info, Filter } from 'lucide-react';
 import { useChatbot } from '@/contexts/ChatbotContext';
 import { useSocket } from '@/contexts/SocketContext';
 import { exportLeads, getLeads, deleteLead, updateLead } from '@/lib/services';
+import { downloadTextFile } from '@/lib/download';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -97,18 +98,6 @@ export default function Leads() {
     socket.on('new_lead', refresh);
     return () => { socket.off('new_lead', refresh); };
   }, [socket, selectedChatbot?.id, loadLeads]);
-
-  const downloadTextFile = (filename: string, text: string, mime: string) => {
-    const blob = new Blob([text], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
 
   const handleExport = async (format: 'csv' | 'json') => {
     if (!selectedChatbot) return;

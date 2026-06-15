@@ -30,6 +30,7 @@ export const useBusinessStore = create<BusinessState & BusinessActions>()(
       error: null,
 
       initialize: async () => {
+        set({ error: null });
         try {
           const response = await getBusinesses();
           if (response.success) {
@@ -39,6 +40,8 @@ export const useBusinessStore = create<BusinessState & BusinessActions>()(
               ? businesses.find((b) => b.id === selectedBusiness.id) ?? businesses[0] ?? null
               : businesses[0] ?? null;
             set({ businesses, selectedBusiness: nextSelected });
+          } else {
+            set({ error: response.error ?? 'Failed to load businesses' });
           }
         } catch {
           set({ error: 'Failed to load businesses' });
@@ -99,6 +102,7 @@ export const useBusinessStore = create<BusinessState & BusinessActions>()(
         try {
           const response = await getBusinesses();
           if (response.success) set({ businesses: response.data.items });
+          else set({ error: response.error ?? 'Failed to refresh businesses' });
         } catch {
           set({ error: 'Failed to refresh businesses' });
         }
