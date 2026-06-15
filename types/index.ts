@@ -118,7 +118,7 @@ export interface ChatSession {
 // ==========================================
 
 export type LeadStatus = 'new' | 'contacted' | 'converted' | 'rejected';
-export type LeadSource = 'website' | 'public_widget' | 'api' | 'whatsapp' | 'instagram' | 'slack';
+export type LeadSource = 'website' | 'public_widget' | 'api' | 'whatsapp' | 'instagram' | 'slack' | 'messenger' | 'telegram';
 
 export interface Lead {
     id: string;

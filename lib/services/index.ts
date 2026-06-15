@@ -7,3 +7,4 @@ export * from './business.service';
 export * from './queries.service';
 export * from './users.service';
 export * from './leads.service';
+export * from './integrations.service';
