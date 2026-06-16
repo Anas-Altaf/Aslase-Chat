@@ -125,9 +125,13 @@ export async function resolveQuery(id: string): Promise<ApiResponse<void>> {
   }
 }
 
-export async function saveQueryToContext(id: string): Promise<ApiResponse<{ sourceId: string }>> {
+export async function saveQueryToContext(id: string, reply?: string): Promise<ApiResponse<{ sourceId: string }>> {
   try {
-    const res = await api.post<{ sourceId: string }>(`/queries/${id}/save-to-context`, {});
+    const trimmed = reply?.trim();
+    const res = await api.post<{ sourceId: string }>(
+      `/queries/${id}/save-to-context`,
+      trimmed ? { reply: trimmed } : {},
+    );
     return { success: true, data: res };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Failed to save to context', data: { sourceId: '' } };

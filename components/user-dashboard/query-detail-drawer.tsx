@@ -80,9 +80,18 @@ export default function QueryDetailDrawer({
     if (!reply.trim()) { toast.error('Reply cannot be empty'); return; }
     setSaving(true);
     try {
-      const updated = await api.patch<QueryItem>(`/queries/${query._id}/reply`, { reply });
-      onUpdated(updated);
-      toast.success('Reply saved');
+      const res = await api.patch<{ query: QueryItem; delivered: boolean; channel: 'social' | 'widget' | 'none' }>(
+        `/queries/${query._id}/reply`,
+        { reply },
+      );
+      onUpdated(res.query);
+      if (res.channel === 'social') {
+        toast.success(res.delivered ? 'Reply sent to the customer' : 'Saved — social delivery failed, try again');
+      } else if (res.channel === 'widget') {
+        toast.success('Reply delivered to the live chat');
+      } else {
+        toast.success('Reply saved (no live session to deliver to)');
+      }
     } catch {
       toast.error('Failed to save reply');
     } finally {
@@ -106,9 +115,12 @@ export default function QueryDetailDrawer({
   const handleSaveToContext = async () => {
     setSavingContext(true);
     try {
-      await api.post(`/queries/${query._id}/save-to-context`, {});
-      onUpdated({ ...query, savedToContext: true });
-      toast.success('Saved to chatbot context');
+      // Send the typed answer so the admin's wording (not the bot's) is what's
+      // saved as training data; falls back to the existing answer if left blank.
+      const trimmed = reply.trim();
+      await api.post(`/queries/${query._id}/save-to-context`, trimmed ? { reply: trimmed } : {});
+      onUpdated({ ...query, savedToContext: true, adminReply: trimmed || query.adminReply });
+      toast.success('Saved to chatbot training — find it in the Training tab');
     } catch {
       toast.error('Failed to save to context');
     } finally {

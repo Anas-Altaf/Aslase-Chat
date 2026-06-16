@@ -135,6 +135,10 @@ export default function ChatWidget({
   const currentBotMsgIdRef = useRef<string | null>(null);
   const infoRef = useRef<ChatbotInfo | null>(null);
   useEffect(() => { infoRef.current = info; }, [info]);
+  // Mirror activeId in a ref so the once-registered socket listeners can read the
+  // currently-viewed conversation without re-subscribing.
+  const activeIdRef = useRef<string>('');
+  useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
 
   const buildWelcome = useCallback((): Message => ({
     id: 'welcome',
@@ -173,6 +177,19 @@ export default function ChatWidget({
       currentBotMsgIdRef.current = null;
       setIsStreaming(false);
       setIsSending(false);
+    });
+
+    // A human (business owner) answered this conversation from the dashboard.
+    // One socket can be joined to several session rooms over its lifetime, so only
+    // append when the event's sessionId matches the conversation on screen now.
+    socket.on('chat:admin-reply', ({ sessionId, text }: { sessionId?: string; text?: string }) => {
+      if (!text) return;
+      if (sessionId && sessionId !== activeIdRef.current) return;
+      setMessages((prev) => [
+        ...prev,
+        { id: generateId(), role: 'assistant', content: text, timestamp: new Date() },
+      ]);
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     });
 
     socketRef.current = socket;
@@ -272,8 +289,10 @@ export default function ChatWidget({
 
     return () => {
       cancelled = true;
-      // Remove the deferred join so fast conversation switches don't leak handlers.
+      // Remove the deferred join so fast conversation switches don't leak handlers,
+      // and leave this room so the socket isn't left in stale session rooms.
       socketRef.current?.off('connect', join);
+      socketRef.current?.emit('leave:session', { sessionId: activeId });
     };
   }, [activeId, chatbotId, buildWelcome]);
 

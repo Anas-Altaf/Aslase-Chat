@@ -15,6 +15,11 @@ export const metadata: Metadata = {
   description: "A modern, scalable chat application built with Next.js 15, React 19, and TypeScript",
 };
 
+// This is an auth-gated, client-data app — nothing should be statically prerendered.
+// Forcing dynamic rendering app-wide also avoids the build-time "useSearchParams must
+// be wrapped in Suspense" prerender error on client pages that read query params.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: {
