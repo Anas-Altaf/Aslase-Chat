@@ -19,7 +19,7 @@ import {
   Bot,
   Brain,
   Trash2,
-  Save,
+  Send,
   CheckCheck,
 } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -210,7 +210,7 @@ export default function QueryDetailDrawer({
           <Textarea
             value={reply}
             onChange={(e) => setReply(e.target.value)}
-            placeholder="Type your answer here — this will be visible to you and can be saved to the chatbot's context..."
+            placeholder="Type your answer — 'Reply Now' sends it to the customer on their channel; 'Save to Chatbot Context' adds this Q&A to the chatbot's training."
             rows={4}
             className="text-sm resize-none"
           />
@@ -221,8 +221,8 @@ export default function QueryDetailDrawer({
               disabled={saving || !reply.trim()}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
-              <Save className="w-3.5 h-3.5 mr-1" />
-              {saving ? 'Saving…' : 'Save Reply'}
+              <Send className="w-3.5 h-3.5 mr-1" />
+              {saving ? 'Sending…' : 'Reply Now'}
             </Button>
             <Button
               size="sm"

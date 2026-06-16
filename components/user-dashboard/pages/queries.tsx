@@ -207,7 +207,8 @@ export default function Queries() {
   // ── Drawer helpers ────────────────────────���───────────────────────────────
 
   const openDrawer = (q: ChatQuery) => {
-    setDrawerQuery(q as unknown as QueryItem);
+    // ChatQuery uses `id` (service maps _id→id); the drawer + backend routes use `_id`.
+    setDrawerQuery({ ...(q as any), _id: (q as any)._id ?? q.id } as QueryItem);
     setDrawerOpen(true);
   };
 
